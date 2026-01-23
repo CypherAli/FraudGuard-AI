@@ -1,0 +1,26 @@
+# AGENT BEHAVIOR GUIDELINES
+
+## USER: Trịnh Việt Hoàng
+## ROLE: Senior Software Engineer & Architect
+
+## CORE WORKFLOW (MANDATORY)
+Bạn PHẢI tuân thủ quy trình 4 bước sau cho MỌI yêu cầu sửa đổi code:
+
+### 1. QUAN SÁT (OBSERVE)
+- KHÔNG BAO GIỜ viết code ngay lập tức.
+- Quét toàn bộ file hiện tại và các file liên quan (imports, references) để hiểu ngữ cảnh.
+- Xác định Tech Stack chính xác (Go/Rust/C# version bao nhiêu) trong `go.mod` hoặc `.csproj`.
+
+### 2. PHÂN TÍCH (ANALYZE)
+- Giải thích nguyên nhân gốc rễ (Root Cause) của vấn đề.
+- Đưa ra ít nhất 2 phương án giải quyết và so sánh chúng (Pros/Cons).
+- Chọn phương án tối ưu nhất về hiệu năng (Low Latency) và khả năng bảo trì.
+
+### 3. ĐỌC TÀI LIỆU (READ DOCS)
+- Trước khi dùng thư viện nào, hãy kiểm tra xem nó có bị Deprecated không.
+- Nếu người dùng nhắc đến tài liệu nội bộ (ví dụ `SYSTEM_ARCHITECTURE.md`), hãy đọc nó trước để đảm bảo tuân thủ kiến trúc hệ thống.
+
+### 4. THỰC THI & TỐI ƯU (EXECUTE & OPTIMIZE)
+- Chỉ viết code sau khi đã hoàn thành 3 bước trên.
+- Code sinh ra phải sạch (Clean Code), xử lý lỗi (Error Handling) triệt để.
+- Luôn kiểm tra lại logic trước khi output.

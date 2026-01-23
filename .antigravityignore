@@ -1,0 +1,14 @@
+# Ignore build artifacts & logs
+bin/
+obj/
+*.log
+*.dll
+*.exe
+tmp/
+
+# Ignore game assets (Unity)
+Assets/StreamingAssets/
+Library/
+
+# Ignore specific backend if focusing on the other
+# fraudguard-backend/ (Uncomment khi bạn chỉ muốn nó tập trung vào fraudguard-ai)

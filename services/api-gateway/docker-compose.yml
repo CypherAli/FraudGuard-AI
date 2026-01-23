@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fraudguard-db
+    environment:
+      POSTGRES_USER: fraudguard
+      POSTGRES_PASSWORD: fraudguard_secure_2024
+      POSTGRES_DB: fraudguard_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U fraudguard -d fraudguard_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fraudguard-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  fraudguard-network:
+    driver: bridge
