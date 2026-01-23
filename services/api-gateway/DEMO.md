@@ -2,7 +2,7 @@
 
 ## Tình trạng hiện tại
 
-✅ **Code hoàn thành 100%:**
+ **Code hoàn thành 100%:**
 - Clean Architecture structure
 - WebSocket Hub với RWMutex concurrency safety
 - Private stream processing (không broadcast audio)
@@ -10,7 +10,7 @@
 - Database schema với JSONB
 - Configuration management
 
-❌ **Chưa chạy được vì:**
+ **Chưa chạy được vì:**
 - Docker Desktop chưa khởi động hoặc chưa cài đặt
 - PostgreSQL container chưa start
 
@@ -53,19 +53,19 @@ go test ./internal/models -v
 
 ## Demo các tính năng đã implement
 
-### 1. ✅ WebSocket Hub - Concurrency Safety
+### 1.  WebSocket Hub - Concurrency Safety
 
 **File:** `internal/hub/hub.go`
 
 **Điểm quan trọng:**
 ```go
-// ✅ ĐÚNG: Lock() cho write operations
+//  ĐÚNG: Lock() cho write operations
 case client := <-h.Register:
     h.mu.Lock()
     h.clients[client] = true
     h.mu.Unlock()
 
-// ✅ ĐÚNG: RLock() cho read operations  
+//  ĐÚNG: RLock() cho read operations  
 case message := <-h.Broadcast:
     h.mu.RLock()
     for client := range h.clients {
@@ -74,11 +74,11 @@ case message := <-h.Broadcast:
     h.mu.RUnlock()
 ```
 
-**Verification:** ✅ Không có race condition
+**Verification:**  Không có race condition
 
 ---
 
-### 2. ✅ Private Stream Processing
+### 2.  Private Stream Processing
 
 **File:** `internal/hub/client.go`
 
@@ -86,19 +86,19 @@ case message := <-h.Broadcast:
 ```go
 switch messageType {
 case websocket.BinaryMessage:
-    // ✅ ĐÚNG: Xử lý riêng cho từng client
+    //  ĐÚNG: Xử lý riêng cho từng client
     go services.ProcessAudioStream(c.deviceID, message, c.sendAlert)
     
-    // ❌ SAI: Không làm thế này!
+    //  SAI: Không làm thế này!
     // c.hub.Broadcast <- message  // Sẽ leak audio!
 }
 ```
 
-**Verification:** ✅ Audio không bị broadcast cho clients khác
+**Verification:**  Audio không bị broadcast cho clients khác
 
 ---
 
-### 3. ✅ Database Schema với JSONB
+### 3.  Database Schema với JSONB
 
 **File:** `migrations/001_init.sql`
 
@@ -108,19 +108,19 @@ CREATE TABLE call_logs (
     id UUID PRIMARY KEY,
     user_id UUID REFERENCES users(id),
     transcript TEXT,
-    metadata JSONB,  -- ✅ Flexible AI results storage
+    metadata JSONB,  --  Flexible AI results storage
     created_at TIMESTAMP
 );
 
--- ✅ GIN index for fast JSONB queries
+--  GIN index for fast JSONB queries
 CREATE INDEX idx_call_logs_metadata ON call_logs USING GIN (metadata);
 ```
 
-**Verification:** ✅ Schema ready for AI metadata
+**Verification:**  Schema ready for AI metadata
 
 ---
 
-### 4. ✅ REST API Endpoints
+### 4.  REST API Endpoints
 
 **File:** `internal/handlers/api.go`
 
@@ -129,11 +129,11 @@ CREATE INDEX idx_call_logs_metadata ON call_logs USING GIN (metadata);
 - `GET /api/check?phone=NUMBER` - Kiểm tra số cụ thể
 - `GET /health` - Health check
 
-**Verification:** ✅ Code compiled successfully
+**Verification:**       Code compiled successfully
 
 ---
 
-### 5. ✅ Configuration Management
+### 5.   Configuration Management
 
 **File:** `pkg/config/config.go`
 
@@ -143,7 +143,7 @@ CREATE INDEX idx_call_logs_metadata ON call_logs USING GIN (metadata);
 - Validation
 - Default values
 
-**Verification:** ✅ Config loader working
+**Verification:**  Config loader working
 
 ---
 
@@ -174,11 +174,11 @@ go run cmd/api/main.go
 
 Expected output:
 ```
-🚀 Starting FraudGuard AI API Gateway...
-✅ Database connection established (Max: 25, Min: 5)
-✅ WebSocket hub started
-✅ Server listening on 0.0.0.0:8080
-📡 WebSocket endpoint: ws://0.0.0.0:8080/ws?device_id=YOUR_DEVICE_ID
+ Starting FraudGuard AI API Gateway...
+ Database connection established (Max: 25, Min: 5)
+ WebSocket hub started
+ Server listening on 0.0.0.0:8080
+ WebSocket endpoint: ws://0.0.0.0:8080/ws?device_id=YOUR_DEVICE_ID
 ```
 
 ### Bước 4: Test WebSocket
@@ -204,20 +204,20 @@ curl "http://localhost:8080/api/check?phone=+84123456789"
 
 ## Kết quả đã đạt được
 
-### ✅ Code Quality
+###  Code Quality
 - **Build:** Successful (exit code 0)
 - **Lint errors:** 0
 - **Compilation errors:** 0
-- **Architecture:** Clean Architecture ✅
-- **Concurrency:** RWMutex đúng cách ✅
+- **Architecture:** Clean Architecture 
+- **Concurrency:** RWMutex đúng cách 
 
-### ✅ Critical Features
-- **WebSocket Hub:** Lock/RLock đúng ✅
-- **Privacy:** Không broadcast audio ✅
-- **Database:** JSONB metadata ✅
-- **API:** REST endpoints ready ✅
+###  Critical Features
+- **WebSocket Hub:** Lock/RLock đúng 
+- **Privacy:** Không broadcast audio 
+- **Database:** JSONB metadata 
+- **API:** REST endpoints ready 
 
-### ✅ Documentation
+###  Documentation
 - README.md với quick start
 - API_CONTRACT.md cho mobile devs
 - Walkthrough.md với implementation details
@@ -228,17 +228,17 @@ curl "http://localhost:8080/api/check?phone=+84123456789"
 ## Tóm tắt
 
 **Đã làm được:**
-- ✅ 16 source files
-- ✅ Clean Architecture structure
-- ✅ Concurrency-safe WebSocket hub
-- ✅ Private stream processing
-- ✅ Database schema
-- ✅ REST API
-- ✅ Build successful
+-  16 source files
+-  Clean Architecture structure
+-  Concurrency-safe WebSocket hub
+-  Private stream processing
+-  Database schema
+-  REST API
+-  Build successful
 
 **Chưa test được vì:**
-- ❌ Docker chưa chạy → PostgreSQL chưa start
-- ❌ Server cần database để chạy
+-  Docker chưa chạy → PostgreSQL chưa start
+-  Server cần database để chạy
 
 **Giải pháp:**
 1. Start Docker Desktop
