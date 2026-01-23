@@ -1,0 +1,24 @@
+# Environment files
+**/.env
+**/.env.local
+
+# Build artifacts
+**/bin/
+**/*.exe
+**/*.dll
+
+# Dependencies
+**/node_modules/
+**/vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+
+# Database
+**/postgres_data/
