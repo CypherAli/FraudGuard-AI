@@ -48,7 +48,7 @@ type WebSocketConfig struct {
 // AIConfig holds AI service API keys
 type AIConfig struct {
 	DeepgramAPIKey string
-	OpenAIAPIKey   string
+	GeminiAPIKey   string
 	VectorDBURL    string
 }
 
@@ -82,7 +82,7 @@ func Load() (*Config, error) {
 		},
 		AI: AIConfig{
 			DeepgramAPIKey: getEnv("DEEPGRAM_API_KEY", ""),
-			OpenAIAPIKey:   getEnv("OPENAI_API_KEY", ""),
+			GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
 			VectorDBURL:    getEnv("VECTOR_DB_URL", ""),
 		},
 	}

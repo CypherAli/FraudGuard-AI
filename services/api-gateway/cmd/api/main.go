@@ -13,6 +13,7 @@ import (
 	"github.com/fraudguard/api-gateway/internal/db"
 	"github.com/fraudguard/api-gateway/internal/handlers"
 	"github.com/fraudguard/api-gateway/internal/hub"
+	"github.com/fraudguard/api-gateway/internal/services"
 	"github.com/fraudguard/api-gateway/pkg/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,6 +33,20 @@ func main() {
 		log.Fatalf("❌ Failed to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	// Initialize AI clients
+	if cfg.AI.DeepgramAPIKey != "" {
+		services.GlobalDeepgramClient = services.NewDeepgramClient(cfg.AI.DeepgramAPIKey)
+		log.Println("✅ Deepgram client initialized")
+	} else {
+		log.Println("⚠️ Deepgram API key not configured")
+	}
+
+	// TODO: Initialize Gemini client for advanced AI fraud detection
+	// For now, using keyword-based detection (hard rules)
+	if cfg.AI.GeminiAPIKey != "" {
+		log.Println("ℹ️ Gemini API key configured (not yet integrated)")
+	}
 
 	// Create WebSocket hub
 	wsHub := hub.NewHub()
