@@ -24,17 +24,6 @@ type Blacklist struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// CallLog represents a call record with AI analysis
-type CallLog struct {
-	ID          uuid.UUID              `json:"id"`
-	UserID      uuid.UUID              `json:"user_id"`
-	PhoneNumber string                 `json:"phone_number,omitempty"`
-	Transcript  string                 `json:"transcript,omitempty"`
-	Duration    int                    `json:"duration"`           // in seconds
-	Metadata    map[string]interface{} `json:"metadata,omitempty"` // JSONB - AI analysis results
-	CreatedAt   time.Time              `json:"created_at"`
-}
-
 // AlertMessage represents a fraud alert sent to client
 type AlertMessage struct {
 	RiskScore int    `json:"risk_score"` // 0-100

@@ -13,6 +13,7 @@ import (
 	"github.com/fraudguard/api-gateway/internal/db"
 	"github.com/fraudguard/api-gateway/internal/handlers"
 	"github.com/fraudguard/api-gateway/internal/hub"
+	"github.com/fraudguard/api-gateway/internal/repository"
 	"github.com/fraudguard/api-gateway/internal/services"
 	"github.com/fraudguard/api-gateway/pkg/config"
 	"github.com/go-chi/chi/v5"
@@ -28,11 +29,17 @@ func main() {
 
 	log.Println("🚀 Starting FraudGuard AI API Gateway...")
 
-	// Initialize database connection
+	// Initialize PostgreSQL database connection (for blacklist)
 	if err := db.Connect(&cfg.Database); err != nil {
-		log.Fatalf("❌ Failed to connect to database: %v", err)
+		log.Fatalf("❌ Failed to connect to PostgreSQL database: %v", err)
 	}
 	defer db.Close()
+
+	// Initialize SQLite database (for call history logs)
+	if err := repository.InitSQLite(); err != nil {
+		log.Printf("⚠️ Warning: SQLite initialization failed: %v", err)
+		log.Println("⚠️ Call history logging will be disabled")
+	}
 
 	// Initialize AI clients
 	if cfg.AI.DeepgramAPIKey != "" {
@@ -87,6 +94,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
+		r.Get("/history", handlers.GetHistory) // NEW: Call history endpoint
 	})
 
 	// Welcome route
@@ -100,7 +108,8 @@ func main() {
 				"health": "/health",
 				"websocket": "/ws?device_id=YOUR_DEVICE_ID",
 				"blacklist": "/api/blacklist",
-				"check": "/api/check?phone=PHONE_NUMBER"
+				"check": "/api/check?phone=PHONE_NUMBER",
+				"history": "/api/history?device_id=YOUR_DEVICE_ID&limit=20"
 			}
 		}`)
 	})

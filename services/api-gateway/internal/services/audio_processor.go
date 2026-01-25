@@ -9,6 +9,45 @@ import (
 	"github.com/fraudguard/api-gateway/internal/models"
 )
 
+// Global detector registry to track fraud detectors per device
+var (
+	detectorRegistry = make(map[string]*FraudDetector)
+	detectorMutex    sync.RWMutex
+)
+
+// GetFraudDetector retrieves or creates a fraud detector for a device
+func GetFraudDetector(deviceID string) *FraudDetector {
+	detectorMutex.RLock()
+	detector, exists := detectorRegistry[deviceID]
+	detectorMutex.RUnlock()
+
+	if exists {
+		return detector
+	}
+
+	// Create new detector if doesn't exist
+	detectorMutex.Lock()
+	defer detectorMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if detector, exists := detectorRegistry[deviceID]; exists {
+		return detector
+	}
+
+	detector = NewFraudDetector(deviceID)
+	detectorRegistry[deviceID] = detector
+	log.Printf("🆕 [%s] Created new fraud detector", deviceID)
+	return detector
+}
+
+// RemoveFraudDetector removes a detector from registry (called after session ends)
+func RemoveFraudDetector(deviceID string) {
+	detectorMutex.Lock()
+	defer detectorMutex.Unlock()
+	delete(detectorRegistry, deviceID)
+	log.Printf("🗑️ [%s] Removed fraud detector from registry", deviceID)
+}
+
 // AudioProcessor handles real-time audio streaming and transcription
 type AudioProcessor struct {
 	deviceID      string
@@ -53,8 +92,8 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 		log.Printf("📝 [%s] Transcript: %s", deviceID, transcript)
 
-		// Step 2: Analyze transcript for fraud
-		detector := NewFraudDetector(deviceID)
+		// Step 2: Get or create fraud detector for this device
+		detector := GetFraudDetector(deviceID)
 		result := detector.AnalyzeText(transcript)
 
 		// Step 3: Send alert if fraud detected

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.SettingsPage"
+             Title="Cài đặt"
+             BackgroundColor="#0A1929">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <!-- Header -->
+            <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
+                <Label Text="⚙️ Cài đặt"
+                       FontSize="32"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"
+                       TextColor="#E3F2FD"/>
+                
+                <Label Text="Cấu hình kết nối Server"
+                       FontSize="14"
+                       HorizontalOptions="Center"
+                       TextColor="#B0BEC5"/>
+            </VerticalStackLayout>
+
+            <!-- Server IP Configuration Card -->
+            <Border BackgroundColor="#1E293B"
+                   StrokeThickness="0"
+                   Padding="20"
+                   Margin="0,0,0,20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                
+                <Border.Shadow>
+                    <Shadow Brush="Black"
+                           Opacity="0.3"
+                           Radius="10"
+                           Offset="0,4"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+                    <!-- Section Title -->
+                    <Label Text="🌐 Địa chỉ Server"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#E3F2FD"/>
+
+                    <!-- Info Text -->
+                    <Label TextColor="#B0BEC5" FontSize="13">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• Emulator: Dùng " />
+                                <Span Text="10.0.2.2" FontAttributes="Bold" TextColor="#4CAF50"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Thiết bị thật: Nhập IP LAN của máy tính&#x0a;"/>
+                                <Span Text="  (Ví dụ: 192.168.1.100)"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+
+                    <!-- IP Address Input -->
+                    <Label Text="Địa chỉ IP:"
+                           FontSize="14"
+                           TextColor="#E3F2FD"
+                           Margin="0,10,0,0"/>
+                    
+                    <Entry x:Name="ServerIPEntry"
+                           Placeholder="Nhập IP (VD: 192.168.1.100)"
+                           PlaceholderColor="#78909C"
+                           TextColor="#E3F2FD"
+                           BackgroundColor="#0F172A"
+                           FontSize="16"
+                           Keyboard="Numeric"
+                           MaxLength="15"/>
+
+                    <!-- Port Info -->
+                    <Label Text="Port: 8080 (cố định)"
+                           FontSize="12"
+                           TextColor="#78909C"
+                           Margin="0,5,0,0"/>
+
+                    <!-- Current Configuration Display -->
+                    <Border BackgroundColor="#0F172A"
+                           StrokeThickness="1"
+                           Stroke="#334155"
+                           Padding="12"
+                           Margin="0,10,0,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8"/>
+                        </Border.StrokeShape>
+                        
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Cấu hình hiện tại:"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#B0BEC5"/>
+                            <Label x:Name="CurrentConfigLabel"
+                                   Text="WebSocket: ws://10.0.2.2:8080/ws"
+                                   FontSize="11"
+                                   TextColor="#78909C"/>
+                            <Label x:Name="CurrentAPILabel"
+                                   Text="API: http://10.0.2.2:8080/api/history"
+                                   FontSize="11"
+                                   TextColor="#78909C"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Save Button -->
+                    <Button x:Name="SaveButton"
+                           Text="💾 LƯU CẤU HÌNH"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           BackgroundColor="#4CAF50"
+                           TextColor="White"
+                           CornerRadius="25"
+                           HeightRequest="50"
+                           Margin="0,10,0,0"
+                           Clicked="OnSaveButtonClicked">
+                        <Button.Shadow>
+                            <Shadow Brush="#4CAF50"
+                                   Opacity="0.4"
+                                   Radius="15"
+                                   Offset="0,6"/>
+                        </Button.Shadow>
+                    </Button>
+
+                    <!-- Test Connection Button -->
+                    <Button x:Name="TestButton"
+                           Text="🔌 KIỂM TRA KẾT NỐI"
+                           FontSize="16"
+                           BackgroundColor="#1E88E5"
+                           TextColor="White"
+                           CornerRadius="25"
+                           HeightRequest="45"
+                           Clicked="OnTestConnectionClicked"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Device ID Configuration Card -->
+            <Border BackgroundColor="#1E293B"
+                   StrokeThickness="0"
+                   Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="📱 Device ID"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#E3F2FD"/>
+
+                    <Label Text="ID thiết bị của bạn (dùng để lọc lịch sử):"
+                           FontSize="13"
+                           TextColor="#B0BEC5"/>
+
+                    <Entry x:Name="DeviceIDEntry"
+                           Placeholder="Nhập Device ID (VD: my_phone)"
+                           PlaceholderColor="#78909C"
+                           TextColor="#E3F2FD"
+                           BackgroundColor="#0F172A"
+                           FontSize="16"
+                           MaxLength="50"/>
+
+                    <Button Text="💾 Lưu Device ID"
+                           FontSize="16"
+                           BackgroundColor="#FF9800"
+                           TextColor="White"
+                           CornerRadius="25"
+                           HeightRequest="45"
+                           Clicked="OnSaveDeviceIDClicked"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Info Section -->
+            <Border BackgroundColor="#1E3A5F"
+                   StrokeThickness="0"
+                   Padding="15"
+                   Margin="0,10,0,20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="ℹ️ Hướng dẫn tìm IP LAN:"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#E3F2FD"/>
+                    
+                    <Label TextColor="#B0BEC5" FontSize="12">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="1. Mở Command Prompt/Terminal trên máy tính&#x0a;"/>
+                                <Span Text="2. Gõ lệnh: " />
+                                <Span Text="ipconfig" FontAttributes="Bold" TextColor="#4CAF50"/>
+                                <Span Text=" (Windows) hoặc "/>
+                                <Span Text="ifconfig" FontAttributes="Bold" TextColor="#4CAF50"/>
+                                <Span Text=" (Mac/Linux)&#x0a;"/>
+                                <Span Text="3. Tìm IPv4 Address (VD: 192.168.1.100)&#x0a;"/>
+                                <Span Text="4. Đảm bảo điện thoại và máy tính cùng WiFi"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Status Label -->
+            <Label x:Name="StatusLabel"
+                   Text=""
+                   FontSize="14"
+                   HorizontalOptions="Center"
+                   TextColor="#4CAF50"
+                   IsVisible="False"
+                   Margin="0,10,0,20"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

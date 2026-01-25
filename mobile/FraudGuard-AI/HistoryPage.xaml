@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:FraudGuardAI.Models"
+             x:Class="FraudGuardAI.HistoryPage"
+             Title="Lịch sử Cuộc gọi"
+             BackgroundColor="#0A1929">
+
+    <Grid RowDefinitions="Auto,*" Padding="20">
+        
+        <!-- Header Section -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,20,0,20">
+            <Label Text="📋 Lịch sử Cuộc gọi"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="#E3F2FD"
+                   HorizontalOptions="Center"/>
+            
+            <Label x:Name="SubtitleLabel"
+                   Text="Danh sách các cuộc gọi đã phân tích"
+                   FontSize="14"
+                   TextColor="#B0BEC5"
+                   HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+
+        <!-- Main Content with RefreshView -->
+        <RefreshView x:Name="RefreshView"
+                     Grid.Row="1"
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}"
+                     RefreshColor="#1E88E5">
+            
+            <Grid>
+                <!-- Loading Indicator -->
+                <ActivityIndicator x:Name="LoadingIndicator"
+                                  IsRunning="False"
+                                  IsVisible="False"
+                                  Color="#1E88E5"
+                                  VerticalOptions="Center"
+                                  HorizontalOptions="Center"/>
+
+                <!-- Empty State -->
+                <VerticalStackLayout x:Name="EmptyStateView"
+                                    IsVisible="False"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Center"
+                                    Spacing="20">
+                    <Label Text="📭"
+                           FontSize="80"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Chưa có lịch sử cuộc gọi"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#E3F2FD"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Các cuộc gọi được phân tích sẽ xuất hiện ở đây"
+                           FontSize="14"
+                           TextColor="#B0BEC5"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Call History List -->
+                <CollectionView x:Name="HistoryCollectionView"
+                               ItemsSource="{Binding CallLogs}"
+                               SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="15"/>
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:CallLog">
+                            <!-- Call Log Card -->
+                            <Border BackgroundColor="{Binding CardBackgroundColor}"
+                                   StrokeThickness="0"
+                                   Padding="16"
+                                   Margin="0,0,0,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+
+                                <Border.Shadow>
+                                    <Shadow Brush="Black"
+                                           Opacity="0.1"
+                                           Radius="8"
+                                           Offset="0,4"/>
+                                </Border.Shadow>
+
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8">
+                                    
+                                    <!-- Row 0: Risk Level Badge -->
+                                    <Border Grid.Row="0" Grid.Column="0"
+                                           BackgroundColor="{Binding RiskScoreColor}"
+                                           Padding="10,5"
+                                           HorizontalOptions="Start"
+                                           StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding RiskLevelDisplay}"
+                                              FontSize="12"
+                                              FontAttributes="Bold"
+                                              TextColor="White"/>
+                                    </Border>
+
+                                    <!-- Row 0: Risk Score -->
+                                    <Label Grid.Row="0" Grid.Column="1"
+                                          Text="{Binding RiskScore, StringFormat='Điểm: {0}'}"
+                                          FontSize="18"
+                                          FontAttributes="Bold"
+                                          TextColor="{Binding RiskScoreColor}"
+                                          VerticalOptions="Center"/>
+
+                                    <!-- Row 1: Time -->
+                                    <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8">
+                                        <Label Text="🕒"
+                                              FontSize="14"/>
+                                        <Label Text="{Binding TimeDisplay}"
+                                              FontSize="14"
+                                              TextColor="#424242"/>
+                                        <Label Text="|"
+                                              FontSize="14"
+                                              TextColor="#9E9E9E"/>
+                                        <Label Text="{Binding DurationDisplay}"
+                                              FontSize="14"
+                                              TextColor="#424242"/>
+                                    </HorizontalStackLayout>
+
+                                    <!-- Row 2: Evidence Label -->
+                                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                          Text="Bằng chứng:"
+                                          FontSize="12"
+                                          FontAttributes="Bold"
+                                          TextColor="#616161"
+                                          Margin="0,4,0,0"/>
+
+                                    <!-- Row 3: Evidence Content -->
+                                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                          Text="{Binding Evidence}"
+                                          FontSize="12"
+                                          TextColor="#757575"
+                                          LineBreakMode="TailTruncation"
+                                          MaxLines="3"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Error Message -->
+                <VerticalStackLayout x:Name="ErrorView"
+                                    IsVisible="False"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Center"
+                                    Spacing="15">
+                    <Label Text="❌"
+                           FontSize="60"
+                           HorizontalOptions="Center"/>
+                    <Label x:Name="ErrorMessageLabel"
+                           Text="Không thể tải lịch sử"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#EF5350"
+                           HorizontalOptions="Center"/>
+                    <Button Text="Thử lại"
+                           BackgroundColor="#1E88E5"
+                           TextColor="White"
+                           CornerRadius="20"
+                           Padding="20,10"
+                           Clicked="OnRetryClicked"/>
+                </VerticalStackLayout>
+            </Grid>
+        </RefreshView>
+    </Grid>
+</ContentPage>
