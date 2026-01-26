@@ -53,6 +53,12 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 // Audio is processed PRIVATELY for each client
 func (c *Client) ReadPump() {
 	defer func() {
+		// Save call log to database before unregistering
+		// This ensures we capture the session data even if connection drops
+		if detector := services.GetFraudDetector(c.deviceID); detector != nil {
+			detector.EndSession()
+		}
+
 		c.hub.Unregister <- c
 		c.conn.Close()
 	}()

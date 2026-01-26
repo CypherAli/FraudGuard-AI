@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudGuard AI - Live Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #fafbfc;
+            --bg-card: #ffffff;
+            --border: #e1e4e8;
+            --text-primary: #24292e;
+            --text-secondary: #586069;
+            --text-muted: #6a737d;
+            --accent-success: #28a745;
+            --accent-warning: #ffd33d;
+            --accent-danger: #d73a49;
+            --accent-info: #0366d6;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 48px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 200ms ease, transform 200ms ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-info);
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--accent-info);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0256c7;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .log-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-info {
+            background: #f1f8ff;
+            border-left-color: var(--accent-info);
+            color: #0366d6;
+        }
+
+        .log-success {
+            background: #f0fff4;
+            border-left-color: var(--accent-success);
+            color: #22863a;
+        }
+
+        .log-warning {
+            background: #fffbdd;
+            border-left-color: var(--accent-warning);
+            color: #735c0f;
+        }
+
+        .log-error {
+            background: #ffeef0;
+            border-left-color: var(--accent-danger);
+            color: #d73a49;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 6px;
+            border-left: 4px solid transparent;
+        }
+
+        .result-success {
+            background: #f0fff4;
+            border-left-color: var(--accent-success);
+        }
+
+        .result-danger {
+            background: #ffeef0;
+            border-left-color: var(--accent-danger);
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .result-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .blacklist-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-danger);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .phone-number {
+            font-weight: 600;
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .reason {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Scrollbar styling */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: var(--bg-card);
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>FraudGuard AI</h1>
+            <p class="subtitle">Hệ thống Tác nhân AI Chủ động Ngăn chặn Lừa đảo Viễn thông</p>
+        </header>
+
+        <div class="grid">
+            <!-- WebSocket Connection Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">WebSocket Connection</h2>
+                    <span class="status-badge status-disconnected" id="wsStatusBadge">Disconnected</span>
+                </div>
+                <div class="form-group">
+                    <label for="deviceId">Device ID</label>
+                    <input type="text" id="deviceId" placeholder="demo-device-001" value="demo-device-001">
+                </div>
+                <button id="connectBtn" class="btn-success">Connect</button>
+                <div class="stats">
+                    <div class="stat-box">
+                        <span class="stat-value" id="msgSent">0</span>
+                        <span class="stat-label">Sent</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value" id="msgReceived">0</span>
+                        <span class="stat-label">Received</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phone Check Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Check Phone Number</h2>
+                </div>
+                <div class="form-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="text" id="phoneNumber" placeholder="+84123456789">
+                </div>
+                <button id="checkBtn" class="btn-primary">Check Number</button>
+                <div id="checkResult"></div>
+            </div>
+
+            <!-- Blacklist Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Blacklist Database</h2>
+                </div>
+                <button id="loadBlacklistBtn" class="btn-primary">Load Blacklist</button>
+                <div id="blacklistContainer" style="margin-top: 20px; max-height: 300px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- Activity Log Card -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2 class="card-title">Activity Log</h2>
+                </div>
+                <div class="log-container" id="activityLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let msgSent = 0;
+        let msgReceived = 0;
+
+        const log = (message, type = 'info') => {
+            const logContainer = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString('vi-VN');
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContainer.insertBefore(entry, logContainer.firstChild);
+        };
+
+        const updateStatus = (connected) => {
+            const statusBadge = document.getElementById('wsStatusBadge');
+            const connectBtn = document.getElementById('connectBtn');
+
+            if (connected) {
+                statusBadge.className = 'status-badge status-connected';
+                statusBadge.textContent = 'Connected';
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.className = 'btn-danger';
+            } else {
+                statusBadge.className = 'status-badge status-disconnected';
+                statusBadge.textContent = 'Disconnected';
+                connectBtn.textContent = 'Connect';
+                connectBtn.className = 'btn-success';
+            }
+        };
+
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+                log('Disconnecting from WebSocket...', 'warning');
+            } else {
+                const deviceId = document.getElementById('deviceId').value;
+                const wsUrl = `ws://localhost:8080/ws?device_id=${deviceId}`;
+
+                log(`Connecting to ${wsUrl}...`, 'info');
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    log('WebSocket connected successfully', 'success');
+                    updateStatus(true);
+                };
+
+                ws.onmessage = (event) => {
+                    msgReceived++;
+                    document.getElementById('msgReceived').textContent = msgReceived;
+                    log(`Received: ${event.data}`, 'info');
+                };
+
+                ws.onerror = (error) => {
+                    log(`WebSocket error occurred`, 'error');
+                };
+
+                ws.onclose = () => {
+                    log('WebSocket disconnected', 'warning');
+                    updateStatus(false);
+                };
+            }
+        });
+
+        document.getElementById('checkBtn').addEventListener('click', async () => {
+            const phone = document.getElementById('phoneNumber').value;
+            if (!phone) {
+                log('Please enter a phone number', 'warning');
+                return;
+            }
+
+            log(`Checking phone number: ${phone}...`, 'info');
+
+            try {
+                const response = await fetch(`http://localhost:8080/api/check?phone=${encodeURIComponent(phone)}`);
+                const data = await response.json();
+
+                const resultDiv = document.getElementById('checkResult');
+                if (data.is_blacklist) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box result-danger">
+                            <div class="result-title">${data.phone}</div>
+                            <div class="result-text">This number is blacklisted</div>
+                        </div>
+                    `;
+                    log(`${phone} is blacklisted`, 'error');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result-box result-success">
+                            <div class="result-title">${data.phone}</div>
+                            <div class="result-text">This number is safe</div>
+                        </div>
+                    `;
+                    log(`${phone} is safe`, 'success');
+                }
+            } catch (error) {
+                log(`Error checking number: ${error.message}`, 'error');
+            }
+        });
+
+        document.getElementById('loadBlacklistBtn').addEventListener('click', async () => {
+            log('Loading blacklist...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:8080/api/blacklist');
+                const data = await response.json();
+
+                const container = document.getElementById('blacklistContainer');
+                container.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'blacklist-item';
+                        div.innerHTML = `
+                            <div class="phone-number">${item.phone_number}</div>
+                            <div class="reason">${item.reason || 'Scam detected'}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                    log(`Loaded ${data.count} blacklisted numbers`, 'success');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No blacklisted numbers found</p>';
+                    log('No blacklisted numbers in database', 'info');
+                }
+            } catch (error) {
+                log(`Error loading blacklist: ${error.message}`, 'error');
+            }
+        });
+
+        // Initialize
+        updateStatus(false);
+        log('FraudGuard AI Demo initialized', 'success');
+        log('Click Connect to establish WebSocket connection', 'info');
+    </script>
+</body>
+
+</html>

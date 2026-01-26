@@ -13,6 +13,7 @@ import (
 	"github.com/fraudguard/api-gateway/internal/db"
 	"github.com/fraudguard/api-gateway/internal/handlers"
 	"github.com/fraudguard/api-gateway/internal/hub"
+	"github.com/fraudguard/api-gateway/internal/repository"
 	"github.com/fraudguard/api-gateway/internal/services"
 	"github.com/fraudguard/api-gateway/pkg/config"
 	"github.com/go-chi/chi/v5"
@@ -23,35 +24,41 @@ func main() {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("❌ Failed to load configuration: %v", err)
+		log.Fatalf(" Failed to load configuration: %v", err)
 	}
 
-	log.Println("🚀 Starting FraudGuard AI API Gateway...")
+	log.Println(" Starting FraudGuard AI API Gateway...")
 
-	// Initialize database connection
+	// Initialize PostgreSQL database connection (for blacklist)
 	if err := db.Connect(&cfg.Database); err != nil {
-		log.Fatalf("❌ Failed to connect to database: %v", err)
+		log.Fatalf(" Failed to connect to PostgreSQL database: %v", err)
 	}
 	defer db.Close()
+
+	// Initialize SQLite database (for call history logs)
+	if err := repository.InitSQLite(); err != nil {
+		log.Printf(" Warning: SQLite initialization failed: %v", err)
+		log.Println(" Call history logging will be disabled")
+	}
 
 	// Initialize AI clients
 	if cfg.AI.DeepgramAPIKey != "" {
 		services.GlobalDeepgramClient = services.NewDeepgramClient(cfg.AI.DeepgramAPIKey)
-		log.Println("✅ Deepgram client initialized")
+		log.Println(" Deepgram client initialized")
 	} else {
-		log.Println("⚠️ Deepgram API key not configured")
+		log.Println(" Deepgram API key not configured")
 	}
 
 	// TODO: Initialize Gemini client for advanced AI fraud detection
 	// For now, using keyword-based detection (hard rules)
 	if cfg.AI.GeminiAPIKey != "" {
-		log.Println("ℹ️ Gemini API key configured (not yet integrated)")
+		log.Println("ℹ Gemini API key configured (not yet integrated)")
 	}
 
 	// Create WebSocket hub
 	wsHub := hub.NewHub()
 	go wsHub.Run()
-	log.Println("✅ WebSocket hub started")
+	log.Println(" WebSocket hub started")
 
 	// Setup HTTP router
 	r := chi.NewRouter()
@@ -87,6 +94,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
+		r.Get("/history", handlers.GetHistory) // NEW: Call history endpoint
 	})
 
 	// Welcome route
@@ -100,7 +108,8 @@ func main() {
 				"health": "/health",
 				"websocket": "/ws?device_id=YOUR_DEVICE_ID",
 				"blacklist": "/api/blacklist",
-				"check": "/api/check?phone=PHONE_NUMBER"
+				"check": "/api/check?phone=PHONE_NUMBER",
+				"history": "/api/history?device_id=YOUR_DEVICE_ID&limit=20"
 			}
 		}`)
 	})
@@ -116,10 +125,10 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("✅ Server listening on %s", serverAddr)
-		log.Printf("📡 WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
+		log.Printf(" Server listening on %s", serverAddr)
+		log.Printf(" WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Server failed to start: %v", err)
+			log.Fatalf(" Server failed to start: %v", err)
 		}
 	}()
 
@@ -128,14 +137,14 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("🛑 Shutting down server...")
+	log.Println(" Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("❌ Server forced to shutdown: %v", err)
+		log.Printf(" Server forced to shutdown: %v", err)
 	}
 
-	log.Println("👋 Server stopped gracefully")
+	log.Println(" Server stopped gracefully")
 }

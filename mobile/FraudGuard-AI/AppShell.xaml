@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="FraudGuardAI.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:FraudGuardAI"
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="True"
+    Shell.TabBarBackgroundColor="#0A1929"
+    Shell.TabBarForegroundColor="#E3F2FD"
+    Shell.TabBarUnselectedColor="#78909C"
+    Shell.TabBarTitleColor="#E3F2FD">
+
+    <!-- Tab Bar Items -->
+    <TabBar>
+        <!-- Tab 1: Protection (Main Page) -->
+        <ShellContent
+            Title="Protection"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage">
+            <ShellContent.Icon>
+                <FontImageSource
+                    FontFamily="MaterialIcons"
+                    Glyph="&#xe32a;"
+                    Color="#4CAF50"/>
+            </ShellContent.Icon>
+        </ShellContent>
+
+        <!-- Tab 2: History -->
+        <ShellContent
+            Title="History"
+            ContentTemplate="{DataTemplate local:HistoryPage}"
+            Route="HistoryPage">
+            <ShellContent.Icon>
+                <FontImageSource
+                    FontFamily="MaterialIcons"
+                    Glyph="&#xe889;"
+                    Color="#1E88E5"/>
+            </ShellContent.Icon>
+        </ShellContent>
+
+        <!-- Tab 3: Settings -->
+        <ShellContent
+            Title="Settings"
+            ContentTemplate="{DataTemplate local:SettingsPage}"
+            Route="SettingsPage">
+            <ShellContent.Icon>
+                <FontImageSource
+                    FontFamily="MaterialIcons"
+                    Glyph="&#xe8b8;"
+                    Color="#FF9800"/>
+            </ShellContent.Icon>
+        </ShellContent>
+    </TabBar>
+
+</Shell>

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fraudguard/api-gateway/internal/db"
 	"github.com/fraudguard/api-gateway/internal/models"
+	"github.com/fraudguard/api-gateway/internal/repository"
 	"github.com/google/uuid"
 )
 
@@ -402,14 +403,19 @@ func CheckBlacklist(phoneNumber string) (*models.Blacklist, error) {
 
 	var blacklist models.Blacklist
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, phone_number, report_count, risk_level, created_at, updated_at 
-		 FROM blacklists WHERE phone_number = $1`,
+		`SELECT id, phone_number, reason, confidence_score, reported_count, 
+		        first_reported_at, last_reported_at, status, created_at, updated_at 
+		 FROM blacklist WHERE phone_number = $1 AND status = 'active'`,
 		phoneNumber,
 	).Scan(
 		&blacklist.ID,
 		&blacklist.PhoneNumber,
-		&blacklist.ReportCount,
-		&blacklist.RiskLevel,
+		&blacklist.Reason,
+		&blacklist.ConfidenceScore,
+		&blacklist.ReportedCount,
+		&blacklist.FirstReportedAt,
+		&blacklist.LastReportedAt,
+		&blacklist.Status,
 		&blacklist.CreatedAt,
 		&blacklist.UpdatedAt,
 	)
@@ -419,4 +425,77 @@ func CheckBlacklist(phoneNumber string) (*models.Blacklist, error) {
 	}
 
 	return &blacklist, nil
+}
+
+// ==================== Session Management ====================
+
+// EndSession saves the call log to database when a session ends
+// This should be called when WebSocket connection is closed
+func (fd *FraudDetector) EndSession() {
+	fd.mu.Lock()
+	defer fd.mu.Unlock()
+
+	session := fd.session
+	if session == nil {
+		log.Printf("⚠️ [%s] No active session to end", fd.deviceID)
+		return
+	}
+
+	endTime := time.Now()
+	duration := int64(endTime.Sub(session.StartTime).Seconds())
+
+	// Build evidence from detected patterns and transcript history
+	evidence := strings.Builder{}
+
+	// Add detected patterns
+	if len(session.DetectedPatterns) > 0 {
+		evidence.WriteString("Patterns: ")
+		evidence.WriteString(strings.Join(session.DetectedPatterns, "; "))
+	}
+
+	// Add transcript snippets (limit to 500 chars total)
+	if len(session.TranscriptHistory) > 0 {
+		if evidence.Len() > 0 {
+			evidence.WriteString(" | ")
+		}
+		evidence.WriteString("Transcript: ")
+		transcriptText := strings.Join(session.TranscriptHistory, " ")
+		if len(transcriptText) > 400 {
+			transcriptText = transcriptText[:400] + "..."
+		}
+		evidence.WriteString(transcriptText)
+	}
+
+	evidenceStr := evidence.String()
+	if len(evidenceStr) > 1000 {
+		evidenceStr = evidenceStr[:1000] + "..."
+	}
+
+	// Determine if call is fraudulent based on threshold
+	// Using 60 as threshold (configurable via fd.config.HighThreshold)
+	isFraud := session.AccumulatedScore >= 60
+
+	// Create call log entry
+	callLog := &models.CallLog{
+		DeviceID:  fd.deviceID,
+		StartTime: session.StartTime,
+		EndTime:   endTime,
+		Duration:  duration,
+		RiskScore: session.AccumulatedScore,
+		IsFraud:   isFraud,
+		Evidence:  evidenceStr,
+		CreatedAt: time.Now(),
+	}
+
+	log.Printf("🛑 [%s] Session ended - Duration: %ds, RiskScore: %d, IsFraud: %v, Alerts: %d",
+		fd.deviceID, duration, session.AccumulatedScore, isFraud, session.AlertsSent)
+
+	// Save to database asynchronously to avoid blocking
+	go func() {
+		if err := repository.SaveCallLog(callLog); err != nil {
+			log.Printf("❌ [%s] Failed to save call log: %v", fd.deviceID, err)
+		} else {
+			log.Printf("✅ [%s] Call log saved successfully (ID: %d)", fd.deviceID, callLog.ID)
+		}
+	}()
 }

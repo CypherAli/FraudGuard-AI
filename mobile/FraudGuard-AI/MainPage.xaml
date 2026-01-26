@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.MainPage"
+             BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <!-- Safe Mode Colors (Blue/Green) -->
+            <Color x:Key="SafeBackgroundColor">#0A1929</Color>
+            <Color x:Key="SafePrimaryColor">#1E88E5</Color>
+            <Color x:Key="SafeAccentColor">#4CAF50</Color>
+            <Color x:Key="SafeTextColor">#E3F2FD</Color>
+            
+            <!-- Danger Mode Colors (Red) -->
+            <Color x:Key="DangerBackgroundColor">#B71C1C</Color>
+            <Color x:Key="DangerPrimaryColor">#D32F2F</Color>
+            <Color x:Key="DangerTextColor">#FFEBEE</Color>
+            
+            <!-- Default Page Background -->
+            <Color x:Key="PageBackgroundColor">#0A1929</Color>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid x:Name="MainGrid" RowDefinitions="Auto,*,Auto,Auto" Padding="20">
+        
+        <!-- Header Section -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,20,0,30">
+            <Label Text="FraudGuard AI"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{DynamicResource SafeTextColor}"/>
+            
+            <Label Text="Protect Your Calls"
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   Opacity="0.8"
+                   TextColor="{DynamicResource SafeTextColor}"/>
+        </VerticalStackLayout>
+
+        <!-- Shield Icon & Status Section (Center) -->
+        <VerticalStackLayout Grid.Row="1" 
+                            VerticalOptions="Center" 
+                            HorizontalOptions="Center"
+                            Spacing="30">
+            
+            <!-- Shield Container with Glow Effect -->
+            <Border x:Name="ShieldBorder"
+                    WidthRequest="200"
+                    HeightRequest="200"
+                    StrokeThickness="0"
+                    BackgroundColor="Transparent"
+                    HorizontalOptions="Center">
+                
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="100"/>
+                </Border.StrokeShape>
+                
+                <!-- Shield Icon (Using Unicode Symbol) -->
+                <Label x:Name="ShieldIcon"
+                       Text="🛡️"
+                       FontSize="120"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       Opacity="0.5"/>
+            </Border>
+
+            <!-- Status Text -->
+            <Label x:Name="StatusLabel"
+                   Text="Not Active"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{DynamicResource SafeTextColor}"/>
+            
+            <!-- Connection Status -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                <Ellipse x:Name="ConnectionIndicator"
+                        WidthRequest="12"
+                        HeightRequest="12"
+                        Fill="Gray"/>
+                <Label x:Name="ConnectionStatusLabel"
+                       Text="Disconnected"
+                       FontSize="14"
+                       TextColor="{DynamicResource SafeTextColor}"
+                       Opacity="0.7"/>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Alert Display Area -->
+        <Border x:Name="AlertBanner"
+                Grid.Row="2"
+                IsVisible="False"
+                BackgroundColor="#FF5252"
+                Padding="20,15"
+                Margin="0,0,0,20"
+                StrokeThickness="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12"/>
+            </Border.StrokeShape>
+            
+            <VerticalStackLayout Spacing="8">
+                <Label x:Name="AlertTypeLabel"
+                       Text="⚠️ WARNING"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <Label x:Name="AlertMessageLabel"
+                       Text="Fraud risk detected"
+                       FontSize="14"
+                       TextColor="White"
+                       Opacity="0.9"/>
+                <Label x:Name="AlertConfidenceLabel"
+                       Text="Confidence: 95%"
+                       FontSize="12"
+                       TextColor="White"
+                       Opacity="0.8"/>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Control Button -->
+        <Button x:Name="ToggleButton"
+                Grid.Row="3"
+                Text="START PROTECTION"
+                FontSize="20"
+                FontAttributes="Bold"
+                HeightRequest="60"
+                CornerRadius="30"
+                BackgroundColor="{DynamicResource SafePrimaryColor}"
+                TextColor="White"
+                Clicked="OnToggleButtonClicked"
+                Margin="0,0,0,20">
+            <Button.Shadow>
+                <Shadow Brush="{DynamicResource SafePrimaryColor}"
+                        Opacity="0.5"
+                        Radius="20"
+                        Offset="0,8"/>
+            </Button.Shadow>
+        </Button>
+
+        <!-- Debug Info (Optional - can be removed in production) -->
+        <Label x:Name="DebugLabel"
+               Grid.Row="3"
+               Text=""
+               FontSize="10"
+               TextColor="Gray"
+               HorizontalOptions="Center"
+               Margin="0,10,0,0"
+               IsVisible="True"/>
+    </Grid>
+</ContentPage>
