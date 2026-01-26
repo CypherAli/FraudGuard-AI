@@ -296,20 +296,42 @@ namespace FraudGuardAI
 
         /// <summary>
         /// Build WebSocket URL from saved IP
+        /// Supports both local (ws://) and Ngrok (wss://) connections
         /// </summary>
         public static string GetWebSocketUrl()
         {
-            string ip = GetServerIP();
-            return $"ws://{ip}:8080/ws";
+            string host = GetServerIP();
+            
+            // Auto-detect: If contains ngrok/tunnel domain → use wss:// (secure)
+            if (host.Contains("ngrok") || host.Contains(".app") || host.Contains("tunnel"))
+            {
+                // Ngrok/Cloud: wss://domain/ws (no port)
+                return $"wss://{host}/ws";
+            }
+            else
+            {
+                // Local network: ws://ip:port/ws
+                return $"ws://{host}:8080/ws";
+            }
         }
 
         /// <summary>
         /// Build API base URL from saved IP
+        /// Supports both local (http://) and Ngrok (https://) connections
         /// </summary>
         public static string GetAPIBaseUrl()
         {
-            string ip = GetServerIP();
-            return $"http://{ip}:8080";
+            string host = GetServerIP();
+            
+            // Auto-detect scheme based on host
+            if (host.Contains("ngrok") || host.Contains(".app") || host.Contains("tunnel"))
+            {
+                return $"https://{host}";
+            }
+            else
+            {
+                return $"http://{host}:8080";
+            }
         }
 
         #endregion
