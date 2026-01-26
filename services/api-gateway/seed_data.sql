@@ -1,135 +1,146 @@
 -- ==========================================
 -- FRAUDGUARD AI - BLACKLIST SEED DATA
 -- 50+ Fraud Phone Numbers with Real Scenarios
--- Schema: phone_number, reason, confidence_score, reported_count
+-- Updated: January 26, 2026
 -- ==========================================
 
--- Clean existing data
-TRUNCATE TABLE blacklist CASCADE;
+-- Dọn dẹp dữ liệu cũ
+TRUNCATE TABLE blacklist;
 
 -- ==========================================
--- NHOM 1: GIA DANH CO QUAN QUYEN LUC (CRITICAL - Score 0.9-1.0)
+-- NHÓM 1: GIẢ DANH CƠ QUAN QUYỀN LỰC (AUTHORITY IMPERSONATION)
+-- Mục tiêu: Đe dọa pháp lý, gây sợ hãi để nạn nhân chuyển tiền "phục vụ điều tra"
 -- ==========================================
 
+-- Kịch bản 1: Giả danh Bộ Công an / Viện Kiểm sát ("Chuyên án ma túy/Rửa tiền")
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('0911333444', 'Gia danh Dai uy cong an: Bao lien quan duong day rua tien xuyen quoc gia', 0.95, 45, 'active'),
-('0988111222', 'Mao danh VKSND Toi cao: Gui lenh bat tam giam gia qua Zalo', 0.98, 67, 'active'),
-('0909555666', 'Gia danh Cuc Canh sat ma tuy: Yeu cau chuyen tien vao tai khoan tam giu', 0.92, 38, 'active'),
-('0912999888', 'Lua dao: Yeu cau cai ung dung "Bo Cong an" gia mao chua ma doc', 0.96, 51, 'active'),
-('02477778888', 'Robocall: Bo TT&TT thong bao khoa SIM sau 2 gio do chua chuan hoa', 0.91, 89, 'active'),
-('02899991111', 'Gia danh nhan vien Viettel: Yeu cau gui anh CCCD de mo khoa SIM', 0.93, 72, 'active'),
-('0866111222', 'Gia danh can bo thue: Moi tai app Tong cuc Thue gia de hoan thue TNCN', 0.94, 56, 'active'),
-('0933444555', 'Lua dao: Cai ma doc chiem quyen dieu khien dien thoai qua link la', 0.97, 43, 'active'),
-('0944777888', 'Gia danh CSGT: Thong bao phat nguoi qua han, doa chuyen ho so sang toa', 0.90, 34, 'active'),
-('0899666777', 'Lua dao: Yeu cau chuyen tien phat nguoi vao tai khoan ca nhan', 0.92, 41, 'active');
+('0911333444', 'Giả danh Đại úy công an: Báo liên quan đường dây rửa tiền xuyên quốc gia', 0.95, 45, 'active'),
+('0988111222', 'Mạo danh VKSND Tối cao: Gửi lệnh bắt tạm giam giả qua Zalo', 0.98, 67, 'active'),
+('0909555666', 'Giả danh Cục Cảnh sát ma túy: Yêu cầu chuyển tiền vào tài khoản tạm giữ để thẩm tra', 0.92, 38, 'active'),
+('0912999888', 'Lừa đảo: Yêu cầu cài ứng dụng "Bộ Công an" giả mạo chứa mã độc', 0.96, 51, 'active');
 
--- ==========================================
--- NHOM 2: LUA DAO TAI CHINH & NGAN HANG (CRITICAL - Score 0.85-0.95)
--- ==========================================
-
+-- Kịch bản 2: Giả danh Cục Viễn thông / Nhà mạng ("Khóa SIM sau 2 giờ")
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('02873009999', 'Gia danh VPBank/Techcombank: Moi nang han muc the tin dung online', 0.89, 78, 'active'),
-('0901234567', 'Lua dao: Yeu cau doc ma OTP de kich hoat ho so nang han muc', 0.94, 92, 'active'),
-('0915666777', 'Gia danh nhan vien ngan hang: Ho tro cap nhat sinh trac hoc khuon mat', 0.91, 65, 'active'),
-('0868123123', 'Lua dao Deepfake: Video call thu thap khuon mat de pha xac thuc FaceID', 0.96, 48, 'active'),
-('0922111222', 'Gia danh MoMo: Thong bao tai khoan bi tam khoa, yeu cau xac thuc CCCD', 0.88, 71, 'active'),
-('0877333444', 'Lua dao: Gui link gia mao trang MoMo/ZaloPay de danh cap dang nhap', 0.93, 59, 'active'),
-('0933666888', 'Gia danh VietinBank: Yeu cau cap nhat thong tin eKYC qua link gia', 0.90, 53, 'active'),
-('0866444777', 'Lua dao: Thong bao trung thuong 500 trieu tu ngan hang, yeu cau nop thue', 0.87, 44, 'active');
+('02477778888', 'Robocall: "Bộ TT&TT thông báo khóa SIM sau 2 giờ do chưa chuẩn hóa"', 0.91, 89, 'active'),
+('02899991111', 'Giả danh nhân viên Viettel/VinaPhone: Yêu cầu gửi ảnh CCCD để mở khóa SIM', 0.93, 72, 'active');
 
--- ==========================================
--- NHOM 3: KHAI THAC TAM LY GIA DINH (CRITICAL - Score 0.85-0.95)
--- ==========================================
-
+-- Kịch bản 3: Giả danh Cơ quan Thuế ("Ứng dụng Thuế độc hại")
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('0977888999', 'Gia danh bac si: Bao con bi tai nan chan thuong so nao can tien mo gap', 0.93, 87, 'active'),
-('0333999111', 'Lua dao cap cuu: Tao hien truong gia (tieng coi xe) ep chuyen tien', 0.91, 76, 'active'),
-('0966111333', 'Lua dao Deepfake: Hack Zalo goi video gia giong/mat nguoi than vay tien', 0.95, 54, 'active'),
-('0844555666', 'Gia danh ban than: Goi video bi mat dien thoai yeu cau chuyen tien', 0.89, 62, 'active'),
-('02455558888', 'Gia danh EVN: Doa cat dien sau 2 gio do no cuoc qua app la', 0.88, 83, 'active'),
-('0933777888', 'Lua dao: Gui SMS gia mao EVN voi link QR thanh toan tro ve tai khoan lua', 0.90, 69, 'active'),
-('0955222333', 'Gia danh thay giao: Bao hoc sinh gap su co can hop phu huynh gap', 0.86, 41, 'active'),
-('0811444555', 'Lua dao: Gia danh con gai khoc loc bao mat vi bi cuop yeu cau chuyen tien', 0.92, 58, 'active');
+('0866111222', 'Giả danh cán bộ thuế: Mời tải app Tổng cục Thuế giả để hoàn thuế TNCN', 0.94, 56, 'active'),
+('0933444555', 'Lừa đảo: Cài mã độc chiếm quyền điều khiển điện thoại (Accessibility) qua link lạ', 0.97, 43, 'active');
 
--- ==========================================
--- NHOM 4: DAU TU & VIEC LAM (WARNING - Score 0.70-0.85)
--- ==========================================
-
+-- Kịch bản 4: Giả danh Cảnh sát Giao thông ("Phạt nguội")
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('0833444555', 'Moi vao nhom Zalo "Thay doc lenh": Dau tu chung khoan quoc te bao lo', 0.82, 95, 'active'),
-('0922888999', 'Lua dao san Forex/Tien ao: Du nap tien roi khoa tai khoan khong cho rut', 0.84, 112, 'active'),
-('0788111222', 'Dau tu Bitcoin/Ethereum gia: Hoa lai 20%/thang chiem doat von goc', 0.81, 78, 'active'),
-('0355666777', 'Mao danh Shopee/Lazada: Tuyen CTV chot don ao nap tien lam nhiem vu', 0.79, 134, 'active'),
-('0811222333', 'Lua dao tuyen dung: Yeu cau nop phi dong phuc/ho so roi cat lien lac', 0.76, 89, 'active'),
-('0566888999', 'Viec lam online: Tap don hang hang ngay nap tien tam ung khong hoan', 0.78, 156, 'active'),
-('0588111222', 'Thong bao trung thuong xe SH: Yeu cau chuyen truoc phi van chuyen/thue', 0.75, 67, 'active'),
-('0999888777', 'Gia danh Hai quan: Buu kien tu nuoc ngoai bi giu yeu cau dong phat', 0.77, 72, 'active'),
-('0377999111', 'Trung thuong VinMart gia: Nop phi truoc de nhan qua 100 trieu', 0.74, 54, 'active'),
-('0944333555', 'Du an ma: Moi mua dat nen tang gia nhanh chiem doat tien dat coc', 0.80, 43, 'active'),
-('0822666777', 'Can ho chung cu sieu re: Gia mao du an that lua ban giay to gia', 0.83, 38, 'active');
+('0944777888', 'Giả danh CSGT: Thông báo biên lai phạt nguội quá hạn, dọa chuyển hồ sơ sang tòa án', 0.90, 34, 'active'),
+('0899666777', 'Lừa đảo: Yêu cầu chuyển tiền phạt nguội vào tài khoản cá nhân để xóa hồ sơ', 0.92, 41, 'active');
+
 
 -- ==========================================
--- NHOM 5: SPAM & QUAY ROI (WARNING - Score 0.60-0.75)
+-- NHÓM 2: LỪA ĐẢO TÀI CHÍNH & NGÂN HÀNG (FINANCIAL FRAUD)
+-- Mục tiêu: Chiếm đoạt tài khoản, lừa chuyển tiền
 -- ==========================================
 
+-- Kịch bản 5: Giả danh Ngân hàng ("Nâng hạn mức thẻ tín dụng")
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('02473001234', 'Spam bat dong san: Moi mua du an nghi duong dat nen lien tuc', 0.68, 245, 'active'),
-('02888889999', 'Telesale: Spam moi mo the tin dung/vay tieu dung khong ngung', 0.65, 312, 'active'),
-('0911000111', 'Quang cao rac: Dich vu hut be phot thong tac cong', 0.62, 189, 'active'),
-('0566777888', 'Spam SIM so dep: Nhan tin/goi dien chao ban SIM lien tuc', 0.64, 267, 'active'),
-('0944111222', 'Robocall: Quang cao khoa hoc tieng Anh/Ky nang mem tu dong', 0.67, 298, 'active'),
-('0355444666', 'Spam casino online: Moi tham gia choi game bai doi thuong', 0.71, 156, 'active'),
-('0799888111', 'Quang cao vay tien nhanh: Duyet 5 phut lai 0% thuc chat lua dao', 0.73, 178, 'active'),
-('0522333444', 'Telesale bao hiem: Goi dien chao ban bao hiem nhan tho lien tuc', 0.63, 234, 'active'),
-('0866777999', 'Spam my pham: Chao ban kem tri mun tri nam than ki', 0.61, 145, 'active'),
-('0977222111', 'Quang cao hoc luat xe: Goi dien spam moi hoc lai xe A1 A2 B2', 0.66, 201, 'active');
+('02873009999', 'Giả danh VPBank/Techcombank: Mời nâng hạn mức thẻ tín dụng online', 0.89, 78, 'active'),
+('0901234567', 'Lừa đảo: Yêu cầu đọc mã OTP để "kích hoạt hồ sơ" nâng hạn mức', 0.94, 92, 'active');
 
--- ==========================================
--- NHOM 6: CAC HINH THUC KHAC (MIXED - Score 0.70-0.90)
--- ==========================================
-
+-- Kịch bản 6: Cập nhật Sinh trắc học (Quyết định 2345)
 INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
-('0888777666', 'Gia danh Facebook: Thong bao vi pham ban quyen yeu cau xac thuc', 0.85, 67, 'active'),
-('0966444555', 'Lua dao hen ho online: Tao tai khoan gia xinh vay tien sau khi quen', 0.79, 94, 'active'),
-('02466669999', 'Gia danh trung tam tiem chung: Moi dang ky vaccine COVID gia thu phi', 0.82, 52, 'active'),
-('0933222111', 'Quang cao thuoc chua benh: Ban san pham gia chat luong kem', 0.71, 118, 'active'),
-('0877555444', 'Tour du lich gia re: Nhan tien dat coc roi huy tour khong hoan', 0.76, 85, 'active'),
-('0522888999', 'Ve may bay gia: Gui thong tin dat cho roi bien mat chiem doat tien', 0.81, 73, 'active'),
-('0944666888', 'Gia danh quy tu thien: Keu goi quyen gop cho benh nhi chiem doat', 0.84, 61, 'active'),
-('0366777999', 'Lu lut mien Trung gia: Tao tai khoan ngan hang gia nhan tu thien', 0.87, 48, 'active');
+('0915666777', 'Giả danh nhân viên ngân hàng: Hỗ trợ cập nhật sinh trắc học khuôn mặt online', 0.91, 65, 'active'),
+('0868123123', 'Lừa đảo: Video call Deepfake thu thập khuôn mặt để phá xác thực FaceID', 0.96, 48, 'active');
+
+-- Kịch bản 7: Giả danh Ví điện tử (MoMo/ZaloPay)
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0922111222', 'Giả danh MoMo: Thông báo tài khoản bị tạm khóa, yêu cầu xác thực CCCD', 0.88, 71, 'active'),
+('0877333444', 'Lừa đảo: Gửi link giả mạo trang MoMo/ZaloPay để đánh cắp đăng nhập', 0.93, 59, 'active'),
+('0933666888', 'Giả danh VietinBank: Yêu cầu cập nhật thông tin eKYC qua link giả', 0.90, 53, 'active'),
+('0866444777', 'Lừa đảo: Thông báo trúng thưởng 500 triệu từ ngân hàng, yêu cầu nộp thuế', 0.87, 44, 'active');
+
 
 -- ==========================================
--- STATISTICS & VERIFICATION
+-- NHÓM 3: KHAI THÁC TÂM LÝ GIA ĐÌNH & ĐỜI SỐNG
+-- Mục tiêu: Đánh vào nỗi sợ hãi, lo lắng cho người thân
 -- ==========================================
 
--- Count total records
-SELECT 'Total blacklist entries' as metric, COUNT(*) as value FROM blacklist
-UNION ALL
-SELECT 'CRITICAL (>= 0.85)', COUNT(*) FROM blacklist WHERE confidence_score >= 0.85
-UNION ALL
-SELECT 'WARNING (0.70-0.84)', COUNT(*) FROM blacklist WHERE confidence_score >= 0.70 AND confidence_score < 0.85
-UNION ALL
-SELECT 'LOW (< 0.70)', COUNT(*) FROM blacklist WHERE confidence_score < 0.70
-UNION ALL
-SELECT 'Average confidence', ROUND(AVG(confidence_score)::numeric, 3)::text FROM blacklist
-UNION ALL
-SELECT 'Total reports', SUM(reported_count)::text FROM blacklist;
+-- Kịch bản 8: "Con đang cấp cứu"
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0977888999', 'Giả danh giáo viên/bác sĩ: Báo con bị tai nạn chấn thương sọ não, cần tiền mổ gấp', 0.93, 87, 'active'),
+('0333999111', 'Lừa đảo cấp cứu: Tạo hiện trường giả (tiếng còi xe) ép chuyển tiền viện phí', 0.91, 76, 'active');
 
--- Show sample high-risk numbers
+-- Kịch bản 9: Video Call Deepfake ("Người bạn trong video")
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0966111333', 'Lừa đảo Deepfake: Hack Zalo, gọi video giả giọng/mặt người thân để vay tiền gấp', 0.95, 54, 'active'),
+('0844555666', 'Giả danh bạn thân: Gọi video bị mất điện thoại yêu cầu chuyển tiền', 0.89, 62, 'active');
+
+-- Kịch bản 10: Giả danh Điện lực ("Cắt điện sinh hoạt")
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('02455558888', 'Giả danh EVN: Dọa cắt điện sau 2 giờ do nợ cước, yêu cầu thanh toán qua app lạ', 0.88, 83, 'active'),
+('0933777888', 'Lừa đảo: Gửi SMS giả mạo EVN với link QR thanh toán trỏ về tài khoản lừa đảo', 0.90, 69, 'active');
+
+-- Kịch bản 11: Giả danh Nhà trường
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0955222333', 'Giả danh thầy giáo: Báo học sinh gặp sự cố cần họp phụ huynh gấp', 0.86, 41, 'active'),
+('0811444555', 'Lừa đảo: Giả danh con gái khóc lóc báo mất ví bị cướp yêu cầu chuyển tiền', 0.92, 58, 'active');
+
+
+-- ==========================================
+-- NHÓM 4: ĐẦU TƯ & VIỆC LÀM (OPPORTUNITY FRAUD)
+-- Mục tiêu: Đánh vào lòng tham, mong muốn kiếm tiền dễ dàng
+-- ==========================================
+
+-- Kịch bản 12: Đầu tư chứng khoán quốc tế / Tiền ảo
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0833444555', 'Mời vào nhóm Zalo "Thầy đọc lệnh": Đầu tư chứng khoán quốc tế bao lỗ', 0.82, 95, 'active'),
+('0922888999', 'Lừa đảo sàn Forex/Tiền ảo: Dụ nạp tiền rồi khóa tài khoản không cho rút', 0.84, 112, 'active'),
+('0788111222', 'Đầu tư Bitcoin/Ethereum giả: Hứa lãi 20%/tháng chiếm đoạt vốn gốc', 0.81, 78, 'active');
+
+-- Kịch bản 13: Tuyển dụng "Việc nhẹ lương cao"
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0355666777', 'Mạo danh Shopee/Lazada: Tuyển CTV chốt đơn ảo, nạp tiền làm nhiệm vụ', 0.79, 134, 'active'),
+('0811222333', 'Lừa đảo tuyển dụng: Yêu cầu nộp phí đồng phục/hồ sơ rồi cắt liên lạc', 0.76, 89, 'active'),
+('0566888999', 'Việc làm online: Tập đơn hàng hàng ngày nạp tiền tạm ứng không hoàn', 0.78, 156, 'active');
+
+-- Kịch bản 14: Lừa đảo trúng thưởng / Bưu kiện
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('0588111222', 'Thông báo trúng thưởng xe SH: Yêu cầu chuyển trước phí vận chuyển/thuế', 0.75, 67, 'active'),
+('0999888777', 'Giả danh Hải quan/Chuyển phát: Bưu kiện từ nước ngoài bị giữ, yêu cầu đóng phạt', 0.77, 72, 'active');
+
+
+-- ==========================================
+-- NHÓM 5: SPAM & QUẤY RỐI (RÁC VIỄN THÔNG)
+-- Mục tiêu: Quảng cáo, làm phiền
+-- ==========================================
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+('02473001234', 'Spam bất động sản: Mời mua dự án nghỉ dưỡng, đất nền', 0.65, 201, 'active'),
+('02888889999', 'Telesale: Spam mời mở thẻ tín dụng/vay tiêu dùng liên tục', 0.68, 178, 'active'),
+('0911000111', 'Quảng cáo rác: Dịch vụ hút bể phốt, thông tắc cống', 0.60, 145, 'active'),
+('0566777888', 'Spam SIM số đẹp: Nhắn tin/gọi điện chào bán SIM', 0.62, 167, 'active'),
+('0944111222', 'Cuộc gọi tự động (Robocall): Quảng cáo khóa học tiếng Anh/Kỹ năng mềm', 0.64, 189, 'active');
+
+
+-- ==========================================
+-- VERIFICATION & STATISTICS
+-- ==========================================
+
+-- Đếm tổng số records đã import
+SELECT COUNT(*) as total_blacklist_records FROM blacklist;
+
+-- Thống kê theo mức độ nguy hiểm (confidence score)
 SELECT 
-    phone_number,
-    ROUND(confidence_score::numeric, 2) as score,
-    reported_count as reports,
-    LEFT(reason, 60) as description
+    CASE 
+        WHEN confidence_score >= 0.9 THEN 'CRITICAL (≥0.9)'
+        WHEN confidence_score >= 0.8 THEN 'HIGH (0.8-0.89)'
+        WHEN confidence_score >= 0.7 THEN 'MEDIUM (0.7-0.79)'
+        ELSE 'LOW (<0.7)'
+    END as risk_level,
+    COUNT(*) as count
 FROM blacklist
-WHERE confidence_score >= 0.90
-ORDER BY confidence_score DESC, reported_count DESC
-LIMIT 10;
+GROUP BY risk_level
+ORDER BY MIN(confidence_score) DESC;
 
--- Success message
-SELECT 
-    '=== DATA IMPORT SUCCESSFUL ===' as status,
-    COUNT(*) as total_records,
-    ROUND(AVG(confidence_score)::numeric, 3) as avg_score,
-    SUM(reported_count) as total_reports
-FROM blacklist;
+-- Top 5 số điện thoại bị báo cáo nhiều nhất
+SELECT phone_number, reason, confidence_score, reported_count
+FROM blacklist
+ORDER BY reported_count DESC
+LIMIT 5;
