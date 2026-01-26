@@ -403,14 +403,19 @@ func CheckBlacklist(phoneNumber string) (*models.Blacklist, error) {
 
 	var blacklist models.Blacklist
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, phone_number, report_count, risk_level, created_at, updated_at 
-		 FROM blacklists WHERE phone_number = $1`,
+		`SELECT id, phone_number, reason, confidence_score, reported_count, 
+		        first_reported_at, last_reported_at, status, created_at, updated_at 
+		 FROM blacklist WHERE phone_number = $1 AND status = 'active'`,
 		phoneNumber,
 	).Scan(
 		&blacklist.ID,
 		&blacklist.PhoneNumber,
-		&blacklist.ReportCount,
-		&blacklist.RiskLevel,
+		&blacklist.Reason,
+		&blacklist.ConfidenceScore,
+		&blacklist.ReportedCount,
+		&blacklist.FirstReportedAt,
+		&blacklist.LastReportedAt,
+		&blacklist.Status,
 		&blacklist.CreatedAt,
 		&blacklist.UpdatedAt,
 	)

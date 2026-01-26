@@ -12,8 +12,8 @@ namespace FraudGuardAI
 
         private const string PREF_SERVER_IP = "ServerIP";
         private const string PREF_DEVICE_ID = "DeviceID";
-        private const string DEFAULT_IP = "10.0.2.2";
-        private const string DEFAULT_DEVICE_ID = "test_device";
+        private const string DEFAULT_IP = "192.168.1.234"; // Change this to your computer's LAN IP
+        private const string DEFAULT_DEVICE_ID = "android_device";
 
         #endregion
 
@@ -61,7 +61,7 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Error loading settings: {ex.Message}");
-                ShowStatus("Lỗi khi tải cấu hình", isError: true);
+                ShowStatus("Error loading configuration", isError: true);
             }
         }
 
@@ -77,14 +77,14 @@ namespace FraudGuardAI
                 // Validate IP
                 if (string.IsNullOrWhiteSpace(ip))
                 {
-                    ShowStatus("❌ Vui lòng nhập địa chỉ IP", isError: true);
+                    ShowStatus("❌ Please enter an IP address", isError: true);
                     return;
                 }
 
                 // Basic IP validation (simple check)
                 if (!IsValidIP(ip))
                 {
-                    ShowStatus("❌ Địa chỉ IP không hợp lệ", isError: true);
+                    ShowStatus("❌ Invalid IP address format", isError: true);
                     return;
                 }
 
@@ -94,14 +94,14 @@ namespace FraudGuardAI
                 // Update display
                 UpdateConfigurationDisplay(ip);
 
-                ShowStatus("✅ Đã lưu cấu hình thành công!", isError: false);
+                ShowStatus("✅ Configuration saved successfully!", isError: false);
 
                 System.Diagnostics.Debug.WriteLine($"[Settings] Saved Server IP: {ip}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Error saving IP: {ex.Message}");
-                ShowStatus($"❌ Lỗi: {ex.Message}", isError: true);
+                ShowStatus($"❌ Error: {ex.Message}", isError: true);
             }
         }
 
@@ -116,19 +116,19 @@ namespace FraudGuardAI
 
                 if (string.IsNullOrWhiteSpace(deviceID))
                 {
-                    ShowStatus("❌ Vui lòng nhập Device ID", isError: true);
+                    ShowStatus("❌ Please enter a Device ID", isError: true);
                     return;
                 }
 
                 Preferences.Set(PREF_DEVICE_ID, deviceID);
-                ShowStatus("✅ Đã lưu Device ID!", isError: false);
+                ShowStatus("✅ Device ID saved!", isError: false);
 
                 System.Diagnostics.Debug.WriteLine($"[Settings] Saved Device ID: {deviceID}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Error saving Device ID: {ex.Message}");
-                ShowStatus($"❌ Lỗi: {ex.Message}", isError: true);
+                ShowStatus($"❌ Error: {ex.Message}", isError: true);
             }
         }
 
@@ -224,23 +224,23 @@ namespace FraudGuardAI
                 if (response.IsSuccessStatusCode)
                 {
                     ShowStatus("✅ Kết nối thành công!", isError: false);
-                    await DisplayAlert("Thành công", $"Đã kết nối tới server:\n{url}", "OK");
+                    await DisplayAlert("Success", $"Connected to server:\n{url}", "OK");
                 }
                 else
                 {
-                    ShowStatus($"❌ Server trả về lỗi: {response.StatusCode}", isError: true);
+                    ShowStatus($"❌ Server returned error: {response.StatusCode}", isError: true);
                 }
             }
             catch (HttpRequestException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Connection test failed: {ex.Message}");
-                ShowStatus("❌ Không thể kết nối tới server", isError: true);
-                await DisplayAlert("Lỗi kết nối",
-                    "Không thể kết nối tới server.\n\n" +
-                    "Kiểm tra:\n" +
-                    "• IP có đúng không?\n" +
-                    "• Server có đang chạy không?\n" +
-                    "• Cùng mạng WiFi chưa?",
+                ShowStatus("❌ Cannot connect to server", isError: true);
+                await DisplayAlert("Connection Error",
+                    "Cannot connect to server.\n\n" +
+                    "Check:\n" +
+                    "• Is the IP correct?\n" +
+                    "• Is the server running?\n" +
+                    "• Are you on the same WiFi?",
                     "OK");
             }
             catch (Exception ex)

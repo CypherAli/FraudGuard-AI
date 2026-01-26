@@ -19,12 +19,13 @@ func GetBlacklist(w http.ResponseWriter, r *http.Request) {
 
 	// Query all blacklisted numbers
 	rows, err := db.Pool.Query(ctx,
-		`SELECT id, phone_number, report_count, risk_level, created_at, updated_at 
-		 FROM blacklists 
-		 ORDER BY risk_level DESC, report_count DESC`,
+		`SELECT id, phone_number, reason, confidence_score, reported_count, 
+		        first_reported_at, last_reported_at, status, created_at, updated_at 
+		 FROM blacklist 
+		 ORDER BY confidence_score DESC, reported_count DESC`,
 	)
 	if err != nil {
-		log.Printf("❌ Error querying blacklist: %v", err)
+		log.Printf(" Error querying blacklist: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -36,13 +37,17 @@ func GetBlacklist(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(
 			&bl.ID,
 			&bl.PhoneNumber,
-			&bl.ReportCount,
-			&bl.RiskLevel,
+			&bl.Reason,
+			&bl.ConfidenceScore,
+			&bl.ReportedCount,
+			&bl.FirstReportedAt,
+			&bl.LastReportedAt,
+			&bl.Status,
 			&bl.CreatedAt,
 			&bl.UpdatedAt,
 		)
 		if err != nil {
-			log.Printf("❌ Error scanning blacklist row: %v", err)
+			log.Printf(" Error scanning blacklist row: %v", err)
 			continue
 		}
 		blacklists = append(blacklists, bl)

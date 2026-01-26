@@ -53,7 +53,7 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 UpdateDebugInfo($"Init Error: {ex.Message}");
-                DisplayAlert("Lỗi", $"Không thể khởi tạo service: {ex.Message}", "OK");
+                DisplayAlert("Error", $"Cannot initialize service: {ex.Message}", "OK");
             }
         }
 
@@ -79,7 +79,7 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 UpdateDebugInfo($"Toggle Error: {ex.Message}");
-                await DisplayAlert("Lỗi", ex.Message, "OK");
+                await DisplayAlert("Error", ex.Message, "OK");
             }
         }
 
@@ -108,8 +108,8 @@ namespace FraudGuardAI
                         // Change to safe/protected mode
                         await AnimateToSafeMode();
 
-                        StatusLabel.Text = "🔒 Đang được bảo vệ";
-                        ToggleButton.Text = "TẮT BẢO VỆ";
+                        StatusLabel.Text = "🔒 Protected";
+                        ToggleButton.Text = "STOP PROTECTION";
                         ToggleButton.BackgroundColor = Color.FromArgb("#FF5252");
 
                         // Start shield pulse animation
@@ -120,7 +120,7 @@ namespace FraudGuardAI
                 }
                 else
                 {
-                    await DisplayAlert("Lỗi", "Không thể bắt đầu bảo vệ. Kiểm tra kết nối và quyền microphone.", "OK");
+                    await DisplayAlert("Error", "Cannot start protection. Check connection and microphone permission.", "OK");
                     UpdateDebugInfo("Failed to start protection");
                 }
             }
@@ -146,8 +146,8 @@ namespace FraudGuardAI
                     // Reset to inactive state
                     await AnimateToInactiveMode();
 
-                    StatusLabel.Text = "Chưa kích hoạt";
-                    ToggleButton.Text = "BẬT BẢO VỆ";
+                    StatusLabel.Text = "Not Active";
+                    ToggleButton.Text = "START PROTECTION";
                     ToggleButton.BackgroundColor = Color.FromArgb("#1E88E5");
 
                     // Hide alert banner

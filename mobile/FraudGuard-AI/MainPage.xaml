@@ -32,7 +32,7 @@
                    HorizontalOptions="Center"
                    TextColor="{DynamicResource SafeTextColor}"/>
             
-            <Label Text="Bảo vệ cuộc gọi của bạn"
+            <Label Text="Protect Your Calls"
                    FontSize="16"
                    HorizontalOptions="Center"
                    Opacity="0.8"
@@ -68,7 +68,7 @@
 
             <!-- Status Text -->
             <Label x:Name="StatusLabel"
-                   Text="Chưa kích hoạt"
+                   Text="Not Active"
                    FontSize="24"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"
@@ -81,7 +81,7 @@
                         HeightRequest="12"
                         Fill="Gray"/>
                 <Label x:Name="ConnectionStatusLabel"
-                       Text="Ngắt kết nối"
+                       Text="Disconnected"
                        FontSize="14"
                        TextColor="{DynamicResource SafeTextColor}"
                        Opacity="0.7"/>
@@ -102,17 +102,17 @@
             
             <VerticalStackLayout Spacing="8">
                 <Label x:Name="AlertTypeLabel"
-                       Text="⚠️ CẢNH BÁO"
+                       Text="⚠️ WARNING"
                        FontSize="18"
                        FontAttributes="Bold"
                        TextColor="White"/>
                 <Label x:Name="AlertMessageLabel"
-                       Text="Phát hiện nguy cơ lừa đảo"
+                       Text="Fraud risk detected"
                        FontSize="14"
                        TextColor="White"
                        Opacity="0.9"/>
                 <Label x:Name="AlertConfidenceLabel"
-                       Text="Độ tin cậy: 95%"
+                       Text="Confidence: 95%"
                        FontSize="12"
                        TextColor="White"
                        Opacity="0.8"/>
@@ -122,7 +122,7 @@
         <!-- Control Button -->
         <Button x:Name="ToggleButton"
                 Grid.Row="3"
-                Text="BẬT BẢO VỆ"
+                Text="START PROTECTION"
                 FontSize="20"
                 FontAttributes="Bold"
                 HeightRequest="60"

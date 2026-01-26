@@ -1,26 +1,75 @@
-# AGENT BEHAVIOR GUIDELINES
+#  TRINH VIET HOANG'S MASTER ARCHITECT PROTOCOL
 
-## USER: Trịnh Việt Hoàng
-## ROLE: Senior Software Engineer & Architect
+## OWNER CONTEXT
+- **User:** Trịnh Việt Hoàng
+- **Role:** Fullstack Engineer & System Architect
+- **Language:** Vietnamese (Tiếng Việt) - Technical terms in English.
 
-## CORE WORKFLOW (MANDATORY)
-Bạn PHẢI tuân thủ quy trình 4 bước sau cho MỌI yêu cầu sửa đổi code:
+---
 
-### 1. QUAN SÁT (OBSERVE)
-- KHÔNG BAO GIỜ viết code ngay lập tức.
-- Quét toàn bộ file hiện tại và các file liên quan (imports, references) để hiểu ngữ cảnh.
-- Xác định Tech Stack chính xác (Go/Rust/C# version bao nhiêu) trong `go.mod` hoặc `.csproj`.
+##  PROTOCOL 0: MANDATORY PRE-COMPUTATION (BẮT BUỘC)
+*Trước khi viết bất kỳ dòng code nào, bạn PHẢI thực hiện 3 bước tư duy ngầm sau đây:*
 
-### 2. PHÂN TÍCH (ANALYZE)
-- Giải thích nguyên nhân gốc rễ (Root Cause) của vấn đề.
-- Đưa ra ít nhất 2 phương án giải quyết và so sánh chúng (Pros/Cons).
-- Chọn phương án tối ưu nhất về hiệu năng (Low Latency) và khả năng bảo trì.
+### BƯỚC 1: DEEP REVIEW (QUAN SÁT SÂU)
+- **Context Scan:** Đọc kỹ yêu cầu user, KHÔNG ĐƯỢC làm theo quán tính.
+- **File Audit:** Quét các file đang mở và file liên quan (imports) để hiểu kiến trúc hiện tại.
+- **Root Cause:** Tự hỏi: "Tại sao user cần sửa cái này? Có ảnh hưởng gì đến các module khác không?".
 
-### 3. ĐỌC TÀI LIỆU (READ DOCS)
-- Trước khi dùng thư viện nào, hãy kiểm tra xem nó có bị Deprecated không.
-- Nếu người dùng nhắc đến tài liệu nội bộ (ví dụ `SYSTEM_ARCHITECTURE.md`), hãy đọc nó trước để đảm bảo tuân thủ kiến trúc hệ thống.
+### BƯỚC 2: SKILL & AGENT ACTIVATION (KÍCH HOẠT KỸ NĂNG)
+- Bạn phải xác định rõ vấn đề này thuộc lĩnh vực nào và **TỰ ĐỘNG ÁP DỤNG** các kiến thức từ folder `skills/` tương ứng.
+- **Mental Check:**
+  - Nếu làm Database ➔ "Mình phải tuân thủ skill `database-design` và `postgres-best-practices`".
+  - Nếu làm API ➔ "Mình phải check skill `api-security` xem có hở auth không".
+  - Nếu làm UI ➔ "Check ngay `ui-ux-pro-max` để phối màu cho chuẩn".
 
-### 4. THỰC THI & TỐI ƯU (EXECUTE & OPTIMIZE)
-- Chỉ viết code sau khi đã hoàn thành 3 bước trên.
-- Code sinh ra phải sạch (Clean Code), xử lý lỗi (Error Handling) triệt để.
-- Luôn kiểm tra lại logic trước khi output.
+### BƯỚC 3: SAFETY CHECK (KIỂM TRA AN TOÀN)
+- Code này có làm lộ API Key không?
+- Code này có gây vòng lặp vô tận (Infinite Loop) không?
+- Code này có xử lý trường hợp null/undefined chưa?
+
+---
+
+##  DYNAMIC CONTEXT SWITCHING (CƠ CHẾ TỰ ĐỘNG)
+*Tự động nhận diện dự án và kích hoạt MODE phù hợp:*
+
+###  MODE 1: APEX TRADING (High Performance & Safety)
+**Trigger:** `go.mod` HOẶC `Cargo.toml`
+**Priority:** Latency, Concurrency Safety, Data Integrity.
+**Rules:**
+1.  **Concurrency:** Cẩn thận với Race Condition. Bắt buộc dùng `Mutex` hoặc `Channels` khi truy cập shared state.
+2.  **Golang:** Tuyệt đối KHÔNG `panic`. Handle error 100%: `if err != nil`. Context luôn là tham số đầu tiên.
+3.  **Rust:** CẤM `unwrap()`. Code phải pass `clippy`. Hạn chế `clone()`.
+4.  **Review:** Với các logic khớp lệnh (matching), phải verify logic toán học 2 lần.
+
+###  MODE 2: ENTERPRISE WEB (Fanlabs/Fullstack)
+**Trigger:** `package.json` VÀ (`nest` HOẶC `next`)
+**Priority:** Scalability, Clean Architecture.
+**Rules:**
+1.  **Structure:** Tuân thủ mô hình Controller-Service-Repository. Không viết logic trong Controller.
+2.  **Types:** `Strict Mode`: ON. Cấm `any`. Mọi API Response phải có DTO/Interface.
+3.  **Frontend:** Tối ưu Re-render. Dùng `useMemo` cho các tính toán nặng.
+
+###  MODE 3: FRAUDGUARD AI (Hackathon/Python)
+**Trigger:** `requirements.txt` HOẶC `pyproject.toml`
+**Priority:** Speed, AI Logic, Security Awareness.
+**Rules:**
+1.  **Data:** Xử lý dữ liệu mảng lớn phải dùng Pandas/NumPy (Vectorization), không loop thường.
+2.  **Fraud Logic:** Khi viết rule chặn gian lận, hãy tư duy như Hacker (Bypass scenario).
+3.  **Speed:** Cho phép hardcode config để demo nhanh, nhưng phải comment `TODO`.
+
+---
+
+##  UNIVERSAL LAWS (LUẬT BẤT BIẾN)
+
+### 1. CODE QUALITY
+- **Naming:** Rõ nghĩa (Clean Code). Tên biến phải thể hiện *nó chứa cái gì*.
+- **Comments:** Chỉ giải thích "TẠI SAO" (Why), không giải thích "CÁI GÌ" (What).
+- **Refactor:** Nếu thấy code cũ viết rối, hãy đề xuất sửa lại cho gọn (Boy Scout Rule).
+
+### 2. SECURITY GUARDRAILS
+-  **NO SECRETS:** Không bao giờ hardcode API Key/Password. Dùng env.
+-  **NO SILENT FAILS:** Không bao giờ nuốt lỗi (`try...catch` rỗng).
+##  OUTPUT FORMAT
+1.  **Plan:** (Nếu task phức tạp) Tóm tắt ngắn gọn 3 bước sẽ làm.
+2.  **Code:** Viết code đầy đủ, không cắt bớt (lazy coding), kèm tên file.
+3.  **Next Step:** Gợi ý việc cần làm tiếp theo (Test, Deploy, Refactor).

@@ -23,14 +23,14 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 	deviceID := r.URL.Query().Get("device_id")
 	if deviceID == "" {
 		http.Error(w, "device_id is required", http.StatusBadRequest)
-		log.Println("❌ WebSocket connection rejected: missing device_id")
+		log.Println(" WebSocket connection rejected: missing device_id")
 		return
 	}
 
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("❌ WebSocket upgrade failed: %v", err)
+		log.Printf(" WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -43,5 +43,5 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 	go client.WritePump()
 	go client.ReadPump()
 
-	log.Printf("✅ WebSocket connection established for device: %s", deviceID)
+	log.Printf(" WebSocket connection established for device: %s", deviceID)
 }

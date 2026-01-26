@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Global Color Resources -->
+            <Color x:Key="Primary">#1E88E5</Color>
+            <Color x:Key="Secondary">#4CAF50</Color>
+            <Color x:Key="Accent">#FF9800</Color>
+            <Color x:Key="Danger">#B71C1C</Color>
+            <Color x:Key="Background">#0A1929</Color>
+            <Color x:Key="Surface">#1E293B</Color>
+            <Color x:Key="TextPrimary">#E3F2FD</Color>
+            <Color x:Key="TextSecondary">#B0BEC5</Color>
+
+            <!-- Global Styles -->
+            <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
+                <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+            </Style>
+
+            <Style TargetType="Label" ApplyToDerivedTypes="True">
+                <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

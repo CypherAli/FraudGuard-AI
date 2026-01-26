@@ -1,130 +1,42 @@
 # FraudGuard AI - API Gateway
 
-## Overview
-Real-time fraud detection system backend built with Go, PostgreSQL, and WebSocket.
+> Hệ thống Backend phát hiện lừa đảo thời gian thực (Real-time Fraud Detection)
+> Được xây dựng bởi Team ABSOLUTEGW - Swin Hackathon 2026
 
-## Architecture
-- **Clean Architecture** following Standard Go Project Layout
-- **WebSocket Hub** with concurrency-safe client management (sync.RWMutex)
-- **Stream Processing** - Audio processed privately per client (NOT broadcast)
-- **PostgreSQL 16** with JSONB for flexible AI metadata storage
+## Giới thiệu
+Đây là API Gateway trung tâm của hệ thống FraudGuard AI. Hệ thống đóng vai trò tiếp nhận luồng âm thanh từ ứng dụng di động (Mobile App), chuyển tiếp sang AI Engine để phân tích và trả về cảnh báo lừa đảo ngay lập tức cho người dùng.
 
-## Tech Stack
-- Go 1.22+
-- PostgreSQL 16
-- WebSocket (gorilla/websocket)
-- pgx/v5 (PostgreSQL driver)
-- chi/v5 (HTTP router)
+Hệ thống được thiết kế tối ưu cho hiệu năng cao (High Performance) và ưu tiên bảo mật quyền riêng tư (Privacy-first).
 
-## Quick Start
+---
 
-### 1. Setup Environment
+## Kiến trúc và Công nghệ
+
+### Tech Stack
+| Thành phần | Công nghệ | Mục đích sử dụng |
+| :--- | :--- | :--- |
+| **Ngôn ngữ** | Go (Golang) 1.22+ | Xử lý đồng thời (concurrency) tốc độ cao, backend core. |
+| **Cơ sở dữ liệu** | PostgreSQL 16 | Lưu trữ User, Log và Blacklist. Sử dụng JSONB cho dữ liệu động. |
+| **Giao thức** | WebSocket (Gorilla) | Kết nối thời gian thực 2 chiều (Full-duplex). |
+| **Driver** | pgx/v5 | Driver PostgreSQL hiệu năng cao cho Go. |
+| **Router** | Chi/v5 | HTTP Router nhẹ và tốc độ nhanh. |
+
+### Điểm nhấn Kiến trúc
+* **Clean Architecture:** Tuân thủ cấu trúc dự án chuẩn của Go (Standard Layout), dễ dàng mở rộng và bảo trì.
+* **An toàn luồng (Concurrency Safe):** Quản lý hàng ngàn kết nối WebSocket an toàn tuyệt đối nhờ cơ chế khóa `sync.RWMutex`.
+* **Ưu tiên riêng tư (Privacy First):** Luồng âm thanh (Audio Stream) được xử lý riêng biệt (Private) cho từng thiết bị, tuyệt đối không phát tán (broadcast) sang người dùng khác.
+
+---
+
+## Cài đặt và Chạy dự án (Quick Start)
+
+### 1. Chuẩn bị môi trường
+* Cài đặt Go phiên bản 1.22 trở lên.
+* Cài đặt Docker Desktop (để chạy cơ sở dữ liệu).
+
+### 2. Thiết lập cấu hình
+Di chuyển vào thư mục dự án và tạo file biến môi trường:
 ```bash
 cd services/api-gateway
 cp .env.example .env
-# Edit .env with your configuration
-```
-
-### 2. Start Database
-```bash
-docker-compose up -d
-```
-
-Wait for PostgreSQL to be ready (check with `docker-compose logs -f postgres`)
-
-### 3. Install Dependencies
-```bash
-go mod download
-```
-
-### 4. Run Application
-```bash
-go run cmd/api/main.go
-```
-
-Server will start on `http://localhost:8080`
-
-## API Endpoints
-
-### REST API
-- `GET /health` - Health check
-- `GET /api/blacklist` - Get all blacklisted numbers
-- `GET /api/check?phone=+84123456789` - Check if number is blacklisted
-
-### WebSocket
-- `ws://localhost:8080/ws?device_id=YOUR_DEVICE_ID`
-
-**Message Types:**
-- **Binary** - Audio chunks (processed privately per client)
-- **Text (JSON)** - Commands (e.g., fraud reports)
-
-**Alert Format (Server → Client):**
-```json
-{
-  "risk_score": 85,
-  "message": "⚠️ Potential fraud detected!",
-  "action": "SHOW_WARNING",
-  "timestamp": 1706000000
-}
-```
-
-**Report Format (Client → Server):**
-```json
-{
-  "phone_number": "+84123456789",
-  "reason": "Scam call asking for bank details",
-  "device_id": "test-device-001"
-}
-```
-
-## Database Schema
-
-### Tables
-- `users` - Device registrations
-- `blacklists` - Reported fraudulent numbers with risk levels
-- `call_logs` - Call records with AI analysis (JSONB metadata)
-
-### Risk Levels
-- `LOW` - 1 report
-- `MEDIUM` - 2-4 reports
-- `HIGH` - 5-9 reports
-- `CRITICAL` - 10+ reports
-
-## Development
-
-### Run with Race Detector
-```bash
-go run -race cmd/api/main.go
-```
-
-### Build for Production
-```bash
-go build -o bin/fraudguard-api cmd/api/main.go
-```
-
-## Critical Implementation Notes
-
-### ⚠️ Concurrency Safety
-The WebSocket hub uses `sync.RWMutex`:
-- `Lock()` for register/unregister (write operations)
-- `RLock()` for broadcast (read operations)
-
-### ⚠️ Stream Processing vs Broadcast
-**DO NOT broadcast audio streams!** Each client's audio is processed privately:
-- ✅ CORRECT: `go services.ProcessAudioStream(client, data)`
-- ❌ WRONG: `hub.broadcast <- audioData` (privacy violation!)
-
-The `broadcast` channel is ONLY for server-wide notifications (e.g., maintenance alerts).
-
-## TODO
-- [ ] Integrate Deepgram API for real-time transcription
-- [ ] Integrate OpenAI for semantic fraud analysis
-- [ ] Add Vector DB (Pinecone/Weaviate) for pattern matching
-- [ ] Implement user authentication
-- [ ] Add rate limiting
-- [ ] Setup monitoring and logging
-- [ ] Write unit tests
-- [ ] Add Docker build for production
-
-## License
-Proprietary - FraudGuard AI
+# Mở file .env và chỉnh sửa thông tin kết nối nếu cần thiết

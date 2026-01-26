@@ -15,7 +15,7 @@
     <TabBar>
         <!-- Tab 1: Protection (Main Page) -->
         <ShellContent
-            Title="Bảo vệ"
+            Title="Protection"
             ContentTemplate="{DataTemplate local:MainPage}"
             Route="MainPage">
             <ShellContent.Icon>
@@ -28,7 +28,7 @@
 
         <!-- Tab 2: History -->
         <ShellContent
-            Title="Lịch sử"
+            Title="History"
             ContentTemplate="{DataTemplate local:HistoryPage}"
             Route="HistoryPage">
             <ShellContent.Icon>
@@ -41,7 +41,7 @@
 
         <!-- Tab 3: Settings -->
         <ShellContent
-            Title="Cài đặt"
+            Title="Settings"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage">
             <ShellContent.Icon>

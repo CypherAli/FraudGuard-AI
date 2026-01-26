@@ -61,8 +61,7 @@ namespace FraudGuardAI.Services
                 TotalAudioTimeout = TimeSpan.MaxValue,
                 
                 // Cấu hình Audio Settings
-                PreferredSampleRate = SAMPLE_RATE,
-                AudioChannels = CHANNELS
+                PreferredSampleRate = SAMPLE_RATE
             };
         }
 
@@ -146,8 +145,8 @@ namespace FraudGuardAI.Services
                 _isStreaming = true;
                 Console.WriteLine("Starting audio streaming...");
 
-                // Bắt đầu ghi âm
-                var audioFilePath = await _audioRecorder.StartRecording();
+                // Bắt đầu ghi âm - unwrap Task<Task<string>>
+                var audioFilePath = await await _audioRecorder.StartRecording();
                 
                 if (string.IsNullOrEmpty(audioFilePath))
                 {
@@ -478,7 +477,7 @@ namespace FraudGuardAI.Services
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
             _webSocket?.Dispose();
-            _audioRecorder?.Dispose();
+            // _audioRecorder doesn't have Dispose method
         }
 
         #endregion

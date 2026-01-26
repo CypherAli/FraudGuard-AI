@@ -3,21 +3,21 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:FraudGuardAI.Models"
              x:Class="FraudGuardAI.HistoryPage"
-             Title="Lịch sử Cuộc gọi"
+             Title="Call History"
              BackgroundColor="#0A1929">
 
     <Grid RowDefinitions="Auto,*" Padding="20">
         
         <!-- Header Section -->
         <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,20,0,20">
-            <Label Text="📋 Lịch sử Cuộc gọi"
+            <Label Text="📋 Call History"
                    FontSize="28"
                    FontAttributes="Bold"
                    TextColor="#E3F2FD"
                    HorizontalOptions="Center"/>
             
             <Label x:Name="SubtitleLabel"
-                   Text="Danh sách các cuộc gọi đã phân tích"
+                   Text="List of analyzed calls"
                    FontSize="14"
                    TextColor="#B0BEC5"
                    HorizontalOptions="Center"/>
@@ -48,12 +48,12 @@
                     <Label Text="📭"
                            FontSize="80"
                            HorizontalOptions="Center"/>
-                    <Label Text="Chưa có lịch sử cuộc gọi"
+                    <Label Text="No call history yet"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="#E3F2FD"
                            HorizontalOptions="Center"/>
-                    <Label Text="Các cuộc gọi được phân tích sẽ xuất hiện ở đây"
+                    <Label Text="Analyzed calls will appear here"
                            FontSize="14"
                            TextColor="#B0BEC5"
                            HorizontalOptions="Center"
@@ -157,7 +157,7 @@
                            FontSize="60"
                            HorizontalOptions="Center"/>
                     <Label x:Name="ErrorMessageLabel"
-                           Text="Không thể tải lịch sử"
+                           Text="Unable to load history"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="#EF5350"

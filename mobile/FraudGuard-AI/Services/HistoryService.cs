@@ -76,12 +76,12 @@ namespace FraudGuardAI.Services
             catch (HttpRequestException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[HistoryService] HTTP Error: {ex.Message}");
-                throw new Exception($"Không thể kết nối tới server: {ex.Message}", ex);
+                throw new Exception($"Cannot connect to server: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[HistoryService] Error: {ex.Message}");
-                throw new Exception($"Lỗi khi tải lịch sử: {ex.Message}", ex);
+                throw new Exception($"Error loading history: {ex.Message}", ex);
             }
         }
 

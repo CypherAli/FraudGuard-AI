@@ -32,6 +32,13 @@
 - Device ID customization
 - **No rebuild needed** when changing networks!
 
+### 5. **Internet Public Access (Ngrok)** ✅ NEW!
+- Ngrok tunnel setup scripts
+- Automated configuration and testing
+- Mobile 4G/5G connectivity
+- Complete documentation and demo script
+- **Backend CORS configured for public access**
+
 ---
 
 ## 📁 Project Structure

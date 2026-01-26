@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.SettingsPage"
-             Title="Cài đặt"
+             Title="Settings"
              BackgroundColor="#0A1929">
 
     <ScrollView>
@@ -10,13 +10,13 @@
             
             <!-- Header -->
             <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
-                <Label Text="⚙️ Cài đặt"
+                <Label Text="⚙️ Settings"
                        FontSize="32"
                        FontAttributes="Bold"
                        HorizontalOptions="Center"
                        TextColor="#E3F2FD"/>
                 
-                <Label Text="Cấu hình kết nối Server"
+                <Label Text="Server Connection Configuration"
                        FontSize="14"
                        HorizontalOptions="Center"
                        TextColor="#B0BEC5"/>
@@ -40,7 +40,7 @@
 
                 <VerticalStackLayout Spacing="15">
                     <!-- Section Title -->
-                    <Label Text="🌐 Địa chỉ Server"
+                    <Label Text="🌐 Server Address"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="#E3F2FD"/>
@@ -49,23 +49,23 @@
                     <Label TextColor="#B0BEC5" FontSize="13">
                         <Label.FormattedText>
                             <FormattedString>
-                                <Span Text="• Emulator: Dùng " />
+                                <Span Text="• Emulator: Use " />
                                 <Span Text="10.0.2.2" FontAttributes="Bold" TextColor="#4CAF50"/>
                                 <Span Text="&#x0a;"/>
-                                <Span Text="• Thiết bị thật: Nhập IP LAN của máy tính&#x0a;"/>
-                                <Span Text="  (Ví dụ: 192.168.1.100)"/>
+                                <Span Text="• Real Device: Enter your computer's LAN IP&#x0a;"/>
+                                <Span Text="  (Example: 192.168.1.234)"/>
                             </FormattedString>
                         </Label.FormattedText>
                     </Label>
 
                     <!-- IP Address Input -->
-                    <Label Text="Địa chỉ IP:"
+                    <Label Text="IP Address:"
                            FontSize="14"
                            TextColor="#E3F2FD"
                            Margin="0,10,0,0"/>
                     
                     <Entry x:Name="ServerIPEntry"
-                           Placeholder="Nhập IP (VD: 192.168.1.100)"
+                           Placeholder="Enter IP (e.g., 192.168.1.234)"
                            PlaceholderColor="#78909C"
                            TextColor="#E3F2FD"
                            BackgroundColor="#0F172A"
@@ -74,7 +74,7 @@
                            MaxLength="15"/>
 
                     <!-- Port Info -->
-                    <Label Text="Port: 8080 (cố định)"
+                    <Label Text="Port: 8080 (fixed)"
                            FontSize="12"
                            TextColor="#78909C"
                            Margin="0,5,0,0"/>
@@ -90,16 +90,16 @@
                         </Border.StrokeShape>
                         
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="Cấu hình hiện tại:"
+                            <Label Text="Current Configuration:"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="#B0BEC5"/>
                             <Label x:Name="CurrentConfigLabel"
-                                   Text="WebSocket: ws://10.0.2.2:8080/ws"
+                                   Text="WebSocket: ws://192.168.1.234:8080/ws"
                                    FontSize="11"
                                    TextColor="#78909C"/>
                             <Label x:Name="CurrentAPILabel"
-                                   Text="API: http://10.0.2.2:8080/api/history"
+                                   Text="API: http://192.168.1.234:8080/api/history"
                                    FontSize="11"
                                    TextColor="#78909C"/>
                         </VerticalStackLayout>
@@ -107,7 +107,7 @@
 
                     <!-- Save Button -->
                     <Button x:Name="SaveButton"
-                           Text="💾 LƯU CẤU HÌNH"
+                           Text="💾 SAVE CONFIGURATION"
                            FontSize="18"
                            FontAttributes="Bold"
                            BackgroundColor="#4CAF50"
@@ -126,7 +126,7 @@
 
                     <!-- Test Connection Button -->
                     <Button x:Name="TestButton"
-                           Text="🔌 KIỂM TRA KẾT NỐI"
+                           Text="🔌 TEST CONNECTION"
                            FontSize="16"
                            BackgroundColor="#1E88E5"
                            TextColor="White"
@@ -150,19 +150,19 @@
                            FontAttributes="Bold"
                            TextColor="#E3F2FD"/>
 
-                    <Label Text="ID thiết bị của bạn (dùng để lọc lịch sử):"
+                    <Label Text="Your device ID (used for history filtering):"
                            FontSize="13"
                            TextColor="#B0BEC5"/>
 
                     <Entry x:Name="DeviceIDEntry"
-                           Placeholder="Nhập Device ID (VD: my_phone)"
+                           Placeholder="Enter Device ID (e.g., my_android)"
                            PlaceholderColor="#78909C"
                            TextColor="#E3F2FD"
                            BackgroundColor="#0F172A"
                            FontSize="16"
                            MaxLength="50"/>
 
-                    <Button Text="💾 Lưu Device ID"
+                    <Button Text="💾 Save Device ID"
                            FontSize="16"
                            BackgroundColor="#FF9800"
                            TextColor="White"
@@ -182,7 +182,7 @@
                 </Border.StrokeShape>
 
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ℹ️ Hướng dẫn tìm IP LAN:"
+                    <Label Text="ℹ️ How to find your LAN IP:"
                            FontSize="14"
                            FontAttributes="Bold"
                            TextColor="#E3F2FD"/>
@@ -190,14 +190,14 @@
                     <Label TextColor="#B0BEC5" FontSize="12">
                         <Label.FormattedText>
                             <FormattedString>
-                                <Span Text="1. Mở Command Prompt/Terminal trên máy tính&#x0a;"/>
-                                <Span Text="2. Gõ lệnh: " />
+                                <Span Text="1. Open Command Prompt/Terminal on your computer&#x0a;"/>
+                                <Span Text="2. Type: " />
                                 <Span Text="ipconfig" FontAttributes="Bold" TextColor="#4CAF50"/>
-                                <Span Text=" (Windows) hoặc "/>
+                                <Span Text=" (Windows) or "/>
                                 <Span Text="ifconfig" FontAttributes="Bold" TextColor="#4CAF50"/>
                                 <Span Text=" (Mac/Linux)&#x0a;"/>
-                                <Span Text="3. Tìm IPv4 Address (VD: 192.168.1.100)&#x0a;"/>
-                                <Span Text="4. Đảm bảo điện thoại và máy tính cùng WiFi"/>
+                                <Span Text="3. Find IPv4 Address (e.g., 192.168.1.234)&#x0a;"/>
+                                <Span Text="4. Ensure phone and computer are on the same WiFi"/>
                             </FormattedString>
                         </Label.FormattedText>
                     </Label>

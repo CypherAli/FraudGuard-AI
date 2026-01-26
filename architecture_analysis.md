@@ -238,7 +238,7 @@ Lưu log cuộc gọi với kết quả phân tích AI.
 
 ---
 
-### 5. 🔌 **internal/handlers/websocket.go** - WebSocket Handler
+### 5.  **internal/handlers/websocket.go** - WebSocket Handler
 
 **Chức năng:** Upgrade HTTP connection thành WebSocket connection.
 
@@ -312,7 +312,7 @@ case message := <-h.Broadcast:
 ```
 Gửi message tới tất cả clients (chỉ dùng cho server notifications!).
 
-**⚠️ QUAN TRỌNG:**
+** QUAN TRỌNG:**
 - `Lock()` cho **WRITE** operations (register/unregister)
 - `RLock()` cho **READ** operations (broadcast - chỉ đọc map)
 - **KHÔNG** broadcast audio streams! (privacy violation)
@@ -410,7 +410,7 @@ for i := 0; i < 100; i++ {
 
 ---
 
-### 10. 🔍 **internal/services/fraud_detector.go** - Fraud Detection
+### 10.  **internal/services/fraud_detector.go** - Fraud Detection
 
 **Chức năng:** Business logic phát hiện lừa đảo.
 
@@ -428,7 +428,7 @@ Tính toán risk score dựa trên:
 
 ---
 
-### 11. ⚙️ **pkg/config/config.go** - Configuration
+### 11.  **pkg/config/config.go** - Configuration
 
 **Chức năng:** Load và quản lý configuration từ [.env](file:///e:/FraudGuard-AI/services/api-gateway/.env).
 

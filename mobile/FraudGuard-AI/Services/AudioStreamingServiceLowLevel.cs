@@ -27,7 +27,7 @@ namespace FraudGuardAI.Services
         // Cấu hình Audio (khớp với backend Deepgram)
         private const int SAMPLE_RATE = 16000;
         private const ChannelIn CHANNEL_CONFIG = ChannelIn.Mono;
-        private const Encoding AUDIO_FORMAT = Encoding.Pcm16bit;
+        private const Android.Media.Encoding AUDIO_FORMAT = Android.Media.Encoding.Pcm16bit;
         private const int BUFFER_SIZE = 4096;
 
         public event EventHandler<AlertEventArgs> AlertReceived;
@@ -115,9 +115,10 @@ namespace FraudGuardAI.Services
                     AUDIO_FORMAT
                 );
 
-                if (minBufferSize == (int)TrackState.Error)
+                // AudioRecord.GetMinBufferSize returns negative values on error
+                if (minBufferSize < 0)
                 {
-                    OnError("Failed to get minimum buffer size", null);
+                    OnError($"Failed to get minimum buffer size: {minBufferSize}", null);
                     return false;
                 }
 
@@ -287,7 +288,7 @@ namespace FraudGuardAI.Services
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        var message = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
                         ProcessServerMessage(message);
                     }
                 }

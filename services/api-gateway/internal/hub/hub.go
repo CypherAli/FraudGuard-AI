@@ -47,7 +47,7 @@ func (h *Hub) Run() {
 			// WRITE OPERATION: Use Lock() to modify the map
 			h.mu.Lock()
 			h.clients[client] = true
-			log.Printf("✅ Client registered: %s (Total: %d)", client.deviceID, len(h.clients))
+			log.Printf(" Client registered: %s (Total: %d)", client.deviceID, len(h.clients))
 			h.mu.Unlock()
 
 		case client := <-h.Unregister:
@@ -56,7 +56,7 @@ func (h *Hub) Run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
-				log.Printf("❌ Client unregistered: %s (Total: %d)", client.deviceID, len(h.clients))
+				log.Printf(" Client unregistered: %s (Total: %d)", client.deviceID, len(h.clients))
 			}
 			h.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (h *Hub) Run() {
 					// Client's send buffer is full, close the connection
 					close(client.send)
 					delete(h.clients, client)
-					log.Printf("⚠️ Client send buffer full, closing: %s", client.deviceID)
+					log.Printf(" Client send buffer full, closing: %s", client.deviceID)
 				}
 			}
 			h.mu.RUnlock()

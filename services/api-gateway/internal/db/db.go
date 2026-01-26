@@ -44,7 +44,7 @@ func Connect(cfg *config.DatabaseConfig) error {
 	}
 
 	Pool = pool
-	log.Printf("✅ Database connection established (Max: %d, Min: %d)", cfg.MaxConns, cfg.MinConns)
+	log.Printf(" Database connection established (Max: %d, Min: %d)", cfg.MaxConns, cfg.MinConns)
 	return nil
 }
 
