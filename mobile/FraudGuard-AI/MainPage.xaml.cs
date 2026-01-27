@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls;
 using FraudGuardAI.Constants;
 using FraudGuardAI.Helpers;
 using FraudGuardAI.Services;
+using FraudGuardAI.Models;
 
 namespace FraudGuardAI
 {
@@ -105,7 +106,21 @@ namespace FraudGuardAI
                 // Show connecting status
                 await ShowConnectingState();
 
-                var success = await _audioService.StartStreamingAsync();
+                // Add timeout for connection attempt
+                var connectionTask = _audioService.StartStreamingAsync();
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+                var completedTask = await Task.WhenAny(connectionTask, timeoutTask);
+                
+                bool success = false;
+                if (completedTask == connectionTask)
+                {
+                    success = await connectionTask;
+                }
+                else
+                {
+                    UpdateDebugInfo("Connection timeout after 10s");
+                    success = false;
+                }
 
                 if (success)
                 {

@@ -20,7 +20,7 @@
                        TextColor="{StaticResource TextSecondary}"/>
             </VerticalStackLayout>
 
-            <!-- Server Address Card -->
+            <!-- Connection Mode Card -->
             <Border Style="{StaticResource CardBorder}">
                 <Border.Shadow>
                     <Shadow Brush="#000000"
@@ -30,6 +30,41 @@
                 </Border.Shadow>
 
                 <VerticalStackLayout Spacing="16">
+                    <!-- USB Mode Toggle -->
+                    <HorizontalStackLayout Spacing="12" Padding="0,0,0,8">
+                        <Border WidthRequest="40"
+                               HeightRequest="40"
+                               BackgroundColor="{StaticResource AccentBlue20}"
+                               StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12"/>
+                            </Border.StrokeShape>
+                            <Label Text="🔌"
+                                   FontSize="18"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="StartAndExpand">
+                            <Label Text="USB Mode"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"/>
+                            <Label Text="Auto-connect when plugged via USB"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="UsbModeSwitch"
+                               OnColor="{StaticResource SafeGreen}"
+                               ThumbColor="White"
+                               VerticalOptions="Center"
+                               Toggled="OnUsbModeToggled"/>
+                    </HorizontalStackLayout>
+
+                    <!-- Divider -->
+                    <BoxView HeightRequest="1" 
+                            BackgroundColor="{StaticResource BorderColor}"
+                            Margin="0,4"/>
+
                     <!-- Section Header -->
                     <HorizontalStackLayout Spacing="12">
                         <Border WidthRequest="40"
@@ -49,7 +84,8 @@
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextPrimary}"/>
-                            <Label Text="Enter your server IP"
+                            <Label x:Name="ServerModeLabel"
+                                   Text="Enter your server IP"
                                    FontSize="12"
                                    TextColor="{StaticResource TextSecondary}"/>
                         </VerticalStackLayout>
@@ -86,7 +122,7 @@
                     </Border>
 
                     <!-- IP Input -->
-                    <VerticalStackLayout Spacing="8">
+                    <VerticalStackLayout x:Name="IPInputSection" Spacing="8">
                         <Label Text="IP Address"
                                FontSize="13"
                                FontAttributes="Bold"

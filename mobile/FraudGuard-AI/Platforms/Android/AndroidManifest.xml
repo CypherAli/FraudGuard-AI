@@ -5,7 +5,8 @@
         android:icon="@mipmap/appicon" 
         android:roundIcon="@mipmap/appicon_round" 
         android:supportsRtl="true"
-        android:label="FraudGuard AI">
+        android:label="FraudGuard AI"
+        android:usesCleartextTraffic="true">
     </application>
     
     <!-- Quyền ghi âm (BẮT BUỘC) -->

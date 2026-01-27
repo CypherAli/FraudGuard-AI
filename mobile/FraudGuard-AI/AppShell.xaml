@@ -5,50 +5,54 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:FraudGuardAI"
     Shell.FlyoutBehavior="Disabled"
-    Shell.NavBarIsVisible="True"
-    Shell.TabBarBackgroundColor="#0A1929"
-    Shell.TabBarForegroundColor="#E3F2FD"
-    Shell.TabBarUnselectedColor="#78909C"
-    Shell.TabBarTitleColor="#E3F2FD">
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarBackgroundColor="#0D1B2A"
+    Shell.TabBarForegroundColor="#E0E6ED"
+    Shell.TabBarUnselectedColor="#5C6B7A"
+    Shell.TabBarTitleColor="#E0E6ED">
 
-    <!-- Tab Bar Items -->
+    <Shell.Resources>
+        <ResourceDictionary>
+            <Style TargetType="TabBar">
+                <Setter Property="Shell.TabBarBackgroundColor" Value="#0D1B2A"/>
+            </Style>
+        </ResourceDictionary>
+    </Shell.Resources>
+
     <TabBar>
-        <!-- Tab 1: Protection (Main Page) -->
         <ShellContent
             Title="Protection"
             ContentTemplate="{DataTemplate local:MainPage}"
             Route="MainPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    FontFamily="MaterialIcons"
-                    Glyph="&#xe32a;"
-                    Color="#4CAF50"/>
+                    Glyph="🛡️"
+                    Size="24"
+                    Color="#34D399"/>
             </ShellContent.Icon>
         </ShellContent>
 
-        <!-- Tab 2: History -->
         <ShellContent
             Title="History"
             ContentTemplate="{DataTemplate local:HistoryPage}"
             Route="HistoryPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    FontFamily="MaterialIcons"
-                    Glyph="&#xe889;"
-                    Color="#1E88E5"/>
+                    Glyph="📋"
+                    Size="24"
+                    Color="#60A5FA"/>
             </ShellContent.Icon>
         </ShellContent>
 
-        <!-- Tab 3: Settings -->
         <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    FontFamily="MaterialIcons"
-                    Glyph="&#xe8b8;"
-                    Color="#FF9800"/>
+                    Glyph="⚙️"
+                    Size="24"
+                    Color="#FBBF24"/>
             </ShellContent.Icon>
         </ShellContent>
     </TabBar>
