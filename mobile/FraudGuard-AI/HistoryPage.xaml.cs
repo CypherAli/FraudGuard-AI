@@ -77,7 +77,21 @@ namespace FraudGuardAI
                 HideEmptyState();
 
                 string deviceId = SettingsPage.GetDeviceID();
-                var history = await _historyService.GetHistoryAsync(deviceId, limit: 50);
+                
+                // Add timeout for history request
+                var historyTask = _historyService.GetHistoryAsync(deviceId, limit: 50);
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(8));
+                var completedTask = await Task.WhenAny(historyTask, timeoutTask);
+                
+                List<CallLog> history;
+                if (completedTask == historyTask)
+                {
+                    history = await historyTask;
+                }
+                else
+                {
+                    throw new TimeoutException("Server không phản hồi sau 8 giây");
+                }
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {

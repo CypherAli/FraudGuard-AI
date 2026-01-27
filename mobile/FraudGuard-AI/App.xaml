@@ -30,6 +30,14 @@
             <Color x:Key="GlowRed">#F8717160</Color>
             <Color x:Key="AccentBlue20">#60A5FA20</Color>
             <Color x:Key="AccentYellow20">#FBBF2420</Color>
+            
+            <!-- Additional Colors (Aliases) -->
+            <Color x:Key="CardBg">#1B2838</Color>
+            <Color x:Key="InputBg">#0F1923</Color>
+            <Color x:Key="SafeGreen">#34D399</Color>
+            <Color x:Key="DangerRed">#F87171</Color>
+            <Color x:Key="AccentBlue">#60A5FA</Color>
+            <Color x:Key="WarningYellow">#FBBF24</Color>
 
             <!-- Global Styles -->
             <Style TargetType="ContentPage" ApplyToDerivedTypes="True">

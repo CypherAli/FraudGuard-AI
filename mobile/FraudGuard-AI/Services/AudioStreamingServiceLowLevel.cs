@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Android.Media;
+using FraudGuardAI.Models;
 
 namespace FraudGuardAI.Services
 {
