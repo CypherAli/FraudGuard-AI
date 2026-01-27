@@ -1,9 +1,9 @@
-using FraudGuardAI.Models;
-using FraudGuardAI.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
+using FraudGuardAI.Models;
+using FraudGuardAI.Services;
 
 namespace FraudGuardAI
 {
@@ -49,8 +49,6 @@ namespace FraudGuardAI
             
             _callLogs = new ObservableCollection<CallLog>();
             HistoryCollectionView.ItemsSource = _callLogs;
-            
-            // Initialize service
             _historyService = new HistoryService();
             
             BindingContext = this;
@@ -63,8 +61,6 @@ namespace FraudGuardAI
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            
-            // Load history when page appears
             await LoadHistoryAsync();
         }
 
@@ -76,20 +72,13 @@ namespace FraudGuardAI
         {
             try
             {
-                // Show loading indicator
                 ShowLoading(true);
                 HideError();
                 HideEmptyState();
 
-                System.Diagnostics.Debug.WriteLine("[HistoryPage] Loading call history...");
-
-                // Get device ID from Settings
                 string deviceId = SettingsPage.GetDeviceID();
-
-                // Fetch data from API
                 var history = await _historyService.GetHistoryAsync(deviceId, limit: 50);
 
-                // Update UI on main thread
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _callLogs.Clear();
@@ -100,14 +89,11 @@ namespace FraudGuardAI
                         {
                             _callLogs.Add(log);
                         }
-                        
-                        SubtitleLabel.Text = $"Tìm thấy {history.Count} cuộc gọi";
-                        System.Diagnostics.Debug.WriteLine($"[HistoryPage] Loaded {history.Count} call logs");
+                        SubtitleLabel.Text = $"{history.Count} analyzed calls";
                     }
                     else
                     {
                         ShowEmptyState();
-                        System.Diagnostics.Debug.WriteLine("[HistoryPage] No call logs found");
                     }
                     
                     ShowLoading(false);
@@ -115,7 +101,7 @@ namespace FraudGuardAI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HistoryPage] Error loading history: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[History] Error: {ex.Message}");
                 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
@@ -155,7 +141,7 @@ namespace FraudGuardAI
         private void ShowError(string message)
         {
             ErrorView.IsVisible = true;
-            ErrorMessageLabel.Text = message;
+            ErrorMessageLabel.Text = message.Length > 50 ? "Connection error" : message;
             HistoryCollectionView.IsVisible = false;
             EmptyStateView.IsVisible = false;
         }
@@ -174,7 +160,6 @@ namespace FraudGuardAI
             await LoadHistoryAsync();
         }
 
-        // Pull-to-refresh handler
         public async Task RefreshCommand()
         {
             IsRefreshing = true;
@@ -185,11 +170,6 @@ namespace FraudGuardAI
 
         #region Public Methods
 
-
-
-        /// <summary>
-        /// Reload history data
-        /// </summary>
         public async Task ReloadAsync()
         {
             await LoadHistoryAsync();

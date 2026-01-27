@@ -3,99 +3,109 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:FraudGuardAI.Models"
              x:Class="FraudGuardAI.HistoryPage"
-             Title="Call History"
-             BackgroundColor="#0A1929">
+             Title="History"
+             Shell.NavBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto,*" Padding="20">
+    <Grid RowDefinitions="Auto,*" Padding="20,48,20,20">
         
-        <!-- Header Section -->
-        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,20,0,20">
-            <Label Text="📋 Call History"
-                   FontSize="28"
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,24">
+            <Label Text="Call History"
+                   FontSize="26"
                    FontAttributes="Bold"
-                   TextColor="#E3F2FD"
-                   HorizontalOptions="Center"/>
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Start"/>
             
             <Label x:Name="SubtitleLabel"
-                   Text="List of analyzed calls"
+                   Text="Recent analyzed calls"
                    FontSize="14"
-                   TextColor="#B0BEC5"
-                   HorizontalOptions="Center"/>
+                   TextColor="{StaticResource TextSecondary}"/>
         </VerticalStackLayout>
 
-        <!-- Main Content with RefreshView -->
+        <!-- Content -->
         <RefreshView x:Name="RefreshView"
                      Grid.Row="1"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}"
-                     RefreshColor="#1E88E5">
+                     RefreshColor="{StaticResource PrimaryBlue}">
             
             <Grid>
-                <!-- Loading Indicator -->
+                <!-- Loading -->
                 <ActivityIndicator x:Name="LoadingIndicator"
                                   IsRunning="False"
                                   IsVisible="False"
-                                  Color="#1E88E5"
+                                  Color="{StaticResource PrimaryBlue}"
                                   VerticalOptions="Center"
-                                  HorizontalOptions="Center"/>
+                                  HorizontalOptions="Center"
+                                  WidthRequest="48"
+                                  HeightRequest="48"/>
 
                 <!-- Empty State -->
                 <VerticalStackLayout x:Name="EmptyStateView"
                                     IsVisible="False"
                                     VerticalOptions="Center"
                                     HorizontalOptions="Center"
-                                    Spacing="20">
-                    <Label Text="📭"
-                           FontSize="80"
-                           HorizontalOptions="Center"/>
-                    <Label Text="No call history yet"
+                                    Spacing="16">
+                    
+                    <Border WidthRequest="80"
+                           HeightRequest="80"
+                           BackgroundColor="{StaticResource CardBackground}"
+                           StrokeThickness="0"
+                           HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="40"/>
+                        </Border.StrokeShape>
+                        <Label Text="📋"
+                               FontSize="36"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+                    
+                    <Label Text="No history yet"
                            FontSize="18"
                            FontAttributes="Bold"
-                           TextColor="#E3F2FD"
+                           TextColor="{StaticResource TextPrimary}"
                            HorizontalOptions="Center"/>
+                    
                     <Label Text="Analyzed calls will appear here"
                            FontSize="14"
-                           TextColor="#B0BEC5"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center"/>
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalOptions="Center"/>
                 </VerticalStackLayout>
 
-                <!-- Call History List -->
+                <!-- Call List -->
                 <CollectionView x:Name="HistoryCollectionView"
                                ItemsSource="{Binding CallLogs}"
                                SelectionMode="None">
                     <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="15"/>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CallLog">
-                            <!-- Call Log Card -->
-                            <Border BackgroundColor="{Binding CardBackgroundColor}"
+                            <Border BackgroundColor="{StaticResource CardBg}"
                                    StrokeThickness="0"
-                                   Padding="16"
-                                   Margin="0,0,0,0">
+                                   Padding="16">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12"/>
+                                    <RoundRectangle CornerRadius="16"/>
                                 </Border.StrokeShape>
-
                                 <Border.Shadow>
-                                    <Shadow Brush="Black"
-                                           Opacity="0.1"
-                                           Radius="8"
+                                    <Shadow Brush="#000000"
+                                           Opacity="0.2"
+                                           Radius="12"
                                            Offset="0,4"/>
                                 </Border.Shadow>
 
-                                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                     
-                                    <!-- Row 0: Risk Level Badge -->
+                                    <!-- Risk Badge -->
                                     <Border Grid.Row="0" Grid.Column="0"
                                            BackgroundColor="{Binding RiskScoreColor}"
-                                           Padding="10,5"
+                                           Padding="12,6"
                                            HorizontalOptions="Start"
                                            StrokeThickness="0">
                                         <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="6"/>
+                                            <RoundRectangle CornerRadius="8"/>
                                         </Border.StrokeShape>
                                         <Label Text="{Binding RiskLevelDisplay}"
                                               FontSize="12"
@@ -103,70 +113,92 @@
                                               TextColor="White"/>
                                     </Border>
 
-                                    <!-- Row 0: Risk Score -->
+                                    <!-- Risk Score -->
+                                    <Border Grid.Row="0" Grid.Column="1"
+                                           BackgroundColor="{Binding RiskScoreColor}"
+                                           Padding="12,8"
+                                           StrokeThickness="0"
+                                           Opacity="0.2">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                    </Border>
                                     <Label Grid.Row="0" Grid.Column="1"
-                                          Text="{Binding RiskScore, StringFormat='Điểm: {0}'}"
-                                          FontSize="18"
+                                          Text="{Binding RiskScore, StringFormat='{0}%'}"
+                                          FontSize="20"
                                           FontAttributes="Bold"
                                           TextColor="{Binding RiskScoreColor}"
+                                          HorizontalOptions="Center"
                                           VerticalOptions="Center"/>
 
-                                    <!-- Row 1: Time -->
-                                    <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8">
-                                        <Label Text="🕒"
-                                              FontSize="14"/>
-                                        <Label Text="{Binding TimeDisplay}"
-                                              FontSize="14"
-                                              TextColor="#424242"/>
-                                        <Label Text="|"
-                                              FontSize="14"
-                                              TextColor="#9E9E9E"/>
+                                    <!-- Time & Duration -->
+                                    <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="12">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="🕐" FontSize="12"/>
+                                            <Label Text="{Binding TimeDisplay}"
+                                                  FontSize="13"
+                                                  TextColor="{StaticResource TextSecondary}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="•" TextColor="{StaticResource TextSecondary}" FontSize="13"/>
                                         <Label Text="{Binding DurationDisplay}"
-                                              FontSize="14"
-                                              TextColor="#424242"/>
+                                              FontSize="13"
+                                              TextColor="{StaticResource TextSecondary}"/>
                                     </HorizontalStackLayout>
 
-                                    <!-- Row 2: Evidence Label -->
-                                    <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                          Text="Bằng chứng:"
-                                          FontSize="12"
-                                          FontAttributes="Bold"
-                                          TextColor="#616161"
-                                          Margin="0,4,0,0"/>
-
-                                    <!-- Row 3: Evidence Content -->
-                                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                          Text="{Binding Evidence}"
-                                          FontSize="12"
-                                          TextColor="#757575"
-                                          LineBreakMode="TailTruncation"
-                                          MaxLines="3"/>
+                                    <!-- Evidence -->
+                                    <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="4">
+                                        <Label Text="Evidence"
+                                              FontSize="11"
+                                              FontAttributes="Bold"
+                                              TextColor="{StaticResource TextSecondary}"
+                                              Opacity="0.8"/>
+                                        <Label Text="{Binding Evidence}"
+                                              FontSize="13"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              LineBreakMode="TailTruncation"
+                                              MaxLines="2"/>
+                                    </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <!-- Error Message -->
+                <!-- Error State -->
                 <VerticalStackLayout x:Name="ErrorView"
                                     IsVisible="False"
                                     VerticalOptions="Center"
                                     HorizontalOptions="Center"
-                                    Spacing="15">
-                    <Label Text="❌"
-                           FontSize="60"
-                           HorizontalOptions="Center"/>
+                                    Spacing="16">
+                    
+                    <Border WidthRequest="80"
+                           HeightRequest="80"
+                           BackgroundColor="#7F1D1D"
+                           StrokeThickness="0"
+                           HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="40"/>
+                        </Border.StrokeShape>
+                        <Label Text="✕"
+                               FontSize="32"
+                               TextColor="#F87171"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+                    
                     <Label x:Name="ErrorMessageLabel"
                            Text="Unable to load history"
                            FontSize="16"
                            FontAttributes="Bold"
-                           TextColor="#EF5350"
+                           TextColor="{StaticResource DangerRed}"
                            HorizontalOptions="Center"/>
-                    <Button Text="Thử lại"
-                           BackgroundColor="#1E88E5"
+                    
+                    <Button Text="Try Again"
+                           FontSize="15"
+                           BackgroundColor="{StaticResource AccentBlue}"
                            TextColor="White"
-                           CornerRadius="20"
-                           Padding="20,10"
+                           CornerRadius="24"
+                           Padding="32,12"
                            Clicked="OnRetryClicked"/>
                 </VerticalStackLayout>
             </Grid>

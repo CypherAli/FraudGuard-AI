@@ -1,8 +1,8 @@
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Storage;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 
 namespace FraudGuardAI
 {
@@ -12,8 +12,11 @@ namespace FraudGuardAI
 
         private const string PREF_SERVER_IP = "ServerIP";
         private const string PREF_DEVICE_ID = "DeviceID";
-        private const string DEFAULT_IP = "192.168.1.234"; // Change this to your computer's LAN IP
+        private const string DEFAULT_IP = "192.168.1.234";
         private const string DEFAULT_DEVICE_ID = "android_device";
+
+        private readonly Color SuccessColor = Color.FromArgb("#34D399");
+        private readonly Color ErrorColor = Color.FromArgb("#F87171");
 
         #endregion
 
@@ -38,76 +41,53 @@ namespace FraudGuardAI
 
         #region Settings Management
 
-        /// <summary>
-        /// Load saved settings from Preferences
-        /// </summary>
         private void LoadSettings()
         {
             try
             {
-                // Load Server IP
                 string savedIP = Preferences.Get(PREF_SERVER_IP, DEFAULT_IP);
                 ServerIPEntry.Text = savedIP;
 
-                // Load Device ID
                 string savedDeviceID = Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
                 DeviceIDEntry.Text = savedDeviceID;
 
-                // Update current configuration display
                 UpdateConfigurationDisplay(savedIP);
-
-                System.Diagnostics.Debug.WriteLine($"[Settings] Loaded IP: {savedIP}, DeviceID: {savedDeviceID}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Error loading settings: {ex.Message}");
-                ShowStatus("Error loading configuration", isError: true);
+                System.Diagnostics.Debug.WriteLine($"[Settings] Load error: {ex.Message}");
+                ShowStatus("Error loading settings", isError: true);
             }
         }
 
-        /// <summary>
-        /// Save Server IP to Preferences
-        /// </summary>
         private void SaveServerIP()
         {
             try
             {
                 string ip = ServerIPEntry.Text?.Trim();
 
-                // Validate IP
                 if (string.IsNullOrWhiteSpace(ip))
                 {
-                    ShowStatus("❌ Please enter an IP address", isError: true);
+                    ShowStatus("Please enter an IP address", isError: true);
                     return;
                 }
 
-                // Basic IP validation (simple check)
                 if (!IsValidIP(ip))
                 {
-                    ShowStatus("❌ Invalid IP address format", isError: true);
+                    ShowStatus("Invalid IP format", isError: true);
                     return;
                 }
 
-                // Save to Preferences
                 Preferences.Set(PREF_SERVER_IP, ip);
-
-                // Update display
                 UpdateConfigurationDisplay(ip);
-
-                ShowStatus("✅ Configuration saved successfully!", isError: false);
-
-                System.Diagnostics.Debug.WriteLine($"[Settings] Saved Server IP: {ip}");
+                ShowStatus("Configuration saved", isError: false);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Error saving IP: {ex.Message}");
-                ShowStatus($"❌ Error: {ex.Message}", isError: true);
+                ShowStatus($"Error: {ex.Message}", isError: true);
             }
         }
 
-        /// <summary>
-        /// Save Device ID to Preferences
-        /// </summary>
         private void SaveDeviceID()
         {
             try
@@ -116,19 +96,16 @@ namespace FraudGuardAI
 
                 if (string.IsNullOrWhiteSpace(deviceID))
                 {
-                    ShowStatus("❌ Please enter a Device ID", isError: true);
+                    ShowStatus("Please enter a Device ID", isError: true);
                     return;
                 }
 
                 Preferences.Set(PREF_DEVICE_ID, deviceID);
-                ShowStatus("✅ Device ID saved!", isError: false);
-
-                System.Diagnostics.Debug.WriteLine($"[Settings] Saved Device ID: {deviceID}");
+                ShowStatus("Device ID saved", isError: false);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Error saving Device ID: {ex.Message}");
-                ShowStatus($"❌ Error: {ex.Message}", isError: true);
+                ShowStatus($"Error: {ex.Message}", isError: true);
             }
         }
 
@@ -136,18 +113,12 @@ namespace FraudGuardAI
 
         #region Validation
 
-        /// <summary>
-        /// Basic IP address validation
-        /// </summary>
         private bool IsValidIP(string ip)
         {
-            if (string.IsNullOrWhiteSpace(ip))
-                return false;
+            if (string.IsNullOrWhiteSpace(ip)) return false;
 
-            // Simple validation: check for dots and numbers
             var parts = ip.Split('.');
-            if (parts.Length != 4)
-                return false;
+            if (parts.Length != 4) return false;
 
             foreach (var part in parts)
             {
@@ -162,25 +133,18 @@ namespace FraudGuardAI
 
         #region UI Updates
 
-        /// <summary>
-        /// Update the current configuration display
-        /// </summary>
         private void UpdateConfigurationDisplay(string ip)
         {
-            CurrentConfigLabel.Text = $"WebSocket: ws://{ip}:8080/ws";
-            CurrentAPILabel.Text = $"API: http://{ip}:8080/api/history";
+            CurrentConfigLabel.Text = $"ws://{ip}:8080/ws";
+            CurrentAPILabel.Text = $"http://{ip}:8080/api";
         }
 
-        /// <summary>
-        /// Show status message to user
-        /// </summary>
         private void ShowStatus(string message, bool isError)
         {
-            StatusLabel.Text = message;
-            StatusLabel.TextColor = isError ? Colors.Red : Color.FromArgb("#4CAF50");
+            StatusLabel.Text = isError ? $"✕ {message}" : $"✓ {message}";
+            StatusLabel.TextColor = isError ? ErrorColor : SuccessColor;
             StatusLabel.IsVisible = true;
 
-            // Auto-hide after 3 seconds
             Task.Delay(3000).ContinueWith(_ =>
             {
                 MainThread.BeginInvokeOnMainThread(() =>
@@ -194,9 +158,6 @@ namespace FraudGuardAI
 
         #region Connection Testing
 
-        /// <summary>
-        /// Test connection to the server
-        /// </summary>
         private async Task TestConnectionAsync()
         {
             try
@@ -205,53 +166,44 @@ namespace FraudGuardAI
 
                 if (string.IsNullOrWhiteSpace(ip) || !IsValidIP(ip))
                 {
-                    ShowStatus("❌ Địa chỉ IP không hợp lệ", isError: true);
+                    ShowStatus("Invalid IP address", isError: true);
                     return;
                 }
 
                 TestButton.IsEnabled = false;
-                TestButton.Text = "⏳ Đang kiểm tra...";
+                TestButton.Text = "Testing...";
 
-                // Test HTTP connection to health endpoint
                 using var httpClient = new HttpClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(5);
 
                 var url = $"http://{ip}:8080/health";
-                System.Diagnostics.Debug.WriteLine($"[Settings] Testing connection to: {url}");
-
                 var response = await httpClient.GetAsync(url);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    ShowStatus("✅ Kết nối thành công!", isError: false);
-                    await DisplayAlert("Success", $"Connected to server:\n{url}", "OK");
+                    ShowStatus("Connection successful", isError: false);
+                    await DisplayAlert("Success", $"Connected to server at {ip}", "OK");
                 }
                 else
                 {
-                    ShowStatus($"❌ Server returned error: {response.StatusCode}", isError: true);
+                    ShowStatus($"Server error: {response.StatusCode}", isError: true);
                 }
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Connection test failed: {ex.Message}");
-                ShowStatus("❌ Cannot connect to server", isError: true);
-                await DisplayAlert("Connection Error",
-                    "Cannot connect to server.\n\n" +
-                    "Check:\n" +
-                    "• Is the IP correct?\n" +
-                    "• Is the server running?\n" +
-                    "• Are you on the same WiFi?",
+                ShowStatus("Cannot connect to server", isError: true);
+                await DisplayAlert("Connection Failed",
+                    "Cannot connect to server.\n\nPlease check:\n• IP address is correct\n• Server is running\n• Same WiFi network",
                     "OK");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Test error: {ex.Message}");
-                ShowStatus($"❌ Lỗi: {ex.Message}", isError: true);
+                ShowStatus($"Error: {ex.Message}", isError: true);
             }
             finally
             {
                 TestButton.IsEnabled = true;
-                TestButton.Text = "🔌 KIỂM TRA KẾT NỐI";
+                TestButton.Text = "Test";
             }
         }
 
@@ -259,79 +211,40 @@ namespace FraudGuardAI
 
         #region Event Handlers
 
-        private void OnSaveButtonClicked(object sender, EventArgs e)
-        {
-            SaveServerIP();
-        }
+        private void OnSaveButtonClicked(object sender, EventArgs e) => SaveServerIP();
 
-        private void OnSaveDeviceIDClicked(object sender, EventArgs e)
-        {
-            SaveDeviceID();
-        }
+        private void OnSaveDeviceIDClicked(object sender, EventArgs e) => SaveDeviceID();
 
-        private async void OnTestConnectionClicked(object sender, EventArgs e)
-        {
-            await TestConnectionAsync();
-        }
+        private async void OnTestConnectionClicked(object sender, EventArgs e) => await TestConnectionAsync();
 
         #endregion
 
         #region Public Static Helpers
 
-        /// <summary>
-        /// Get the configured server IP (for use by other services)
-        /// </summary>
-        public static string GetServerIP()
-        {
-            return Preferences.Get(PREF_SERVER_IP, DEFAULT_IP);
-        }
+        public static string GetServerIP() => Preferences.Get(PREF_SERVER_IP, DEFAULT_IP);
 
-        /// <summary>
-        /// Get the configured device ID (for use by other services)
-        /// </summary>
-        public static string GetDeviceID()
-        {
-            return Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
-        }
+        public static string GetDeviceID() => Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
 
-        /// <summary>
-        /// Build WebSocket URL from saved IP
-        /// Supports both local (ws://) and Ngrok (wss://) connections
-        /// </summary>
         public static string GetWebSocketUrl()
         {
             string host = GetServerIP();
             
-            // Auto-detect: If contains ngrok/tunnel domain → use wss:// (secure)
             if (host.Contains("ngrok") || host.Contains(".app") || host.Contains("tunnel"))
             {
-                // Ngrok/Cloud: wss://domain/ws (no port)
                 return $"wss://{host}/ws";
             }
-            else
-            {
-                // Local network: ws://ip:port/ws
-                return $"ws://{host}:8080/ws";
-            }
+            return $"ws://{host}:8080/ws";
         }
 
-        /// <summary>
-        /// Build API base URL from saved IP
-        /// Supports both local (http://) and Ngrok (https://) connections
-        /// </summary>
         public static string GetAPIBaseUrl()
         {
             string host = GetServerIP();
             
-            // Auto-detect scheme based on host
             if (host.Contains("ngrok") || host.Contains(".app") || host.Contains("tunnel"))
             {
                 return $"https://{host}";
             }
-            else
-            {
-                return $"http://{host}:8080";
-            }
+            return $"http://{host}:8080";
         }
 
         #endregion
