@@ -233,7 +233,7 @@ Trong database có **39 số lừa đảo** để test. Top 5 số nguy hiểm n
 
 ---
 
-## ❓ XỬ LÝ SỰ CỐ
+##  XỬ LÝ SỰ CỐ
 
 ### Sự cố 1: "Cannot connect to server"
 
