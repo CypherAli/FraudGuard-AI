@@ -106,24 +106,40 @@
                                 <Label TextColor="{StaticResource TextSecondary}" FontSize="13">
                                     <Label.FormattedText>
                                         <FormattedString>
-                                            <Span Text="Emulator: "/>
-                                            <Span Text="10.0.2.2" FontAttributes="Bold" TextColor="{StaticResource SafeGreen}"/>
+                                            <Span Text="Ngrok: "/>
+                                            <Span Text="https://xxxx.ngrok-free.app" FontAttributes="Bold" TextColor="{StaticResource SafeGreen}"/>
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>
                             </HorizontalStackLayout>
                             <HorizontalStackLayout Spacing="8">
                                 <Label Text="•" TextColor="{StaticResource TextSecondary}"/>
-                                <Label Text="Real Device: Your computer's LAN IP"
-                                       FontSize="13"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                <Label TextColor="{StaticResource TextSecondary}" FontSize="13">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="LAN: "/>
+                                            <Span Text="http://192.168.1.12:8080" FontAttributes="Bold" TextColor="{StaticResource AccentBlue}"/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="•" TextColor="{StaticResource TextSecondary}"/>
+                                <Label TextColor="{StaticResource TextSecondary}" FontSize="13">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="Emulator: "/>
+                                            <Span Text="http://10.0.2.2:8080" FontAttributes="Bold" TextColor="{StaticResource WarningYellow}"/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
                             </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- IP Input -->
+                    <!-- URL Input -->
                     <VerticalStackLayout x:Name="IPInputSection" Spacing="8">
-                        <Label Text="IP Address"
+                        <Label Text="Server URL"
                                FontSize="13"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextSecondary}"/>
@@ -134,13 +150,12 @@
                             </Border.StrokeShape>
                             
                             <Entry x:Name="ServerIPEntry"
-                                   Placeholder="192.168.1.234"
+                                   Placeholder="https://xxxx.ngrok-free.app or http://192.168.1.12:8080"
                                    PlaceholderColor="#5C6B7A"
                                    TextColor="{StaticResource TextPrimary}"
                                    BackgroundColor="Transparent"
-                                   FontSize="16"
-                                   Keyboard="Numeric"
-                                   MaxLength="15"
+                                   FontSize="14"
+                                   Keyboard="Url"
                                    Margin="12,8"/>
                         </Border>
                     </VerticalStackLayout>
