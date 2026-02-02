@@ -124,6 +124,7 @@ E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\bin\com.f
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\bin\base.zip
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\bin\com.fraudguard.ai.aab
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\bin\com.fraudguard.ai.apks
+E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\res\xml\network_security_config.xml
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\uploadflags.txt
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\resolvedassemblies.hash
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\assets\arm64-v8a\System.Private.CoreLib.dll
