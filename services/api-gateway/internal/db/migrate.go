@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"log"
 )
 
@@ -25,14 +26,15 @@ func AutoMigrate() error {
 	CREATE INDEX IF NOT EXISTS idx_confidence ON blacklist(confidence_score);
 	`
 
-	if _, err := DB.Exec(createTableSQL); err != nil {
+	ctx := context.Background()
+	if _, err := Pool.Exec(ctx, createTableSQL); err != nil {
 		return err
 	}
 	log.Println("✅ Tables created successfully")
 
 	// Check if data already exists
 	var count int
-	if err := DB.QueryRow("SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
+	if err := Pool.QueryRow(ctx, "SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
 		return err
 	}
 
@@ -99,12 +101,12 @@ func AutoMigrate() error {
 	('19001234', 'Spam tong hop', 0.75, 50, NOW());
 	`
 
-	if _, err := DB.Exec(seedSQL); err != nil {
+	if _, err := Pool.Exec(ctx, seedSQL); err != nil {
 		return err
 	}
 
 	// Verify
-	if err := DB.QueryRow("SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
+	if err := Pool.QueryRow(ctx, "SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
 		return err
 	}
 
