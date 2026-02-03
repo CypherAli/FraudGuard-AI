@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "568325847415",
+    "project_id": "fraudguard-ai-c534b",
+    "storage_bucket": "fraudguard-ai-c534b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:568325847415:android:4bd20b06611acf879e0972",
+        "android_client_info": {
+          "package_name": "com.fraudguard.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgEUKbUPY0z3oipWWz3KE9_IG-I3LVMGM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

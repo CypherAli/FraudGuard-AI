@@ -70,6 +70,12 @@
     <PackageReference Include="Plugin.AudioRecorder" Version="1.1.0" />
   </ItemGroup>
 
+  <!-- Fix collection duplicate: Exclude old version -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+    <PackageReference Include="Xamarin.AndroidX.Collection" Version="1.4.5.1" />
+    <PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.5.1" />
+  </ItemGroup>
+
   <!-- Android -->
   <ItemGroup Condition="$(TargetFramework.StartsWith('net8.0-android')) != true">
     <Compile Remove="**\**\*.Android.cs" />
