@@ -48,6 +48,25 @@ namespace FraudGuardAI.Constants
 
         #endregion
 
+        #region Server Configuration
+
+        /// <summary>
+        /// Production server URL (Render.com)
+        /// </summary>
+        public const string PRODUCTION_SERVER_URL = "https://fraudguard-ai-jljl.onrender.com";
+
+        /// <summary>
+        /// Default local server URL (for development)
+        /// </summary>
+        public const string LOCAL_SERVER_URL = "http://192.168.1.234:8080";
+
+        /// <summary>
+        /// USB/Emulator server URL
+        /// </summary>
+        public const string USB_SERVER_URL = "http://10.0.2.2:8080";
+
+        #endregion
+
         #region Display Settings
 
         public const int ALERT_AUTO_DISMISS_DELAY = 5000; // 5 seconds

@@ -38,10 +38,21 @@ namespace FraudGuardAI
         {
             try
             {
-                _audioService = new AudioStreamingServiceLowLevel();
+                // Use shared service instance from App
+                _audioService = App.GetAudioService();
+                
+                // Attach event handlers
                 _audioService.AlertReceived += OnAlertReceived;
                 _audioService.ErrorOccurred += OnErrorOccurred;
                 _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
+                
+                // Check if already streaming from previous session
+                _isProtectionActive = _audioService.IsStreaming;
+                
+                if (_isProtectionActive)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] Service already streaming from previous session");
+                }
             }
             catch (Exception ex)
             {
@@ -133,7 +144,7 @@ namespace FraudGuardAI
                         ToggleButton.Text = "Stop Protection";
                         ToggleButton.BackgroundColor = AppConstants.DangerColor;
                         _ = PulseAnimation();
-                        UpdateDebugInfo("Protection ACTIVE");
+                        UpdateDebugInfo("Protection ACTIVE (runs in background)");
                     });
                 }
                 else
@@ -195,7 +206,7 @@ namespace FraudGuardAI
                     ToggleButton.Text = "Start Protection";
                     ToggleButton.BackgroundColor = AppConstants.SafeColor;
                     AlertBanner.IsVisible = false;
-                    UpdateDebugInfo("Protection STOPPED");
+                    UpdateDebugInfo("Protection STOPPED by user");
                 });
             }
             finally
@@ -444,22 +455,62 @@ namespace FraudGuardAI
 
         #region Lifecycle
 
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            
+            // Reattach to shared service when returning to page
+            var sharedService = App.GetAudioService();
+            if (sharedService != null)
+            {
+                _audioService = sharedService;
+                _isProtectionActive = _audioService.IsStreaming;
+                
+                // Re-attach event handlers
+                _audioService.AlertReceived -= OnAlertReceived;
+                _audioService.ErrorOccurred -= OnErrorOccurred;
+                _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+                
+                _audioService.AlertReceived += OnAlertReceived;
+                _audioService.ErrorOccurred += OnErrorOccurred;
+                _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
+                
+                // Update UI to reflect current state
+                if (_isProtectionActive)
+                {
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        await AnimateToActiveState();
+                        StatusLabel.Text = "Protected";
+                        ToggleButton.Text = "Stop Protection";
+                        ToggleButton.BackgroundColor = AppConstants.DangerColor;
+                        _ = PulseAnimation();
+                    });
+                }
+            }
+        }
+
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-
-            if (_isProtectionActive)
-            {
-                _ = StopProtectionAsync();
-            }
-
+            
+            // ✅ KHÔNG BAO GIỜ TỰ ĐỘNG STOP
+            // Connection chỉ ngắt khi user bấm nút Stop Protection
+            
+            // Only detach event handlers to prevent duplicate calls
             if (_audioService != null)
             {
                 _audioService.AlertReceived -= OnAlertReceived;
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
-                _audioService.Dispose();
             }
+            
+            System.Diagnostics.Debug.WriteLine("[MainPage] OnDisappearing - Connection MAINTAINED (continues in background)");
+            
+            // NOTE: Service continues running:
+            // - When switching tabs
+            // - When app goes to background (Home button)
+            // - Until user explicitly presses Stop Protection button
         }
 
         #endregion

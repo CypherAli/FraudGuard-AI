@@ -18,7 +18,7 @@ obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.Activity.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.AppCompat.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.CardView.dll.so
-obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.Collection.dll.so
+obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.Collection.Jvm.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.CoordinatorLayout.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.Core.dll.so
 obj\Release\net8.0-android\android-x64\aot\Xamarin.AndroidX.CursorAdapter.dll.so

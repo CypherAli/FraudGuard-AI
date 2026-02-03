@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FraudGuardAI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+5a3c436abdcd8a51e1861b1703c3e4fda8cb11d8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+42f9b2d74455a1254dc2680345a4ddae9a6ecea3")]
 [assembly: System.Reflection.AssemblyProductAttribute("FraudGuardAI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FraudGuardAI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

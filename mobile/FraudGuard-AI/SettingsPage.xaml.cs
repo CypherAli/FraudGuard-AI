@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using FraudGuardAI.Constants;
 
 namespace FraudGuardAI
 {
@@ -13,8 +14,8 @@ namespace FraudGuardAI
         private const string PREF_SERVER_URL = "ServerURL";  // Changed from ServerIP to support full URLs
         private const string PREF_DEVICE_ID = "DeviceID";
         private const string PREF_USB_MODE = "UsbMode";
-        private const string DEFAULT_URL = "http://192.168.1.234:8080";  // Full URL with port
-        private const string USB_URL = "http://10.0.2.2:8080"; // For emulator
+        private const string DEFAULT_URL = AppConstants.PRODUCTION_SERVER_URL;  // Use production by default
+        private const string USB_URL = AppConstants.USB_SERVER_URL; // For emulator
         private const string DEFAULT_DEVICE_ID = "android_device";
         
         // Legacy support for migration
