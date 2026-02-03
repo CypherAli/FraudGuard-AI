@@ -376,7 +376,7 @@ namespace FraudGuardAI
                 TestButton.Text = "Testing...";
 
                 using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(10);  // Increased timeout for ngrok
+                httpClient.Timeout = TimeSpan.FromSeconds(30);  // Increased to 30s for Render cold starts
 
                 // Add /health endpoint
                 var healthUrl = testUrl.TrimEnd('/') + "/health";
