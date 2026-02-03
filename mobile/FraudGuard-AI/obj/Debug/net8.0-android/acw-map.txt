@@ -1453,6 +1453,9 @@ androidx.annotation.Px;androidx.annotation.Px
 AndroidX.Annotations.IRawRes, Xamarin.AndroidX.Annotation.Jvm;androidx.annotation.RawRes
 AndroidX.Annotations.IRawRes;androidx.annotation.RawRes
 androidx.annotation.RawRes;androidx.annotation.RawRes
+AndroidX.Annotations.IReplaceWith, Xamarin.AndroidX.Annotation.Jvm;androidx.annotation.ReplaceWith
+AndroidX.Annotations.IReplaceWith;androidx.annotation.ReplaceWith
+androidx.annotation.ReplaceWith;androidx.annotation.ReplaceWith
 AndroidX.Annotations.IRequiresApi, Xamarin.AndroidX.Annotation.Jvm;androidx.annotation.RequiresApi
 AndroidX.Annotations.IRequiresApi;androidx.annotation.RequiresApi
 androidx.annotation.RequiresApi;androidx.annotation.RequiresApi
@@ -3892,6 +3895,9 @@ org.jetbrains.annotations.NonNls;org.jetbrains.annotations.NonNls
 JetBrains.Annotations.INotNull, Xamarin.Jetbrains.Annotations;org.jetbrains.annotations.NotNull
 JetBrains.Annotations.INotNull;org.jetbrains.annotations.NotNull
 org.jetbrains.annotations.NotNull;org.jetbrains.annotations.NotNull
+JetBrains.Annotations.INotNullByDefault, Xamarin.Jetbrains.Annotations;org.jetbrains.annotations.NotNullByDefault
+JetBrains.Annotations.INotNullByDefault;org.jetbrains.annotations.NotNullByDefault
+org.jetbrains.annotations.NotNullByDefault;org.jetbrains.annotations.NotNullByDefault
 JetBrains.Annotations.INullable, Xamarin.Jetbrains.Annotations;org.jetbrains.annotations.Nullable
 JetBrains.Annotations.INullable;org.jetbrains.annotations.Nullable
 org.jetbrains.annotations.Nullable;org.jetbrains.annotations.Nullable
@@ -3994,6 +4000,9 @@ org.intellij.lang.annotations.JdkConstants$VerticalScrollBarPolicy;org.intellij.
 Kotlin.IBuilderInference, Xamarin.Kotlin.StdLib;kotlin.BuilderInference
 Kotlin.IBuilderInference;kotlin.BuilderInference
 kotlin.BuilderInference;kotlin.BuilderInference
+Kotlin.IConsistentCopyVisibility, Xamarin.Kotlin.StdLib;kotlin.ConsistentCopyVisibility
+Kotlin.IConsistentCopyVisibility;kotlin.ConsistentCopyVisibility
+kotlin.ConsistentCopyVisibility;kotlin.ConsistentCopyVisibility
 Kotlin.IContextFunctionTypeParams, Xamarin.Kotlin.StdLib;kotlin.ContextFunctionTypeParams
 Kotlin.IContextFunctionTypeParams;kotlin.ContextFunctionTypeParams
 kotlin.ContextFunctionTypeParams;kotlin.ContextFunctionTypeParams
@@ -4018,6 +4027,9 @@ kotlin.ExperimentalSubclassOptIn;kotlin.ExperimentalSubclassOptIn
 Kotlin.IExperimentalUnsignedTypes, Xamarin.Kotlin.StdLib;kotlin.ExperimentalUnsignedTypes
 Kotlin.IExperimentalUnsignedTypes;kotlin.ExperimentalUnsignedTypes
 kotlin.ExperimentalUnsignedTypes;kotlin.ExperimentalUnsignedTypes
+Kotlin.IExposedCopyVisibility, Xamarin.Kotlin.StdLib;kotlin.ExposedCopyVisibility
+Kotlin.IExposedCopyVisibility;kotlin.ExposedCopyVisibility
+kotlin.ExposedCopyVisibility;kotlin.ExposedCopyVisibility
 Kotlin.IExtensionFunctionType, Xamarin.Kotlin.StdLib;kotlin.ExtensionFunctionType
 Kotlin.IExtensionFunctionType;kotlin.ExtensionFunctionType
 kotlin.ExtensionFunctionType;kotlin.ExtensionFunctionType
@@ -4063,6 +4075,9 @@ kotlin.Suppress;kotlin.Suppress
 Kotlin.IUnsafeVariance, Xamarin.Kotlin.StdLib;kotlin.UnsafeVariance
 Kotlin.IUnsafeVariance;kotlin.UnsafeVariance
 kotlin.UnsafeVariance;kotlin.UnsafeVariance
+Kotlin.Uuid.IExperimentalUuidApi, Xamarin.Kotlin.StdLib;kotlin.uuid.ExperimentalUuidApi
+Kotlin.Uuid.IExperimentalUuidApi;kotlin.uuid.ExperimentalUuidApi
+kotlin.uuid.ExperimentalUuidApi;kotlin.uuid.ExperimentalUuidApi
 Kotlin.Time.IComparableTimeMark, Xamarin.Kotlin.StdLib;kotlin.time.ComparableTimeMark
 Kotlin.Time.IComparableTimeMark;kotlin.time.ComparableTimeMark
 kotlin.time.ComparableTimeMark;kotlin.time.ComparableTimeMark
@@ -4177,6 +4192,9 @@ kotlin.properties.ReadOnlyProperty;kotlin.properties.ReadOnlyProperty
 Kotlin.Properties.IReadWriteProperty, Xamarin.Kotlin.StdLib;kotlin.properties.ReadWriteProperty
 Kotlin.Properties.IReadWriteProperty;kotlin.properties.ReadWriteProperty
 kotlin.properties.ReadWriteProperty;kotlin.properties.ReadWriteProperty
+Kotlin.Jvm.IImplicitlyActualizedByJvmDeclaration, Xamarin.Kotlin.StdLib;kotlin.jvm.ImplicitlyActualizedByJvmDeclaration
+Kotlin.Jvm.IImplicitlyActualizedByJvmDeclaration;kotlin.jvm.ImplicitlyActualizedByJvmDeclaration
+kotlin.jvm.ImplicitlyActualizedByJvmDeclaration;kotlin.jvm.ImplicitlyActualizedByJvmDeclaration
 Kotlin.Jvm.IJvmDefault, Xamarin.Kotlin.StdLib;kotlin.jvm.JvmDefault
 Kotlin.Jvm.IJvmDefault;kotlin.jvm.JvmDefault
 kotlin.jvm.JvmDefault;kotlin.jvm.JvmDefault
@@ -4357,9 +4375,21 @@ kotlin.jvm.functions.Function9;kotlin.jvm.functions.Function9
 Kotlin.Jvm.Functions.IFunctionN, Xamarin.Kotlin.StdLib;kotlin.jvm.functions.FunctionN
 Kotlin.Jvm.Functions.IFunctionN;kotlin.jvm.functions.FunctionN
 kotlin.jvm.functions.FunctionN;kotlin.jvm.functions.FunctionN
+Kotlin.JS.IExperimentalJsCollectionsApi, Xamarin.Kotlin.StdLib;kotlin.js.ExperimentalJsCollectionsApi
+Kotlin.JS.IExperimentalJsCollectionsApi;kotlin.js.ExperimentalJsCollectionsApi
+kotlin.js.ExperimentalJsCollectionsApi;kotlin.js.ExperimentalJsCollectionsApi
 Kotlin.JS.IExperimentalJsExport, Xamarin.Kotlin.StdLib;kotlin.js.ExperimentalJsExport
 Kotlin.JS.IExperimentalJsExport;kotlin.js.ExperimentalJsExport
 kotlin.js.ExperimentalJsExport;kotlin.js.ExperimentalJsExport
+Kotlin.JS.IExperimentalJsFileName, Xamarin.Kotlin.StdLib;kotlin.js.ExperimentalJsFileName
+Kotlin.JS.IExperimentalJsFileName;kotlin.js.ExperimentalJsFileName
+kotlin.js.ExperimentalJsFileName;kotlin.js.ExperimentalJsFileName
+Kotlin.JS.IExperimentalJsReflectionCreateInstance, Xamarin.Kotlin.StdLib;kotlin.js.ExperimentalJsReflectionCreateInstance
+Kotlin.JS.IExperimentalJsReflectionCreateInstance;kotlin.js.ExperimentalJsReflectionCreateInstance
+kotlin.js.ExperimentalJsReflectionCreateInstance;kotlin.js.ExperimentalJsReflectionCreateInstance
+Kotlin.JS.IExperimentalJsStatic, Xamarin.Kotlin.StdLib;kotlin.js.ExperimentalJsStatic
+Kotlin.JS.IExperimentalJsStatic;kotlin.js.ExperimentalJsStatic
+kotlin.js.ExperimentalJsStatic;kotlin.js.ExperimentalJsStatic
 Kotlin.IO.Path.ICopyActionContext, Xamarin.Kotlin.StdLib;kotlin.io.path.CopyActionContext
 Kotlin.IO.Path.ICopyActionContext;kotlin.io.path.CopyActionContext
 kotlin.io.path.CopyActionContext;kotlin.io.path.CopyActionContext
@@ -4372,6 +4402,9 @@ kotlin.io.path.FileVisitorBuilder;kotlin.io.path.FileVisitorBuilder
 Kotlin.IO.Encoding.IExperimentalEncodingApi, Xamarin.Kotlin.StdLib;kotlin.io.encoding.ExperimentalEncodingApi
 Kotlin.IO.Encoding.IExperimentalEncodingApi;kotlin.io.encoding.ExperimentalEncodingApi
 kotlin.io.encoding.ExperimentalEncodingApi;kotlin.io.encoding.ExperimentalEncodingApi
+Kotlin.Experimental.IExperimentalNativeApi, Xamarin.Kotlin.StdLib;kotlin.experimental.ExperimentalNativeApi
+Kotlin.Experimental.IExperimentalNativeApi;kotlin.experimental.ExperimentalNativeApi
+kotlin.experimental.ExperimentalNativeApi;kotlin.experimental.ExperimentalNativeApi
 Kotlin.Experimental.IExperimentalObjCName, Xamarin.Kotlin.StdLib;kotlin.experimental.ExperimentalObjCName
 Kotlin.Experimental.IExperimentalObjCName;kotlin.experimental.ExperimentalObjCName
 kotlin.experimental.ExperimentalObjCName;kotlin.experimental.ExperimentalObjCName

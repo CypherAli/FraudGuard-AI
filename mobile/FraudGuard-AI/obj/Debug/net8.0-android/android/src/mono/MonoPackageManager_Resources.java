@@ -36,6 +36,7 @@ public class MonoPackageManager_Resources {
 		"Xamarin.AndroidX.Browser.dll",
 		"Xamarin.AndroidX.CardView.dll",
 		"Xamarin.AndroidX.Collection.dll",
+		"Xamarin.AndroidX.Collection.Jvm.dll",
 		"Xamarin.AndroidX.Collection.Ktx.dll",
 		"Xamarin.AndroidX.Concurrent.Futures.dll",
 		"Xamarin.AndroidX.ConstraintLayout.dll",
