@@ -21,8 +21,8 @@ target triple = "x86_64-unknown-linux-android21"
 	i64 120698629574877762, ; 1: Mono.Android => 0x1accec39cafe242 => 125
 	i64 131669012237370309, ; 2: Microsoft.Maui.Essentials.dll => 0x1d3c844de55c3c5 => 46
 	i64 196720943101637631, ; 3: System.Linq.Expressions.dll => 0x2bae4a7cd73f3ff => 90
-	i64 210515253464952879, ; 4: Xamarin.AndroidX.Collection.dll => 0x2ebe681f694702f => 53
-	i64 232391251801502327, ; 5: Xamarin.AndroidX.SavedState.dll => 0x3399e9cbc897277 => 70
+	i64 232391251801502327, ; 4: Xamarin.AndroidX.SavedState.dll => 0x3399e9cbc897277 => 70
+	i64 233177144301842968, ; 5: Xamarin.AndroidX.Collection.Jvm.dll => 0x33c696097d9f218 => 53
 	i64 545109961164950392, ; 6: fi/Microsoft.Maui.Controls.resources.dll => 0x7909e9f1ec38b78 => 7
 	i64 750875890346172408, ; 7: System.Threading.Thread => 0xa6ba5a4da7d1ff8 => 117
 	i64 752551065888543710, ; 8: Plugin.AudioRecorder => 0xa7199350da0d3de => 48
@@ -167,21 +167,21 @@ target triple = "x86_64-unknown-linux-android21"
 	i64 11162124722117608902, ; 147: Xamarin.AndroidX.ViewPager => 0x9ae7d54b986d05c6 => 72
 	i64 11220793807500858938, ; 148: ja\Microsoft.Maui.Controls.resources => 0x9bb8448481fdd63a => 15
 	i64 11226290749488709958, ; 149: Microsoft.Extensions.Options.dll => 0x9bcbcbf50c874146 => 41
-	i64 11340910727871153756, ; 150: Xamarin.AndroidX.CursorAdapter => 0x9d630238642d465c => 56
-	i64 11485890710487134646, ; 151: System.Runtime.InteropServices => 0x9f6614bf0f8b71b6 => 108
-	i64 11518296021396496455, ; 152: id\Microsoft.Maui.Controls.resources => 0x9fd9353475222047 => 13
-	i64 11529969570048099689, ; 153: Xamarin.AndroidX.ViewPager.dll => 0xa002ae3c4dc7c569 => 72
-	i64 11530571088791430846, ; 154: Microsoft.Extensions.Logging => 0xa004d1504ccd66be => 39
-	i64 11705530742807338875, ; 155: he/Microsoft.Maui.Controls.resources.dll => 0xa272663128721f7b => 9
-	i64 11999166035137088330, ; 156: Plugin.AudioRecorder.dll => 0xa68599ef45474b4a => 48
-	i64 12145679461940342714, ; 157: System.Text.Json => 0xa88e1f1ebcb62fba => 114
-	i64 12451044538927396471, ; 158: Xamarin.AndroidX.Fragment.dll => 0xaccaff0a2955b677 => 59
-	i64 12466513435562512481, ; 159: Xamarin.AndroidX.Loader.dll => 0xad01f3eb52569061 => 64
-	i64 12475113361194491050, ; 160: _Microsoft.Android.Resource.Designer.dll => 0xad2081818aba1caa => 34
-	i64 12538491095302438457, ; 161: Xamarin.AndroidX.CardView.dll => 0xae01ab382ae67e39 => 52
-	i64 12550732019250633519, ; 162: System.IO.Compression => 0xae2d28465e8e1b2f => 89
-	i64 12681088699309157496, ; 163: it/Microsoft.Maui.Controls.resources.dll => 0xaffc46fc178aec78 => 14
-	i64 12700543734426720211, ; 164: Xamarin.AndroidX.Collection => 0xb041653c70d157d3 => 53
+	i64 11299661109949763898, ; 150: Xamarin.AndroidX.Collection.Jvm => 0x9cd075e94cda113a => 53
+	i64 11340910727871153756, ; 151: Xamarin.AndroidX.CursorAdapter => 0x9d630238642d465c => 56
+	i64 11485890710487134646, ; 152: System.Runtime.InteropServices => 0x9f6614bf0f8b71b6 => 108
+	i64 11518296021396496455, ; 153: id\Microsoft.Maui.Controls.resources => 0x9fd9353475222047 => 13
+	i64 11529969570048099689, ; 154: Xamarin.AndroidX.ViewPager.dll => 0xa002ae3c4dc7c569 => 72
+	i64 11530571088791430846, ; 155: Microsoft.Extensions.Logging => 0xa004d1504ccd66be => 39
+	i64 11705530742807338875, ; 156: he/Microsoft.Maui.Controls.resources.dll => 0xa272663128721f7b => 9
+	i64 11999166035137088330, ; 157: Plugin.AudioRecorder.dll => 0xa68599ef45474b4a => 48
+	i64 12145679461940342714, ; 158: System.Text.Json => 0xa88e1f1ebcb62fba => 114
+	i64 12451044538927396471, ; 159: Xamarin.AndroidX.Fragment.dll => 0xaccaff0a2955b677 => 59
+	i64 12466513435562512481, ; 160: Xamarin.AndroidX.Loader.dll => 0xad01f3eb52569061 => 64
+	i64 12475113361194491050, ; 161: _Microsoft.Android.Resource.Designer.dll => 0xad2081818aba1caa => 34
+	i64 12538491095302438457, ; 162: Xamarin.AndroidX.CardView.dll => 0xae01ab382ae67e39 => 52
+	i64 12550732019250633519, ; 163: System.IO.Compression => 0xae2d28465e8e1b2f => 89
+	i64 12681088699309157496, ; 164: it/Microsoft.Maui.Controls.resources.dll => 0xaffc46fc178aec78 => 14
 	i64 12823819093633476069, ; 165: th/Microsoft.Maui.Controls.resources.dll => 0xb1f75b85abe525e5 => 27
 	i64 12843321153144804894, ; 166: Microsoft.Extensions.Primitives => 0xb23ca48abd74d61e => 42
 	i64 12859557719246324186, ; 167: System.Net.WebHeaderCollection.dll => 0xb276539ce04f41da => 101
@@ -276,8 +276,8 @@ target triple = "x86_64-unknown-linux-android21"
 	i32 125, ; 1
 	i32 46, ; 2
 	i32 90, ; 3
-	i32 53, ; 4
-	i32 70, ; 5
+	i32 70, ; 4
+	i32 53, ; 5
 	i32 7, ; 6
 	i32 117, ; 7
 	i32 48, ; 8
@@ -422,21 +422,21 @@ target triple = "x86_64-unknown-linux-android21"
 	i32 72, ; 147
 	i32 15, ; 148
 	i32 41, ; 149
-	i32 56, ; 150
-	i32 108, ; 151
-	i32 13, ; 152
-	i32 72, ; 153
-	i32 39, ; 154
-	i32 9, ; 155
-	i32 48, ; 156
-	i32 114, ; 157
-	i32 59, ; 158
-	i32 64, ; 159
-	i32 34, ; 160
-	i32 52, ; 161
-	i32 89, ; 162
-	i32 14, ; 163
-	i32 53, ; 164
+	i32 53, ; 150
+	i32 56, ; 151
+	i32 108, ; 152
+	i32 13, ; 153
+	i32 72, ; 154
+	i32 39, ; 155
+	i32 9, ; 156
+	i32 48, ; 157
+	i32 114, ; 158
+	i32 59, ; 159
+	i32 64, ; 160
+	i32 34, ; 161
+	i32 52, ; 162
+	i32 89, ; 163
+	i32 14, ; 164
 	i32 27, ; 165
 	i32 42, ; 166
 	i32 101, ; 167

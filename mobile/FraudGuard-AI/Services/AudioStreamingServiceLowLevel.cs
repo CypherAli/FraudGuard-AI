@@ -29,11 +29,22 @@ namespace FraudGuardAI.Services
         private const int SAMPLE_RATE = 16000;
         private const ChannelIn CHANNEL_CONFIG = ChannelIn.Mono;
         private const Android.Media.Encoding AUDIO_FORMAT = Android.Media.Encoding.Pcm16bit;
-        private const int BUFFER_SIZE = 4096;
+        private const int BUFFER_SIZE = 8192; // Increased from 4096 to reduce fragmentation
+        private const int BYTES_PER_SAMPLE = 2; // 16-bit = 2 bytes
 
         public event EventHandler<AlertEventArgs> AlertReceived;
         public event EventHandler<ErrorEventArgs> ErrorOccurred;
         public event EventHandler<ConnectionStatusEventArgs> ConnectionStatusChanged;
+        
+        /// <summary>
+        /// Check if currently streaming audio
+        /// </summary>
+        public bool IsStreaming => _isStreaming;
+        
+        /// <summary>
+        /// Check if WebSocket is connected
+        /// </summary>
+        public bool IsConnected => _isConnected;
 
         #endregion
 
@@ -220,44 +231,99 @@ namespace FraudGuardAI.Services
         private async Task StreamAudioDataAsync(CancellationToken cancellationToken)
         {
             byte[] buffer = new byte[BUFFER_SIZE];
+            int consecutiveErrors = 0;
+            const int MAX_CONSECUTIVE_ERRORS = 10;
 
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[AudioService] Starting audio stream - Buffer: {BUFFER_SIZE}, Rate: {SAMPLE_RATE}Hz");
+                
                 while (_isStreaming && !cancellationToken.IsCancellationRequested)
                 {
                     if (_audioRecord?.RecordingState != RecordState.Recording)
                     {
+                        System.Diagnostics.Debug.WriteLine("[AudioService] AudioRecord not recording, stopping...");
                         break;
                     }
 
-                    // Đọc audio data trực tiếp từ microphone
-                    int bytesRead = await _audioRecord.ReadAsync(buffer, 0, buffer.Length);
-
-                    if (bytesRead > 0)
+                    try
                     {
-                        // Gửi lên WebSocket
-                        if (_webSocket?.State == WebSocketState.Open)
+                        // Đọc audio data trực tiếp từ microphone
+                        int bytesRead = await _audioRecord.ReadAsync(buffer, 0, buffer.Length);
+
+                        if (bytesRead > 0)
                         {
-                            var segment = new ArraySegment<byte>(buffer, 0, bytesRead);
-                            await _webSocket.SendAsync(
-                                segment,
-                                WebSocketMessageType.Binary,
-                                endOfMessage: true,
-                                cancellationToken
-                            );
+                            // Validate audio data
+                            if (bytesRead % BYTES_PER_SAMPLE != 0)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[AudioService] Warning: Unaligned audio data {bytesRead} bytes");
+                                // Align to sample boundary
+                                bytesRead = (bytesRead / BYTES_PER_SAMPLE) * BYTES_PER_SAMPLE;
+                            }
+                            
+                            // Ensure data is not silence (all zeros)
+                            bool isSilence = true;
+                            for (int i = 0; i < Math.Min(bytesRead, 100); i++)
+                            {
+                                if (buffer[i] != 0)
+                                {
+                                    isSilence = false;
+                                    break;
+                                }
+                            }
+                            
+                            // Gửi lên WebSocket
+                            if (_webSocket?.State == WebSocketState.Open)
+                            {
+                                var segment = new ArraySegment<byte>(buffer, 0, bytesRead);
+                                await _webSocket.SendAsync(
+                                    segment,
+                                    WebSocketMessageType.Binary,
+                                    endOfMessage: true,
+                                    cancellationToken
+                                );
+                                consecutiveErrors = 0; // Reset error counter on success
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine("[AudioService] WebSocket not open, attempting reconnect...");
+                                await ReconnectAsync();
+                            }
                         }
-                        else
+                        else if (bytesRead < 0)
                         {
-                            await ReconnectAsync();
+                            // Error occurred
+                            consecutiveErrors++;
+                            OnError($"AudioRecord read error: {bytesRead} (attempt {consecutiveErrors}/{MAX_CONSECUTIVE_ERRORS})", null);
+                            
+                            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
+                            {
+                                OnError("Too many consecutive read errors, stopping stream", null);
+                                break;
+                            }
+                            
+                            await Task.Delay(100, cancellationToken); // Brief delay before retry
                         }
                     }
-                    else if (bytesRead < 0)
+                    catch (OperationCanceledException)
                     {
-                        // Error occurred
-                        OnError($"AudioRecord read error: {bytesRead}", null);
-                        break;
+                        break; // Normal cancellation
+                    }
+                    catch (Exception readEx)
+                    {
+                        consecutiveErrors++;
+                        OnError($"Read cycle error: {readEx.Message} (attempt {consecutiveErrors}/{MAX_CONSECUTIVE_ERRORS})", readEx);
+                        
+                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
+                        {
+                            break;
+                        }
+                        
+                        await Task.Delay(100, cancellationToken);
                     }
                 }
+                
+                System.Diagnostics.Debug.WriteLine("[AudioService] Audio stream ended");
             }
             catch (Exception ex)
             {

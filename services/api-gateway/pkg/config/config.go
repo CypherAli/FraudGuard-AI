@@ -59,7 +59,7 @@ func Load() (*Config, error) {
 
 	// Check if DATABASE_URL is set (Render/Heroku style)
 	databaseURL := os.Getenv("DATABASE_URL")
-	
+
 	var dbConfig DatabaseConfig
 	if databaseURL != "" {
 		// Parse DATABASE_URL (Render provides this)
@@ -150,7 +150,7 @@ func (c *DatabaseConfig) GetDSN() string {
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
 		return databaseURL
 	}
-	
+
 	// Build from individual components (local development)
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",

@@ -576,27 +576,27 @@ target triple = "i686-unknown-linux-android21"
 		ptr null; void* handle (0x0)
 	}, ; 75
 	%struct.DSOCacheEntry {
+		i64 593822826, ; hash 0x2365046a, from name: libaot-Xamarin.AndroidX.Collection.Jvm
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 76
+	%struct.DSOCacheEntry {
 		i64 595217260, ; hash 0x237a4b6c, from name: Xamarin.AndroidX.Navigation.UI.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.41_name, ; name: libaot-Xamarin.AndroidX.Navigation.UI.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 76
+	}, ; 77
 	%struct.DSOCacheEntry {
 		i64 599950454, ; hash 0x23c28476, from name: aot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.36_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 77
+	}, ; 78
 	%struct.DSOCacheEntry {
 		i64 602566721, ; hash 0x23ea7041, from name: aot-System.Text.Encodings.Web.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.85_name, ; name: libaot-System.Text.Encodings.Web.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 78
-	%struct.DSOCacheEntry {
-		i64 619290284, ; hash 0x24e99eac, from name: Xamarin.AndroidX.Collection.dll.so
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
 		ptr null; void* handle (0x0)
 	}, ; 79
 	%struct.DSOCacheEntry {
@@ -690,603 +690,603 @@ target triple = "i686-unknown-linux-android21"
 		ptr null; void* handle (0x0)
 	}, ; 94
 	%struct.DSOCacheEntry {
-		i64 759156225, ; hash 0x2d3fce01, from name: aot-Xamarin.AndroidX.Collection.dll.so
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 95
-	%struct.DSOCacheEntry {
 		i64 759454413, ; hash 0x2d445acd, from name: System.Net.Requests
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.70_name, ; name: libaot-System.Net.Requests.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 96
+	}, ; 95
 	%struct.DSOCacheEntry {
 		i64 761332650, ; hash 0x2d6103aa, from name: libaot-Microsoft.Maui.Controls.Xaml.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.17_name, ; name: libaot-Microsoft.Maui.Controls.Xaml.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 97
+	}, ; 96
 	%struct.DSOCacheEntry {
 		i64 775507847, ; hash 0x2e394f87, from name: System.IO.Compression
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.61_name, ; name: libaot-System.IO.Compression.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 98
+	}, ; 97
 	%struct.DSOCacheEntry {
 		i64 780517479, ; hash 0x2e85c067, from name: aot-System.Net.WebSockets.Client.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.74_name, ; name: libaot-System.Net.WebSockets.Client.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 99
+	}, ; 98
 	%struct.DSOCacheEntry {
 		i64 789074706, ; hash 0x2f085312, from name: aot-System.Threading.Thread
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.89_name, ; name: libaot-System.Threading.Thread.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 100
+	}, ; 99
 	%struct.DSOCacheEntry {
 		i64 789151979, ; hash 0x2f0980eb, from name: Microsoft.Extensions.Options
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.14_name, ; name: libaot-Microsoft.Extensions.Options.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 101
+	}, ; 100
 	%struct.DSOCacheEntry {
 		i64 802286629, ; hash 0x2fd1ec25, from name: aot-Xamarin.AndroidX.DrawerLayout.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.31_name, ; name: libaot-Xamarin.AndroidX.DrawerLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 102
+	}, ; 101
 	%struct.DSOCacheEntry {
 		i64 811095842, ; hash 0x30585722, from name: aot-_Microsoft.Android.Resource.Designer
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.6_name, ; name: libaot-_Microsoft.Android.Resource.Designer.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 103
+	}, ; 102
 	%struct.DSOCacheEntry {
 		i64 826035354, ; hash 0x313c4c9a, from name: libaot-Microsoft.Maui.Graphics.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.20_name, ; name: libaot-Microsoft.Maui.Graphics.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 104
+	}, ; 103
 	%struct.DSOCacheEntry {
 		i64 830298997, ; hash 0x317d5b75, from name: System.IO.Compression.Brotli
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.60_name, ; name: libaot-System.IO.Compression.Brotli.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 105
+	}, ; 104
 	%struct.DSOCacheEntry {
 		i64 837478634, ; hash 0x31eae8ea, from name: libaot-System.Linq.Expressions
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.62_name, ; name: libaot-System.Linq.Expressions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 106
+	}, ; 105
 	%struct.DSOCacheEntry {
 		i64 838232158, ; hash 0x31f6685e, from name: aot-Xamarin.AndroidX.Lifecycle.Common.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.33_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.Common.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 107
+	}, ; 106
 	%struct.DSOCacheEntry {
 		i64 845614355, ; hash 0x32670d13, from name: aot-System.Collections.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.53_name, ; name: libaot-System.Collections.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 108
+	}, ; 107
 	%struct.DSOCacheEntry {
 		i64 846646212, ; hash 0x3276cbc4, from name: aot-System.Collections.Concurrent.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.50_name, ; name: libaot-System.Collections.Concurrent.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 109
+	}, ; 108
 	%struct.DSOCacheEntry {
 		i64 850113928, ; hash 0x32abb588, from name: libaot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.24_name, ; name: libaot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 110
+	}, ; 109
 	%struct.DSOCacheEntry {
 		i64 855910803, ; hash 0x33042993, from name: aot-System.Threading.Thread.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.89_name, ; name: libaot-System.Threading.Thread.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 111
+	}, ; 110
 	%struct.DSOCacheEntry {
 		i64 862126818, ; hash 0x336302e2, from name: libaot-Xamarin.AndroidX.CoordinatorLayout.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.27_name, ; name: libaot-Xamarin.AndroidX.CoordinatorLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 112
+	}, ; 111
 	%struct.DSOCacheEntry {
 		i64 866894703, ; hash 0x33abc36f, from name: System.Net.Security.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.71_name, ; name: libaot-System.Net.Security.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 113
+	}, ; 112
 	%struct.DSOCacheEntry {
 		i64 870587408, ; hash 0x33e41c10, from name: System.Security.Cryptography.Native.Android.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.2_name, ; name: libSystem.Security.Cryptography.Native.Android.so
 		ptr null; void* handle (0x0)
-	}, ; 114
+	}, ; 113
 	%struct.DSOCacheEntry {
 		i64 874318146, ; hash 0x341d0942, from name: libaot-System.IO.Compression.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.61_name, ; name: libaot-System.IO.Compression.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 115
+	}, ; 114
 	%struct.DSOCacheEntry {
 		i64 876853269, ; hash 0x3443b815, from name: libaot-System.Net.Primitives
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.69_name, ; name: libaot-System.Net.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 116
+	}, ; 115
 	%struct.DSOCacheEntry {
 		i64 878954865, ; hash 0x3463c971, from name: System.Net.Http.Json
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.65_name, ; name: libaot-System.Net.Http.Json.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 117
+	}, ; 116
 	%struct.DSOCacheEntry {
 		i64 880254817, ; hash 0x34779f61, from name: Microsoft.Extensions.DependencyInjection.Abstractions.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.11_name, ; name: libaot-Microsoft.Extensions.DependencyInjection.Abstractions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 118
-	%struct.DSOCacheEntry {
-		i64 884884248, ; hash 0x34be4318, from name: aot-Xamarin.AndroidX.Collection
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 119
+	}, ; 117
 	%struct.DSOCacheEntry {
 		i64 899702261, ; hash 0x35a05df5, from name: aot-Microsoft.Extensions.Primitives.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.15_name, ; name: libaot-Microsoft.Extensions.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 120
+	}, ; 118
 	%struct.DSOCacheEntry {
 		i64 905680937, ; hash 0x35fb9829, from name: aot-mscorlib.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.93_name, ; name: libaot-mscorlib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 121
+	}, ; 119
 	%struct.DSOCacheEntry {
 		i64 907714710, ; hash 0x361aa096, from name: libaot-System.Security.Cryptography
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.84_name, ; name: libaot-System.Security.Cryptography.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 122
+	}, ; 120
 	%struct.DSOCacheEntry {
 		i64 940742254, ; hash 0x3812966e, from name: libaot-System.Linq.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.63_name, ; name: libaot-System.Linq.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 123
+	}, ; 121
 	%struct.DSOCacheEntry {
 		i64 956022431, ; hash 0x38fbbe9f, from name: aot-System.Text.Encodings.Web
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.85_name, ; name: libaot-System.Text.Encodings.Web.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 124
+	}, ; 122
 	%struct.DSOCacheEntry {
 		i64 965570903, ; hash 0x398d7157, from name: libaot-System
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.92_name, ; name: libaot-System.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 125
+	}, ; 123
 	%struct.DSOCacheEntry {
 		i64 970896636, ; hash 0x39deb4fc, from name: libaot-Xamarin.AndroidX.Lifecycle.ViewModel.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.35_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.ViewModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 126
+	}, ; 124
 	%struct.DSOCacheEntry {
 		i64 991024368, ; hash 0x3b11d4f0, from name: aot-System.ComponentModel.TypeConverter
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.55_name, ; name: libaot-System.ComponentModel.TypeConverter.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 127
+	}, ; 125
 	%struct.DSOCacheEntry {
 		i64 991370235, ; hash 0x3b171bfb, from name: libaot-Xamarin.AndroidX.Loader.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.37_name, ; name: libaot-Xamarin.AndroidX.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 128
+	}, ; 126
 	%struct.DSOCacheEntry {
 		i64 999807200, ; hash 0x3b97d8e0, from name: Xamarin.AndroidX.SwipeRefreshLayout.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.44_name, ; name: libaot-Xamarin.AndroidX.SwipeRefreshLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 129
+	}, ; 127
 	%struct.DSOCacheEntry {
 		i64 1000172987, ; hash 0x3b9d6dbb, from name: libaot-System.Xml.ReaderWriter
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.91_name, ; name: libaot-System.Xml.ReaderWriter.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 130
+	}, ; 128
 	%struct.DSOCacheEntry {
 		i64 1000318620, ; hash 0x3b9fa69c, from name: libaot-System.Net.Http.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.66_name, ; name: libaot-System.Net.Http.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 131
+	}, ; 129
+	%struct.DSOCacheEntry {
+		i64 1003632813, ; hash 0x3bd238ad, from name: aot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 130
 	%struct.DSOCacheEntry {
 		i64 1005247442, ; hash 0x3beadbd2, from name: FraudGuardAI.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.7_name, ; name: libaot-FraudGuardAI.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 132
+	}, ; 131
 	%struct.DSOCacheEntry {
 		i64 1014632550, ; hash 0x3c7a1066, from name: Microsoft.Maui.Essentials.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.19_name, ; name: libaot-Microsoft.Maui.Essentials.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 133
+	}, ; 132
 	%struct.DSOCacheEntry {
 		i64 1020599761, ; hash 0x3cd51dd1, from name: libaot-Microsoft.Maui.Controls.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.16_name, ; name: libaot-Microsoft.Maui.Controls.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 134
+	}, ; 133
 	%struct.DSOCacheEntry {
 		i64 1021628303, ; hash 0x3ce4cf8f, from name: libaot-Microsoft.Extensions.Options.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.14_name, ; name: libaot-Microsoft.Extensions.Options.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 135
+	}, ; 134
 	%struct.DSOCacheEntry {
 		i64 1027261693, ; hash 0x3d3ac4fd, from name: aot-Xamarin.AndroidX.DrawerLayout
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.31_name, ; name: libaot-Xamarin.AndroidX.DrawerLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 136
+	}, ; 135
 	%struct.DSOCacheEntry {
 		i64 1028951442, ; hash 0x3d548d92, from name: Microsoft.Extensions.DependencyInjection.Abstractions
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.11_name, ; name: libaot-Microsoft.Extensions.DependencyInjection.Abstractions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 137
+	}, ; 136
 	%struct.DSOCacheEntry {
 		i64 1035644815, ; hash 0x3dbaaf8f, from name: Xamarin.AndroidX.AppCompat
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.23_name, ; name: libaot-Xamarin.AndroidX.AppCompat.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 138
+	}, ; 137
 	%struct.DSOCacheEntry {
 		i64 1064597976, ; hash 0x3f7479d8, from name: Xamarin.AndroidX.Fragment.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.32_name, ; name: libaot-Xamarin.AndroidX.Fragment.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 139
+	}, ; 138
 	%struct.DSOCacheEntry {
 		i64 1074670799, ; hash 0x400e2ccf, from name: Microsoft.Maui.Controls.Xaml.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.17_name, ; name: libaot-Microsoft.Maui.Controls.Xaml.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 140
+	}, ; 139
 	%struct.DSOCacheEntry {
 		i64 1079503280, ; hash 0x4057e9b0, from name: libaot-Xamarin.AndroidX.CursorAdapter.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.29_name, ; name: libaot-Xamarin.AndroidX.CursorAdapter.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 141
+	}, ; 140
 	%struct.DSOCacheEntry {
 		i64 1082857460, ; hash 0x408b17f4, from name: System.ComponentModel.TypeConverter
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.55_name, ; name: libaot-System.ComponentModel.TypeConverter.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 142
+	}, ; 141
 	%struct.DSOCacheEntry {
 		i64 1084122840, ; hash 0x409e66d8, from name: Xamarin.Kotlin.StdLib
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.48_name, ; name: libaot-Xamarin.Kotlin.StdLib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 143
+	}, ; 142
 	%struct.DSOCacheEntry {
 		i64 1098259244, ; hash 0x41761b2c, from name: System
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.92_name, ; name: libaot-System.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 144
+	}, ; 143
 	%struct.DSOCacheEntry {
 		i64 1107286201, ; hash 0x41ffd8b9, from name: libaot-System.Formats.Asn1
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.59_name, ; name: libaot-System.Formats.Asn1.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 145
+	}, ; 144
 	%struct.DSOCacheEntry {
 		i64 1121069432, ; hash 0x42d22978, from name: libaot-Microsoft.Extensions.DependencyInjection.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.10_name, ; name: libaot-Microsoft.Extensions.DependencyInjection.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 146
+	}, ; 145
 	%struct.DSOCacheEntry {
 		i64 1136326207, ; hash 0x43baf63f, from name: libaot-Xamarin.AndroidX.Navigation.Common
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.38_name, ; name: libaot-Xamarin.AndroidX.Navigation.Common.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 147
+	}, ; 146
 	%struct.DSOCacheEntry {
 		i64 1144657884, ; hash 0x443a17dc, from name: aot-System.Diagnostics.DiagnosticSource
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.58_name, ; name: libaot-System.Diagnostics.DiagnosticSource.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 148
+	}, ; 147
 	%struct.DSOCacheEntry {
 		i64 1158083819, ; hash 0x4506f4eb, from name: libaot-System.Net.Requests.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.70_name, ; name: libaot-System.Net.Requests.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 149
+	}, ; 148
 	%struct.DSOCacheEntry {
 		i64 1162145747, ; hash 0x4544efd3, from name: aot-Xamarin.AndroidX.Activity.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.22_name, ; name: libaot-Xamarin.AndroidX.Activity.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 150
+	}, ; 149
 	%struct.DSOCacheEntry {
 		i64 1163002600, ; hash 0x455202e8, from name: libaot-System.Collections.Specialized
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.52_name, ; name: libaot-System.Collections.Specialized.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 151
+	}, ; 150
 	%struct.DSOCacheEntry {
 		i64 1166279424, ; hash 0x45840300, from name: libaot-Microsoft.Extensions.Primitives.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.15_name, ; name: libaot-Microsoft.Extensions.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 152
+	}, ; 151
 	%struct.DSOCacheEntry {
 		i64 1166903420, ; hash 0x458d887c, from name: System.Collections.Concurrent.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.50_name, ; name: libaot-System.Collections.Concurrent.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 153
+	}, ; 152
 	%struct.DSOCacheEntry {
 		i64 1168283859, ; hash 0x45a298d3, from name: libaot-System.Collections.NonGeneric.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.51_name, ; name: libaot-System.Collections.NonGeneric.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 154
+	}, ; 153
 	%struct.DSOCacheEntry {
 		i64 1169748878, ; hash 0x45b8f38e, from name: libaot-System.Net.Sockets
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.72_name, ; name: libaot-System.Net.Sockets.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 155
+	}, ; 154
 	%struct.DSOCacheEntry {
 		i64 1194435441, ; hash 0x4731a371, from name: libaot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.36_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 156
+	}, ; 155
 	%struct.DSOCacheEntry {
 		i64 1202528835, ; hash 0x47ad2243, from name: libaot-System.Net.Http.Json
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.65_name, ; name: libaot-System.Net.Http.Json.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 157
+	}, ; 156
 	%struct.DSOCacheEntry {
 		i64 1248415137, ; hash 0x4a694da1, from name: aot-System.Runtime.Loader
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.81_name, ; name: libaot-System.Runtime.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 158
+	}, ; 157
 	%struct.DSOCacheEntry {
 		i64 1249626734, ; hash 0x4a7bca6e, from name: Xamarin.AndroidX.CoordinatorLayout.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.27_name, ; name: libaot-Xamarin.AndroidX.CoordinatorLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 159
+	}, ; 158
 	%struct.DSOCacheEntry {
 		i64 1251805992, ; hash 0x4a9d0b28, from name: aot-System.Net.NetworkInformation.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.68_name, ; name: libaot-System.Net.NetworkInformation.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 160
+	}, ; 159
 	%struct.DSOCacheEntry {
 		i64 1264007745, ; hash 0x4b573a41, from name: aot-Xamarin.AndroidX.CustomView
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.30_name, ; name: libaot-Xamarin.AndroidX.CustomView.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 161
+	}, ; 160
 	%struct.DSOCacheEntry {
 		i64 1268771501, ; hash 0x4b9feaad, from name: aot-System.Diagnostics.DiagnosticSource.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.58_name, ; name: libaot-System.Diagnostics.DiagnosticSource.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 162
+	}, ; 161
 	%struct.DSOCacheEntry {
 		i64 1281955724, ; hash 0x4c69178c, from name: libaot-Microsoft.Maui.Controls.Xaml
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.17_name, ; name: libaot-Microsoft.Maui.Controls.Xaml.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 163
+	}, ; 162
 	%struct.DSOCacheEntry {
 		i64 1285465351, ; hash 0x4c9ea507, from name: aot-System.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.92_name, ; name: libaot-System.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 164
+	}, ; 163
 	%struct.DSOCacheEntry {
 		i64 1303631868, ; hash 0x4db3d7fc, from name: libaot-Microsoft.Maui.Graphics
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.20_name, ; name: libaot-Microsoft.Maui.Graphics.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 165
+	}, ; 164
 	%struct.DSOCacheEntry {
 		i64 1324164729, ; hash 0x4eed2679, from name: System.Linq
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.63_name, ; name: libaot-System.Linq.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 166
+	}, ; 165
 	%struct.DSOCacheEntry {
 		i64 1326422064, ; hash 0x4f0f9830, from name: libaot-System.ObjectModel.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.77_name, ; name: libaot-System.ObjectModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 167
+	}, ; 166
 	%struct.DSOCacheEntry {
 		i64 1330538025, ; hash 0x4f4e6629, from name: libaot-System.ObjectModel
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.77_name, ; name: libaot-System.ObjectModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 168
+	}, ; 167
 	%struct.DSOCacheEntry {
 		i64 1331715804, ; hash 0x4f605edc, from name: aot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.36_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 169
+	}, ; 168
 	%struct.DSOCacheEntry {
 		i64 1335605085, ; hash 0x4f9bb75d, from name: aot-System.Net.WebSockets
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.75_name, ; name: libaot-System.Net.WebSockets.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 170
+	}, ; 169
 	%struct.DSOCacheEntry {
 		i64 1356916091, ; hash 0x50e0e57b, from name: Microsoft.Maui.Controls.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.16_name, ; name: libaot-Microsoft.Maui.Controls.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 171
+	}, ; 170
 	%struct.DSOCacheEntry {
 		i64 1360868007, ; hash 0x511d32a7, from name: libaot-Xamarin.Google.Android.Material
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.47_name, ; name: libaot-Xamarin.Google.Android.Material.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 172
+	}, ; 171
 	%struct.DSOCacheEntry {
 		i64 1363166739, ; hash 0x51404613, from name: libaot-Xamarin.AndroidX.Navigation.Fragment
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.39_name, ; name: libaot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 173
+	}, ; 172
 	%struct.DSOCacheEntry {
 		i64 1364629429, ; hash 0x515697b5, from name: System.Linq.Expressions.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.62_name, ; name: libaot-System.Linq.Expressions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 174
+	}, ; 173
 	%struct.DSOCacheEntry {
 		i64 1369292404, ; hash 0x519dbe74, from name: aot-Xamarin.AndroidX.ViewPager2
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.46_name, ; name: libaot-Xamarin.AndroidX.ViewPager2.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 175
+	}, ; 174
 	%struct.DSOCacheEntry {
 		i64 1373613485, ; hash 0x51dfadad, from name: libaot-Microsoft.Maui.Essentials
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.19_name, ; name: libaot-Microsoft.Maui.Essentials.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 176
+	}, ; 175
 	%struct.DSOCacheEntry {
 		i64 1376238345, ; hash 0x5207bb09, from name: aot-System.Private.CoreLib.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.97_name, ; name: libaot-System.Private.CoreLib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 177
+	}, ; 176
 	%struct.DSOCacheEntry {
 		i64 1376866003, ; hash 0x52114ed3, from name: Xamarin.AndroidX.SavedState
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.43_name, ; name: libaot-Xamarin.AndroidX.SavedState.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 178
+	}, ; 177
 	%struct.DSOCacheEntry {
 		i64 1383009688, ; hash 0x526f0d98, from name: aot-System.Net.Http.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.66_name, ; name: libaot-System.Net.Http.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 179
+	}, ; 178
 	%struct.DSOCacheEntry {
 		i64 1383042059, ; hash 0x526f8c0b, from name: aot-Plugin.AudioRecorder
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.21_name, ; name: libaot-Plugin.AudioRecorder.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 180
+	}, ; 179
 	%struct.DSOCacheEntry {
 		i64 1383267250, ; hash 0x5272fbb2, from name: aot-System.ObjectModel
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.77_name, ; name: libaot-System.ObjectModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 181
+	}, ; 180
 	%struct.DSOCacheEntry {
 		i64 1386166540, ; hash 0x529f390c, from name: libaot-System.Threading
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.90_name, ; name: libaot-System.Threading.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 182
+	}, ; 181
 	%struct.DSOCacheEntry {
 		i64 1388636356, ; hash 0x52c4e8c4, from name: aot-Microsoft.Extensions.DependencyInjection.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.10_name, ; name: libaot-Microsoft.Extensions.DependencyInjection.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 183
+	}, ; 182
 	%struct.DSOCacheEntry {
 		i64 1395919151, ; hash 0x5334092f, from name: libaot-System.ComponentModel.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.56_name, ; name: libaot-System.ComponentModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 184
+	}, ; 183
 	%struct.DSOCacheEntry {
 		i64 1396668899, ; hash 0x533f79e3, from name: libaot-Xamarin.AndroidX.RecyclerView.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.42_name, ; name: libaot-Xamarin.AndroidX.RecyclerView.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 185
+	}, ; 184
 	%struct.DSOCacheEntry {
 		i64 1398864029, ; hash 0x5360f89d, from name: System.Security.Cryptography.Native.Android
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.2_name, ; name: libSystem.Security.Cryptography.Native.Android.so
 		ptr null; void* handle (0x0)
-	}, ; 186
+	}, ; 185
 	%struct.DSOCacheEntry {
 		i64 1401968973, ; hash 0x5390594d, from name: System.Collections.Specialized.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.52_name, ; name: libaot-System.Collections.Specialized.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 187
+	}, ; 186
 	%struct.DSOCacheEntry {
 		i64 1406073936, ; hash 0x53cefc50, from name: Xamarin.AndroidX.CoordinatorLayout
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.27_name, ; name: libaot-Xamarin.AndroidX.CoordinatorLayout.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 188
+	}, ; 187
 	%struct.DSOCacheEntry {
 		i64 1409736290, ; hash 0x5406de62, from name: aot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.24_name, ; name: libaot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 189
+	}, ; 188
 	%struct.DSOCacheEntry {
 		i64 1427200648, ; hash 0x55115a88, from name: aot-Microsoft.Extensions.Logging
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.12_name, ; name: libaot-Microsoft.Extensions.Logging.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 190
+	}, ; 189
 	%struct.DSOCacheEntry {
 		i64 1452208284, ; hash 0x568ef09c, from name: libaot-Xamarin.AndroidX.Loader
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.37_name, ; name: libaot-Xamarin.AndroidX.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 191
+	}, ; 190
 	%struct.DSOCacheEntry {
 		i64 1457202274, ; hash 0x56db2462, from name: aot-System.Collections.NonGeneric
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.51_name, ; name: libaot-System.Collections.NonGeneric.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 192
+	}, ; 191
 	%struct.DSOCacheEntry {
 		i64 1469204771, ; hash 0x57924923, from name: Xamarin.AndroidX.AppCompat.AppCompatResources
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.24_name, ; name: libaot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 193
+	}, ; 192
 	%struct.DSOCacheEntry {
 		i64 1470490898, ; hash 0x57a5e912, from name: Microsoft.Extensions.Primitives
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.15_name, ; name: libaot-Microsoft.Extensions.Primitives.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 193
+	%struct.DSOCacheEntry {
+		i64 1472806356, ; hash 0x57c93dd4, from name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
 		ptr null; void* handle (0x0)
 	}, ; 194
 	%struct.DSOCacheEntry {
@@ -2718,459 +2718,459 @@ target triple = "i686-unknown-linux-android21"
 		ptr null; void* handle (0x0)
 	}, ; 432
 	%struct.DSOCacheEntry {
+		i64 3148935331, ; hash 0xbbb0f0a3, from name: aot-Xamarin.AndroidX.Collection.Jvm
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 433
+	%struct.DSOCacheEntry {
 		i64 3177211174, ; hash 0xbd606526, from name: libaot-Xamarin.AndroidX.Lifecycle.Common.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.33_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.Common.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 433
+	}, ; 434
 	%struct.DSOCacheEntry {
 		i64 3188889127, ; hash 0xbe129627, from name: aot-System.Runtime.Numerics.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.82_name, ; name: libaot-System.Runtime.Numerics.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 434
+	}, ; 435
 	%struct.DSOCacheEntry {
 		i64 3190933424, ; hash 0xbe31c7b0, from name: aot-System.Net.Http.Json
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.65_name, ; name: libaot-System.Net.Http.Json.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 435
+	}, ; 436
 	%struct.DSOCacheEntry {
 		i64 3194979304, ; hash 0xbe6f83e8, from name: aot-Xamarin.AndroidX.ViewPager
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.45_name, ; name: libaot-Xamarin.AndroidX.ViewPager.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 436
+	}, ; 437
 	%struct.DSOCacheEntry {
 		i64 3212987759, ; hash 0xbf824d6f, from name: aot-System.Net.Primitives
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.69_name, ; name: libaot-System.Net.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 437
+	}, ; 438
 	%struct.DSOCacheEntry {
 		i64 3216491085, ; hash 0xbfb7c24d, from name: aot-Microsoft.Extensions.Configuration
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.8_name, ; name: libaot-Microsoft.Extensions.Configuration.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 438
+	}, ; 439
 	%struct.DSOCacheEntry {
 		i64 3220365878, ; hash 0xbff2e236, from name: System.Threading
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.90_name, ; name: libaot-System.Threading.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 439
+	}, ; 440
 	%struct.DSOCacheEntry {
 		i64 3227734480, ; hash 0xc06351d0, from name: libaot-System.Net.Http.Json.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.65_name, ; name: libaot-System.Net.Http.Json.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 440
+	}, ; 441
 	%struct.DSOCacheEntry {
 		i64 3234506695, ; hash 0xc0caa7c7, from name: aot-System.Net.Sockets
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.72_name, ; name: libaot-System.Net.Sockets.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 441
+	}, ; 442
 	%struct.DSOCacheEntry {
 		i64 3240981972, ; hash 0xc12d75d4, from name: aot-System.Threading
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.90_name, ; name: libaot-System.Threading.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 442
+	}, ; 443
 	%struct.DSOCacheEntry {
 		i64 3253979335, ; hash 0xc1f3c8c7, from name: aot-System.Net.WebSockets.Client
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.74_name, ; name: libaot-System.Net.WebSockets.Client.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 443
+	}, ; 444
 	%struct.DSOCacheEntry {
 		i64 3258312781, ; hash 0xc235e84d, from name: Xamarin.AndroidX.CardView
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.25_name, ; name: libaot-Xamarin.AndroidX.CardView.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 444
+	}, ; 445
 	%struct.DSOCacheEntry {
 		i64 3259652464, ; hash 0xc24a5970, from name: libaot-System.Private.Xml.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.79_name, ; name: libaot-System.Private.Xml.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 445
+	}, ; 446
 	%struct.DSOCacheEntry {
 		i64 3268042121, ; hash 0xc2ca5d89, from name: aot-Xamarin.AndroidX.Loader.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.37_name, ; name: libaot-Xamarin.AndroidX.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 446
+	}, ; 447
 	%struct.DSOCacheEntry {
 		i64 3271438092, ; hash 0xc2fe2f0c, from name: libaot-mscorlib.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.93_name, ; name: libaot-mscorlib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 447
+	}, ; 448
 	%struct.DSOCacheEntry {
 		i64 3274854694, ; hash 0xc3325126, from name: libaot-System.Formats.Asn1.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.59_name, ; name: libaot-System.Formats.Asn1.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 448
+	}, ; 449
 	%struct.DSOCacheEntry {
 		i64 3275660490, ; hash 0xc33e9cca, from name: System.Net.Http.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.66_name, ; name: libaot-System.Net.Http.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 449
+	}, ; 450
 	%struct.DSOCacheEntry {
 		i64 3294137703, ; hash 0xc4588d67, from name: libaot-System.Linq.Expressions.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.62_name, ; name: libaot-System.Linq.Expressions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 450
+	}, ; 451
 	%struct.DSOCacheEntry {
 		i64 3320200080, ; hash 0xc5e63b90, from name: System.Linq.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.63_name, ; name: libaot-System.Linq.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 451
+	}, ; 452
 	%struct.DSOCacheEntry {
 		i64 3321816931, ; hash 0xc5fee763, from name: libaot-Xamarin.AndroidX.ViewPager.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.45_name, ; name: libaot-Xamarin.AndroidX.ViewPager.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 452
+	}, ; 453
 	%struct.DSOCacheEntry {
 		i64 3322992765, ; hash 0xc610d87d, from name: libaot-FraudGuardAI.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.7_name, ; name: libaot-FraudGuardAI.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 453
+	}, ; 454
 	%struct.DSOCacheEntry {
 		i64 3330991993, ; hash 0xc68ae779, from name: libaot-Microsoft.Maui
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.18_name, ; name: libaot-Microsoft.Maui.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 454
+	}, ; 455
 	%struct.DSOCacheEntry {
 		i64 3346324047, ; hash 0xc774da4f, from name: Xamarin.AndroidX.Navigation.Runtime
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.40_name, ; name: libaot-Xamarin.AndroidX.Navigation.Runtime.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 455
+	}, ; 456
 	%struct.DSOCacheEntry {
 		i64 3358260929, ; hash 0xc82afec1, from name: System.Text.Json
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.86_name, ; name: libaot-System.Text.Json.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 456
+	}, ; 457
 	%struct.DSOCacheEntry {
 		i64 3359318915, ; hash 0xc83b2383, from name: libaot-System.Net.WebSockets.Client
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.74_name, ; name: libaot-System.Net.WebSockets.Client.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 457
+	}, ; 458
 	%struct.DSOCacheEntry {
 		i64 3362522851, ; hash 0xc86c06e3, from name: Xamarin.AndroidX.Core
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.28_name, ; name: libaot-Xamarin.AndroidX.Core.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 458
+	}, ; 459
 	%struct.DSOCacheEntry {
 		i64 3365984895, ; hash 0xc8a0da7f, from name: libaot-System.Net.WebHeaderCollection
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.73_name, ; name: libaot-System.Net.WebHeaderCollection.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 459
+	}, ; 460
 	%struct.DSOCacheEntry {
 		i64 3366347497, ; hash 0xc8a662e9, from name: Java.Interop
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.94_name, ; name: libaot-Java.Interop.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 460
+	}, ; 461
 	%struct.DSOCacheEntry {
 		i64 3374999561, ; hash 0xc92a6809, from name: Xamarin.AndroidX.RecyclerView
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.42_name, ; name: libaot-Xamarin.AndroidX.RecyclerView.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 461
+	}, ; 462
 	%struct.DSOCacheEntry {
 		i64 3390663103, ; hash 0xca1969bf, from name: aot-System.Net.Sockets.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.72_name, ; name: libaot-System.Net.Sockets.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 462
+	}, ; 463
 	%struct.DSOCacheEntry {
 		i64 3394171410, ; hash 0xca4ef212, from name: Xamarin.AndroidX.Activity.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.22_name, ; name: libaot-Xamarin.AndroidX.Activity.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 463
+	}, ; 464
 	%struct.DSOCacheEntry {
 		i64 3396494892, ; hash 0xca72662c, from name: System.Net.Primitives.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.69_name, ; name: libaot-System.Net.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 464
+	}, ; 465
 	%struct.DSOCacheEntry {
 		i64 3400462534, ; hash 0xcaaef0c6, from name: mscorlib.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.93_name, ; name: libaot-mscorlib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 465
+	}, ; 466
 	%struct.DSOCacheEntry {
 		i64 3401606454, ; hash 0xcac06536, from name: Xamarin.AndroidX.ViewPager.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.45_name, ; name: libaot-Xamarin.AndroidX.ViewPager.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 466
+	}, ; 467
 	%struct.DSOCacheEntry {
 		i64 3403922660, ; hash 0xcae3bce4, from name: aot-Xamarin.AndroidX.CardView.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.25_name, ; name: libaot-Xamarin.AndroidX.CardView.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 467
+	}, ; 468
 	%struct.DSOCacheEntry {
 		i64 3422266863, ; hash 0xcbfba5ef, from name: libmonodroid.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.5_name, ; name: libmonodroid.so
 		ptr null; void* handle (0x0)
-	}, ; 468
+	}, ; 469
 	%struct.DSOCacheEntry {
 		i64 3445624513, ; hash 0xcd600ec1, from name: aot-System.ComponentModel.Primitives.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.54_name, ; name: libaot-System.ComponentModel.Primitives.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 469
+	}, ; 470
 	%struct.DSOCacheEntry {
 		i64 3447642345, ; hash 0xcd7ed8e9, from name: libaot-System.Net.Security
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.71_name, ; name: libaot-System.Net.Security.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 470
+	}, ; 471
 	%struct.DSOCacheEntry {
 		i64 3448212429, ; hash 0xcd878bcd, from name: aot-System.IO.Compression
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.61_name, ; name: libaot-System.IO.Compression.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 471
+	}, ; 472
 	%struct.DSOCacheEntry {
 		i64 3471140502, ; hash 0xcee56696, from name: libaot-_Microsoft.Android.Resource.Designer.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.6_name, ; name: libaot-_Microsoft.Android.Resource.Designer.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 472
+	}, ; 473
 	%struct.DSOCacheEntry {
 		i64 3476120550, ; hash 0xcf3163e6, from name: Mono.Android
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.96_name, ; name: libaot-Mono.Android.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 473
+	}, ; 474
 	%struct.DSOCacheEntry {
 		i64 3498419225, ; hash 0xd085a419, from name: aot-Xamarin.AndroidX.Navigation.Common.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.38_name, ; name: libaot-Xamarin.AndroidX.Navigation.Common.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 474
+	}, ; 475
+	%struct.DSOCacheEntry {
+		i64 3505803628, ; hash 0xd0f6516c, from name: Xamarin.AndroidX.Collection.Jvm.dll.so
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 476
 	%struct.DSOCacheEntry {
 		i64 3527981548, ; hash 0xd248b9ec, from name: System.Runtime.Loader.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.81_name, ; name: libaot-System.Runtime.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 475
+	}, ; 477
 	%struct.DSOCacheEntry {
 		i64 3531467364, ; hash 0xd27dea64, from name: Microsoft.Extensions.Options.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.14_name, ; name: libaot-Microsoft.Extensions.Options.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 476
+	}, ; 478
 	%struct.DSOCacheEntry {
 		i64 3538012924, ; hash 0xd2e1cafc, from name: System.Threading.Channels.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.88_name, ; name: libaot-System.Threading.Channels.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 477
+	}, ; 479
 	%struct.DSOCacheEntry {
 		i64 3538790266, ; hash 0xd2eda77a, from name: aot-FraudGuardAI
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.7_name, ; name: libaot-FraudGuardAI.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 478
+	}, ; 480
 	%struct.DSOCacheEntry {
 		i64 3554143940, ; hash 0xd3d7eec4, from name: libaot-System.Collections.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.53_name, ; name: libaot-System.Collections.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 479
+	}, ; 481
 	%struct.DSOCacheEntry {
 		i64 3557887367, ; hash 0xd4110d87, from name: libaot-System.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.92_name, ; name: libaot-System.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 480
+	}, ; 482
 	%struct.DSOCacheEntry {
 		i64 3563790061, ; hash 0xd46b1eed, from name: libaot-Microsoft.Extensions.Configuration.Abstractions
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.9_name, ; name: libaot-Microsoft.Extensions.Configuration.Abstractions.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 481
+	}, ; 483
 	%struct.DSOCacheEntry {
 		i64 3569135103, ; hash 0xd4bcadff, from name: aot-Xamarin.AndroidX.Lifecycle.ViewModel
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.35_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.ViewModel.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 482
+	}, ; 484
 	%struct.DSOCacheEntry {
 		i64 3574279395, ; hash 0xd50b2ce3, from name: libaot-System.Runtime.Loader
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.81_name, ; name: libaot-System.Runtime.Loader.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 483
+	}, ; 485
 	%struct.DSOCacheEntry {
 		i64 3580899767, ; hash 0xd57031b7, from name: libaot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.39_name, ; name: libaot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 484
+	}, ; 486
 	%struct.DSOCacheEntry {
 		i64 3580928879, ; hash 0xd570a36f, from name: aot-Xamarin.AndroidX.Lifecycle.Common
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.33_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.Common.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 485
+	}, ; 487
 	%struct.DSOCacheEntry {
 		i64 3581103432, ; hash 0xd5734d48, from name: libaot-Xamarin.Kotlin.StdLib
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.48_name, ; name: libaot-Xamarin.Kotlin.StdLib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 486
+	}, ; 488
 	%struct.DSOCacheEntry {
 		i64 3582297397, ; hash 0xd5858535, from name: aot-Xamarin.AndroidX.Lifecycle.LiveData.Core
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.34_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.LiveData.Core.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 487
+	}, ; 489
 	%struct.DSOCacheEntry {
 		i64 3598340787, ; hash 0xd67a52b3, from name: System.Net.WebSockets.Client
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.74_name, ; name: libaot-System.Net.WebSockets.Client.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 488
+	}, ; 490
 	%struct.DSOCacheEntry {
 		i64 3610022767, ; hash 0xd72c936f, from name: libaot-System.Security.Cryptography.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.84_name, ; name: libaot-System.Security.Cryptography.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 489
+	}, ; 491
 	%struct.DSOCacheEntry {
 		i64 3623194064, ; hash 0xd7f58dd0, from name: libaot-System.Linq
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.63_name, ; name: libaot-System.Linq.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 490
+	}, ; 492
 	%struct.DSOCacheEntry {
 		i64 3629173998, ; hash 0xd850ccee, from name: libaot-mscorlib
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.93_name, ; name: libaot-mscorlib.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 491
+	}, ; 493
 	%struct.DSOCacheEntry {
 		i64 3636393175, ; hash 0xd8bef4d7, from name: libmonodroid
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.5_name, ; name: libmonodroid.so
 		ptr null; void* handle (0x0)
-	}, ; 492
+	}, ; 494
 	%struct.DSOCacheEntry {
 		i64 3641597786, ; hash 0xd90e5f5a, from name: Xamarin.AndroidX.Lifecycle.LiveData.Core
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.34_name, ; name: libaot-Xamarin.AndroidX.Lifecycle.LiveData.Core.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 493
+	}, ; 495
 	%struct.DSOCacheEntry {
 		i64 3643854240, ; hash 0xd930cda0, from name: Xamarin.AndroidX.Navigation.Fragment
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.39_name, ; name: libaot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 494
+	}, ; 496
 	%struct.DSOCacheEntry {
 		i64 3647597548, ; hash 0xd969ebec, from name: System.Runtime.InteropServices.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.80_name, ; name: libaot-System.Runtime.InteropServices.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 495
+	}, ; 497
 	%struct.DSOCacheEntry {
 		i64 3648098342, ; hash 0xd9719026, from name: libaot-System.Runtime.Numerics
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.82_name, ; name: libaot-System.Runtime.Numerics.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 496
+	}, ; 498
 	%struct.DSOCacheEntry {
 		i64 3650306124, ; hash 0xd993404c, from name: System.Text.Encodings.Web.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.85_name, ; name: libaot-System.Text.Encodings.Web.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 497
-	%struct.DSOCacheEntry {
-		i64 3653801034, ; hash 0xd9c8944a, from name: libaot-Xamarin.AndroidX.Collection.dll.so
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 498
+	}, ; 499
 	%struct.DSOCacheEntry {
 		i64 3660523487, ; hash 0xda2f27df, from name: System.Net.NetworkInformation
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.68_name, ; name: libaot-System.Net.NetworkInformation.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 499
+	}, ; 500
 	%struct.DSOCacheEntry {
 		i64 3662939194, ; hash 0xda54043a, from name: aot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.39_name, ; name: libaot-Xamarin.AndroidX.Navigation.Fragment.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 500
+	}, ; 501
 	%struct.DSOCacheEntry {
 		i64 3684032917, ; hash 0xdb95e195, from name: libaot-Xamarin.AndroidX.SavedState
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.43_name, ; name: libaot-Xamarin.AndroidX.SavedState.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 501
+	}, ; 502
 	%struct.DSOCacheEntry {
 		i64 3685223071, ; hash 0xdba80a9f, from name: libaot-System.IO.Compression.Brotli
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.60_name, ; name: libaot-System.IO.Compression.Brotli.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 502
+	}, ; 503
 	%struct.DSOCacheEntry {
 		i64 3691770169, ; hash 0xdc0bf139, from name: Xamarin.AndroidX.Core.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.28_name, ; name: libaot-Xamarin.AndroidX.Core.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 503
+	}, ; 504
 	%struct.DSOCacheEntry {
 		i64 3705667778, ; hash 0xdce000c2, from name: libaot-System.Threading.Thread.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.89_name, ; name: libaot-System.Threading.Thread.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 504
+	}, ; 505
 	%struct.DSOCacheEntry {
 		i64 3720997800, ; hash 0xddc9eba8, from name: aot-System.IO.Compression.Brotli
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.60_name, ; name: libaot-System.IO.Compression.Brotli.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 505
+	}, ; 506
 	%struct.DSOCacheEntry {
 		i64 3732100267, ; hash 0xde7354ab, from name: System.Net.NameResolution
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.67_name, ; name: libaot-System.Net.NameResolution.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 506
+	}, ; 507
 	%struct.DSOCacheEntry {
 		i64 3748608112, ; hash 0xdf6f3870, from name: System.Diagnostics.DiagnosticSource
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.58_name, ; name: libaot-System.Diagnostics.DiagnosticSource.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 507
-	%struct.DSOCacheEntry {
-		i64 3786282454, ; hash 0xe1ae15d6, from name: Xamarin.AndroidX.Collection
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
 		ptr null; void* handle (0x0)
 	}, ; 508
 	%struct.DSOCacheEntry {
@@ -3270,27 +3270,27 @@ target triple = "i686-unknown-linux-android21"
 		ptr null; void* handle (0x0)
 	}, ; 524
 	%struct.DSOCacheEntry {
+		i64 3910130544, ; hash 0xe90fdb70, from name: Xamarin.AndroidX.Collection.Jvm
+		i8 0, ; bool ignore
+		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.Jvm.dll.so
+		ptr null; void* handle (0x0)
+	}, ; 525
+	%struct.DSOCacheEntry {
 		i64 3915264716, ; hash 0xe95e32cc, from name: aot-System.Security.Cryptography
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.84_name, ; name: libaot-System.Security.Cryptography.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 525
+	}, ; 526
 	%struct.DSOCacheEntry {
 		i64 3925077246, ; hash 0xe9f3ecfe, from name: libaot-System.IO.Compression.Brotli.dll.so
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.60_name, ; name: libaot-System.IO.Compression.Brotli.dll.so
 		ptr null; void* handle (0x0)
-	}, ; 526
+	}, ; 527
 	%struct.DSOCacheEntry {
 		i64 3928044579, ; hash 0xea213423, from name: System.Xml.ReaderWriter
 		i8 0, ; bool ignore
 		ptr @.DSOCacheEntry.91_name, ; name: libaot-System.Xml.ReaderWriter.dll.so
-		ptr null; void* handle (0x0)
-	}, ; 527
-	%struct.DSOCacheEntry {
-		i64 3930233922, ; hash 0xea429c42, from name: libaot-Xamarin.AndroidX.Collection
-		i8 0, ; bool ignore
-		ptr @.DSOCacheEntry.26_name, ; name: libaot-Xamarin.AndroidX.Collection.dll.so
 		ptr null; void* handle (0x0)
 	}, ; 528
 	%struct.DSOCacheEntry {
@@ -3591,7 +3591,7 @@ target triple = "i686-unknown-linux-android21"
 @.env.0 = private unnamed_addr constant [15 x i8] c"MONO_GC_PARAMS\00", align 1
 @.env.1 = private unnamed_addr constant [21 x i8] c"major=marksweep-conc\00", align 1
 @.env.2 = private unnamed_addr constant [17 x i8] c"XAMARIN_BUILD_ID\00", align 1
-@.env.3 = private unnamed_addr constant [37 x i8] c"9b5eaa98-ef7e-4dfd-bb1a-bd58133ff307\00", align 1
+@.env.3 = private unnamed_addr constant [37 x i8] c"3420b246-e8a7-43ba-80ab-03f3b6790f24\00", align 1
 @.env.4 = private unnamed_addr constant [28 x i8] c"XA_HTTP_CLIENT_HANDLER_TYPE\00", align 1
 @.env.5 = private unnamed_addr constant [42 x i8] c"Xamarin.Android.Net.AndroidMessageHandler\00", align 1
 @.env.6 = private unnamed_addr constant [29 x i8] c"__XA_PACKAGE_NAMING_POLICY__\00", align 1
@@ -3627,7 +3627,7 @@ target triple = "i686-unknown-linux-android21"
 @.DSOCacheEntry.23_name = private unnamed_addr constant [41 x i8] c"libaot-Xamarin.AndroidX.AppCompat.dll.so\00", align 1
 @.DSOCacheEntry.24_name = private unnamed_addr constant [60 x i8] c"libaot-Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so\00", align 1
 @.DSOCacheEntry.25_name = private unnamed_addr constant [40 x i8] c"libaot-Xamarin.AndroidX.CardView.dll.so\00", align 1
-@.DSOCacheEntry.26_name = private unnamed_addr constant [42 x i8] c"libaot-Xamarin.AndroidX.Collection.dll.so\00", align 1
+@.DSOCacheEntry.26_name = private unnamed_addr constant [46 x i8] c"libaot-Xamarin.AndroidX.Collection.Jvm.dll.so\00", align 1
 @.DSOCacheEntry.27_name = private unnamed_addr constant [49 x i8] c"libaot-Xamarin.AndroidX.CoordinatorLayout.dll.so\00", align 1
 @.DSOCacheEntry.28_name = private unnamed_addr constant [36 x i8] c"libaot-Xamarin.AndroidX.Core.dll.so\00", align 1
 @.DSOCacheEntry.29_name = private unnamed_addr constant [45 x i8] c"libaot-Xamarin.AndroidX.CursorAdapter.dll.so\00", align 1

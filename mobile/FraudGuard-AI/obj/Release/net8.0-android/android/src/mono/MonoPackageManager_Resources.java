@@ -56,7 +56,7 @@ public class MonoPackageManager_Resources {
 		"Xamarin.AndroidX.AppCompat.dll",
 		"Xamarin.AndroidX.AppCompat.AppCompatResources.dll",
 		"Xamarin.AndroidX.CardView.dll",
-		"Xamarin.AndroidX.Collection.dll",
+		"Xamarin.AndroidX.Collection.Jvm.dll",
 		"Xamarin.AndroidX.CoordinatorLayout.dll",
 		"Xamarin.AndroidX.Core.dll",
 		"Xamarin.AndroidX.CursorAdapter.dll",

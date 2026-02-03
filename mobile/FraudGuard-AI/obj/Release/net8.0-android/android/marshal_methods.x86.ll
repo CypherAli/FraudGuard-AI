@@ -27,67 +27,67 @@ target triple = "i686-unknown-linux-android21"
 	i32 117431740, ; 7: System.Runtime.InteropServices => 0x6ffddbc => 108
 	i32 122350210, ; 8: System.Threading.Channels.dll => 0x74aea82 => 116
 	i32 142721839, ; 9: System.Net.WebHeaderCollection => 0x881c32f => 101
-	i32 165246403, ; 10: Xamarin.AndroidX.Collection.dll => 0x9d975c3 => 53
-	i32 182336117, ; 11: Xamarin.AndroidX.SwipeRefreshLayout.dll => 0xade3a75 => 71
-	i32 195452805, ; 12: vi/Microsoft.Maui.Controls.resources.dll => 0xba65f85 => 30
-	i32 199333315, ; 13: zh-HK/Microsoft.Maui.Controls.resources.dll => 0xbe195c3 => 31
-	i32 205061960, ; 14: System.ComponentModel => 0xc38ff48 => 84
-	i32 280992041, ; 15: cs/Microsoft.Maui.Controls.resources.dll => 0x10bf9929 => 2
-	i32 317674968, ; 16: vi\Microsoft.Maui.Controls.resources => 0x12ef55d8 => 30
-	i32 318968648, ; 17: Xamarin.AndroidX.Activity.dll => 0x13031348 => 49
-	i32 336156722, ; 18: ja/Microsoft.Maui.Controls.resources.dll => 0x14095832 => 15
-	i32 342366114, ; 19: Xamarin.AndroidX.Lifecycle.Common => 0x146817a2 => 60
-	i32 356389973, ; 20: it/Microsoft.Maui.Controls.resources.dll => 0x153e1455 => 14
-	i32 367216257, ; 21: Plugin.AudioRecorder => 0x15e34681 => 48
-	i32 379916513, ; 22: System.Threading.Thread.dll => 0x16a510e1 => 117
-	i32 385762202, ; 23: System.Memory.dll => 0x16fe439a => 92
-	i32 395744057, ; 24: _Microsoft.Android.Resource.Designer => 0x17969339 => 34
-	i32 435591531, ; 25: sv/Microsoft.Maui.Controls.resources.dll => 0x19f6996b => 26
-	i32 442565967, ; 26: System.Collections => 0x1a61054f => 81
-	i32 450948140, ; 27: Xamarin.AndroidX.Fragment.dll => 0x1ae0ec2c => 59
-	i32 465846621, ; 28: mscorlib => 0x1bc4415d => 121
-	i32 469710990, ; 29: System.dll => 0x1bff388e => 120
-	i32 498788369, ; 30: System.ObjectModel => 0x1dbae811 => 105
-	i32 500358224, ; 31: id/Microsoft.Maui.Controls.resources.dll => 0x1dd2dc50 => 13
-	i32 503918385, ; 32: fi/Microsoft.Maui.Controls.resources.dll => 0x1e092f31 => 7
-	i32 513247710, ; 33: Microsoft.Extensions.Primitives.dll => 0x1e9789de => 42
-	i32 539058512, ; 34: Microsoft.Extensions.Logging => 0x20216150 => 39
-	i32 592146354, ; 35: pt-BR/Microsoft.Maui.Controls.resources.dll => 0x234b6fb2 => 21
-	i32 627609679, ; 36: Xamarin.AndroidX.CustomView => 0x2568904f => 57
-	i32 627931235, ; 37: nl\Microsoft.Maui.Controls.resources => 0x256d7863 => 19
-	i32 662205335, ; 38: System.Text.Encodings.Web.dll => 0x27787397 => 113
-	i32 672442732, ; 39: System.Collections.Concurrent => 0x2814a96c => 78
-	i32 683518922, ; 40: System.Net.Security => 0x28bdabca => 99
-	i32 688181140, ; 41: ca/Microsoft.Maui.Controls.resources.dll => 0x2904cf94 => 1
-	i32 706645707, ; 42: ko/Microsoft.Maui.Controls.resources.dll => 0x2a1e8ecb => 16
-	i32 709557578, ; 43: de/Microsoft.Maui.Controls.resources.dll => 0x2a4afd4a => 4
-	i32 722857257, ; 44: System.Runtime.Loader.dll => 0x2b15ed29 => 109
-	i32 759454413, ; 45: System.Net.Requests => 0x2d445acd => 98
-	i32 775507847, ; 46: System.IO.Compression => 0x2e394f87 => 89
-	i32 777317022, ; 47: sk\Microsoft.Maui.Controls.resources => 0x2e54ea9e => 25
-	i32 789151979, ; 48: Microsoft.Extensions.Options => 0x2f0980eb => 41
-	i32 823281589, ; 49: System.Private.Uri.dll => 0x311247b5 => 106
-	i32 830298997, ; 50: System.IO.Compression.Brotli => 0x317d5b75 => 88
-	i32 878954865, ; 51: System.Net.Http.Json => 0x3463c971 => 93
-	i32 904024072, ; 52: System.ComponentModel.Primitives.dll => 0x35e25008 => 82
-	i32 925467409, ; 53: FraudGuardAI.dll => 0x37298311 => 77
-	i32 926902833, ; 54: tr/Microsoft.Maui.Controls.resources.dll => 0x373f6a31 => 28
-	i32 967690846, ; 55: Xamarin.AndroidX.Lifecycle.Common.dll => 0x39adca5e => 60
-	i32 992768348, ; 56: System.Collections.dll => 0x3b2c715c => 81
-	i32 1012816738, ; 57: Xamarin.AndroidX.SavedState.dll => 0x3c5e5b62 => 70
-	i32 1028951442, ; 58: Microsoft.Extensions.DependencyInjection.Abstractions => 0x3d548d92 => 38
-	i32 1029334545, ; 59: da/Microsoft.Maui.Controls.resources.dll => 0x3d5a6611 => 3
-	i32 1035644815, ; 60: Xamarin.AndroidX.AppCompat => 0x3dbaaf8f => 50
-	i32 1044663988, ; 61: System.Linq.Expressions.dll => 0x3e444eb4 => 90
-	i32 1052210849, ; 62: Xamarin.AndroidX.Lifecycle.ViewModel.dll => 0x3eb776a1 => 62
-	i32 1082857460, ; 63: System.ComponentModel.TypeConverter => 0x408b17f4 => 83
-	i32 1084122840, ; 64: Xamarin.Kotlin.StdLib => 0x409e66d8 => 75
-	i32 1098259244, ; 65: System => 0x41761b2c => 120
-	i32 1118262833, ; 66: ko\Microsoft.Maui.Controls.resources => 0x42a75631 => 16
-	i32 1168523401, ; 67: pt\Microsoft.Maui.Controls.resources => 0x45a64089 => 22
-	i32 1178241025, ; 68: Xamarin.AndroidX.Navigation.Runtime.dll => 0x463a8801 => 67
-	i32 1203215381, ; 69: pl/Microsoft.Maui.Controls.resources.dll => 0x47b79c15 => 20
-	i32 1234928153, ; 70: nb/Microsoft.Maui.Controls.resources.dll => 0x499b8219 => 18
+	i32 182336117, ; 10: Xamarin.AndroidX.SwipeRefreshLayout.dll => 0xade3a75 => 71
+	i32 195452805, ; 11: vi/Microsoft.Maui.Controls.resources.dll => 0xba65f85 => 30
+	i32 199333315, ; 12: zh-HK/Microsoft.Maui.Controls.resources.dll => 0xbe195c3 => 31
+	i32 205061960, ; 13: System.ComponentModel => 0xc38ff48 => 84
+	i32 280992041, ; 14: cs/Microsoft.Maui.Controls.resources.dll => 0x10bf9929 => 2
+	i32 317674968, ; 15: vi\Microsoft.Maui.Controls.resources => 0x12ef55d8 => 30
+	i32 318968648, ; 16: Xamarin.AndroidX.Activity.dll => 0x13031348 => 49
+	i32 336156722, ; 17: ja/Microsoft.Maui.Controls.resources.dll => 0x14095832 => 15
+	i32 342366114, ; 18: Xamarin.AndroidX.Lifecycle.Common => 0x146817a2 => 60
+	i32 356389973, ; 19: it/Microsoft.Maui.Controls.resources.dll => 0x153e1455 => 14
+	i32 367216257, ; 20: Plugin.AudioRecorder => 0x15e34681 => 48
+	i32 379916513, ; 21: System.Threading.Thread.dll => 0x16a510e1 => 117
+	i32 385762202, ; 22: System.Memory.dll => 0x16fe439a => 92
+	i32 395744057, ; 23: _Microsoft.Android.Resource.Designer => 0x17969339 => 34
+	i32 435591531, ; 24: sv/Microsoft.Maui.Controls.resources.dll => 0x19f6996b => 26
+	i32 442565967, ; 25: System.Collections => 0x1a61054f => 81
+	i32 450948140, ; 26: Xamarin.AndroidX.Fragment.dll => 0x1ae0ec2c => 59
+	i32 465846621, ; 27: mscorlib => 0x1bc4415d => 121
+	i32 469710990, ; 28: System.dll => 0x1bff388e => 120
+	i32 498788369, ; 29: System.ObjectModel => 0x1dbae811 => 105
+	i32 500358224, ; 30: id/Microsoft.Maui.Controls.resources.dll => 0x1dd2dc50 => 13
+	i32 503918385, ; 31: fi/Microsoft.Maui.Controls.resources.dll => 0x1e092f31 => 7
+	i32 513247710, ; 32: Microsoft.Extensions.Primitives.dll => 0x1e9789de => 42
+	i32 539058512, ; 33: Microsoft.Extensions.Logging => 0x20216150 => 39
+	i32 592146354, ; 34: pt-BR/Microsoft.Maui.Controls.resources.dll => 0x234b6fb2 => 21
+	i32 627609679, ; 35: Xamarin.AndroidX.CustomView => 0x2568904f => 57
+	i32 627931235, ; 36: nl\Microsoft.Maui.Controls.resources => 0x256d7863 => 19
+	i32 662205335, ; 37: System.Text.Encodings.Web.dll => 0x27787397 => 113
+	i32 672442732, ; 38: System.Collections.Concurrent => 0x2814a96c => 78
+	i32 683518922, ; 39: System.Net.Security => 0x28bdabca => 99
+	i32 688181140, ; 40: ca/Microsoft.Maui.Controls.resources.dll => 0x2904cf94 => 1
+	i32 706645707, ; 41: ko/Microsoft.Maui.Controls.resources.dll => 0x2a1e8ecb => 16
+	i32 709557578, ; 42: de/Microsoft.Maui.Controls.resources.dll => 0x2a4afd4a => 4
+	i32 722857257, ; 43: System.Runtime.Loader.dll => 0x2b15ed29 => 109
+	i32 759454413, ; 44: System.Net.Requests => 0x2d445acd => 98
+	i32 775507847, ; 45: System.IO.Compression => 0x2e394f87 => 89
+	i32 777317022, ; 46: sk\Microsoft.Maui.Controls.resources => 0x2e54ea9e => 25
+	i32 789151979, ; 47: Microsoft.Extensions.Options => 0x2f0980eb => 41
+	i32 823281589, ; 48: System.Private.Uri.dll => 0x311247b5 => 106
+	i32 830298997, ; 49: System.IO.Compression.Brotli => 0x317d5b75 => 88
+	i32 878954865, ; 50: System.Net.Http.Json => 0x3463c971 => 93
+	i32 904024072, ; 51: System.ComponentModel.Primitives.dll => 0x35e25008 => 82
+	i32 925467409, ; 52: FraudGuardAI.dll => 0x37298311 => 77
+	i32 926902833, ; 53: tr/Microsoft.Maui.Controls.resources.dll => 0x373f6a31 => 28
+	i32 967690846, ; 54: Xamarin.AndroidX.Lifecycle.Common.dll => 0x39adca5e => 60
+	i32 992768348, ; 55: System.Collections.dll => 0x3b2c715c => 81
+	i32 1012816738, ; 56: Xamarin.AndroidX.SavedState.dll => 0x3c5e5b62 => 70
+	i32 1028951442, ; 57: Microsoft.Extensions.DependencyInjection.Abstractions => 0x3d548d92 => 38
+	i32 1029334545, ; 58: da/Microsoft.Maui.Controls.resources.dll => 0x3d5a6611 => 3
+	i32 1035644815, ; 59: Xamarin.AndroidX.AppCompat => 0x3dbaaf8f => 50
+	i32 1044663988, ; 60: System.Linq.Expressions.dll => 0x3e444eb4 => 90
+	i32 1052210849, ; 61: Xamarin.AndroidX.Lifecycle.ViewModel.dll => 0x3eb776a1 => 62
+	i32 1082857460, ; 62: System.ComponentModel.TypeConverter => 0x408b17f4 => 83
+	i32 1084122840, ; 63: Xamarin.Kotlin.StdLib => 0x409e66d8 => 75
+	i32 1098259244, ; 64: System => 0x41761b2c => 120
+	i32 1118262833, ; 65: ko\Microsoft.Maui.Controls.resources => 0x42a75631 => 16
+	i32 1168523401, ; 66: pt\Microsoft.Maui.Controls.resources => 0x45a64089 => 22
+	i32 1178241025, ; 67: Xamarin.AndroidX.Navigation.Runtime.dll => 0x463a8801 => 67
+	i32 1203215381, ; 68: pl/Microsoft.Maui.Controls.resources.dll => 0x47b79c15 => 20
+	i32 1234928153, ; 69: nb/Microsoft.Maui.Controls.resources.dll => 0x499b8219 => 18
+	i32 1246548578, ; 70: Xamarin.AndroidX.Collection.Jvm.dll => 0x4a4cd262 => 53
 	i32 1260983243, ; 71: cs\Microsoft.Maui.Controls.resources => 0x4b2913cb => 2
 	i32 1293217323, ; 72: Xamarin.AndroidX.DrawerLayout.dll => 0x4d14ee2b => 58
 	i32 1324164729, ; 73: System.Linq => 0x4eed2679 => 91
@@ -240,16 +240,16 @@ target triple = "i686-unknown-linux-android21"
 	i32 3732100267, ; 220: System.Net.NameResolution => 0xde7354ab => 95
 	i32 3737834244, ; 221: System.Net.Http.Json.dll => 0xdecad304 => 93
 	i32 3748608112, ; 222: System.Diagnostics.DiagnosticSource => 0xdf6f3870 => 86
-	i32 3786282454, ; 223: Xamarin.AndroidX.Collection => 0xe1ae15d6 => 53
-	i32 3792276235, ; 224: System.Collections.NonGeneric => 0xe2098b0b => 79
-	i32 3802395368, ; 225: System.Collections.Specialized.dll => 0xe2a3f2e8 => 80
-	i32 3823082795, ; 226: System.Security.Cryptography.dll => 0xe3df9d2b => 112
-	i32 3841636137, ; 227: Microsoft.Extensions.DependencyInjection.Abstractions.dll => 0xe4fab729 => 38
-	i32 3849253459, ; 228: System.Runtime.InteropServices.dll => 0xe56ef253 => 108
-	i32 3885497537, ; 229: System.Net.WebHeaderCollection.dll => 0xe797fcc1 => 101
-	i32 3889960447, ; 230: zh-Hans/Microsoft.Maui.Controls.resources.dll => 0xe7dc15ff => 32
-	i32 3896106733, ; 231: System.Collections.Concurrent.dll => 0xe839deed => 78
-	i32 3896760992, ; 232: Xamarin.AndroidX.Core.dll => 0xe843daa0 => 55
+	i32 3792276235, ; 223: System.Collections.NonGeneric => 0xe2098b0b => 79
+	i32 3802395368, ; 224: System.Collections.Specialized.dll => 0xe2a3f2e8 => 80
+	i32 3823082795, ; 225: System.Security.Cryptography.dll => 0xe3df9d2b => 112
+	i32 3841636137, ; 226: Microsoft.Extensions.DependencyInjection.Abstractions.dll => 0xe4fab729 => 38
+	i32 3849253459, ; 227: System.Runtime.InteropServices.dll => 0xe56ef253 => 108
+	i32 3885497537, ; 228: System.Net.WebHeaderCollection.dll => 0xe797fcc1 => 101
+	i32 3889960447, ; 229: zh-Hans/Microsoft.Maui.Controls.resources.dll => 0xe7dc15ff => 32
+	i32 3896106733, ; 230: System.Collections.Concurrent.dll => 0xe839deed => 78
+	i32 3896760992, ; 231: Xamarin.AndroidX.Core.dll => 0xe843daa0 => 55
+	i32 3910130544, ; 232: Xamarin.AndroidX.Collection.Jvm => 0xe90fdb70 => 53
 	i32 3928044579, ; 233: System.Xml.ReaderWriter => 0xea213423 => 119
 	i32 3931092270, ; 234: Xamarin.AndroidX.Navigation.UI => 0xea4fb52e => 68
 	i32 3955647286, ; 235: Xamarin.AndroidX.AppCompat.dll => 0xebc66336 => 50
@@ -282,67 +282,67 @@ target triple = "i686-unknown-linux-android21"
 	i32 108, ; 7
 	i32 116, ; 8
 	i32 101, ; 9
-	i32 53, ; 10
-	i32 71, ; 11
-	i32 30, ; 12
-	i32 31, ; 13
-	i32 84, ; 14
-	i32 2, ; 15
-	i32 30, ; 16
-	i32 49, ; 17
-	i32 15, ; 18
-	i32 60, ; 19
-	i32 14, ; 20
-	i32 48, ; 21
-	i32 117, ; 22
-	i32 92, ; 23
-	i32 34, ; 24
-	i32 26, ; 25
-	i32 81, ; 26
-	i32 59, ; 27
-	i32 121, ; 28
-	i32 120, ; 29
-	i32 105, ; 30
-	i32 13, ; 31
-	i32 7, ; 32
-	i32 42, ; 33
-	i32 39, ; 34
-	i32 21, ; 35
-	i32 57, ; 36
-	i32 19, ; 37
-	i32 113, ; 38
-	i32 78, ; 39
-	i32 99, ; 40
-	i32 1, ; 41
-	i32 16, ; 42
-	i32 4, ; 43
-	i32 109, ; 44
-	i32 98, ; 45
-	i32 89, ; 46
-	i32 25, ; 47
-	i32 41, ; 48
-	i32 106, ; 49
-	i32 88, ; 50
-	i32 93, ; 51
-	i32 82, ; 52
-	i32 77, ; 53
-	i32 28, ; 54
-	i32 60, ; 55
-	i32 81, ; 56
-	i32 70, ; 57
-	i32 38, ; 58
-	i32 3, ; 59
-	i32 50, ; 60
-	i32 90, ; 61
-	i32 62, ; 62
-	i32 83, ; 63
-	i32 75, ; 64
-	i32 120, ; 65
-	i32 16, ; 66
-	i32 22, ; 67
-	i32 67, ; 68
-	i32 20, ; 69
-	i32 18, ; 70
+	i32 71, ; 10
+	i32 30, ; 11
+	i32 31, ; 12
+	i32 84, ; 13
+	i32 2, ; 14
+	i32 30, ; 15
+	i32 49, ; 16
+	i32 15, ; 17
+	i32 60, ; 18
+	i32 14, ; 19
+	i32 48, ; 20
+	i32 117, ; 21
+	i32 92, ; 22
+	i32 34, ; 23
+	i32 26, ; 24
+	i32 81, ; 25
+	i32 59, ; 26
+	i32 121, ; 27
+	i32 120, ; 28
+	i32 105, ; 29
+	i32 13, ; 30
+	i32 7, ; 31
+	i32 42, ; 32
+	i32 39, ; 33
+	i32 21, ; 34
+	i32 57, ; 35
+	i32 19, ; 36
+	i32 113, ; 37
+	i32 78, ; 38
+	i32 99, ; 39
+	i32 1, ; 40
+	i32 16, ; 41
+	i32 4, ; 42
+	i32 109, ; 43
+	i32 98, ; 44
+	i32 89, ; 45
+	i32 25, ; 46
+	i32 41, ; 47
+	i32 106, ; 48
+	i32 88, ; 49
+	i32 93, ; 50
+	i32 82, ; 51
+	i32 77, ; 52
+	i32 28, ; 53
+	i32 60, ; 54
+	i32 81, ; 55
+	i32 70, ; 56
+	i32 38, ; 57
+	i32 3, ; 58
+	i32 50, ; 59
+	i32 90, ; 60
+	i32 62, ; 61
+	i32 83, ; 62
+	i32 75, ; 63
+	i32 120, ; 64
+	i32 16, ; 65
+	i32 22, ; 66
+	i32 67, ; 67
+	i32 20, ; 68
+	i32 18, ; 69
+	i32 53, ; 70
 	i32 2, ; 71
 	i32 58, ; 72
 	i32 91, ; 73
@@ -495,16 +495,16 @@ target triple = "i686-unknown-linux-android21"
 	i32 95, ; 220
 	i32 93, ; 221
 	i32 86, ; 222
-	i32 53, ; 223
-	i32 79, ; 224
-	i32 80, ; 225
-	i32 112, ; 226
-	i32 38, ; 227
-	i32 108, ; 228
-	i32 101, ; 229
-	i32 32, ; 230
-	i32 78, ; 231
-	i32 55, ; 232
+	i32 79, ; 223
+	i32 80, ; 224
+	i32 112, ; 225
+	i32 38, ; 226
+	i32 108, ; 227
+	i32 101, ; 228
+	i32 32, ; 229
+	i32 78, ; 230
+	i32 55, ; 231
+	i32 53, ; 232
 	i32 119, ; 233
 	i32 68, ; 234
 	i32 50, ; 235
