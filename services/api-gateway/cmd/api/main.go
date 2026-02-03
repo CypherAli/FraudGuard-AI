@@ -35,6 +35,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Auto-migrate: Create tables and seed data
+	if err := db.AutoMigrate(); err != nil {
+		log.Fatalf(" Failed to run migrations: %v", err)
+	}
+
 	// Initialize SQLite database (for call history logs)
 	if err := repository.InitSQLite(); err != nil {
 		log.Printf(" Warning: SQLite initialization failed: %v", err)
