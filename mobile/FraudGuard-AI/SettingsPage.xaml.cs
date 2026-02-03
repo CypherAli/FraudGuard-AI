@@ -84,24 +84,21 @@ namespace FraudGuardAI
                 if (UsbModeSwitch != null)
                     UsbModeSwitch.IsToggled = usbMode;
 
-                // Migrate from old IP-based setting to URL
+                // Get saved URL or use default
                 string savedURL = Preferences.Get(PREF_SERVER_URL, "");
                 if (string.IsNullOrEmpty(savedURL))
                 {
-                    // Try loading legacy IP setting and convert to URL
-                    string legacyIP = Preferences.Get(LEGACY_PREF_SERVER_IP, "");
-                    if (!string.IsNullOrEmpty(legacyIP))
-                    {
-                        // Convert old IP to full URL
-                        savedURL = $"http://{legacyIP}:8080";
-                        Preferences.Set(PREF_SERVER_URL, savedURL);
-                        System.Diagnostics.Debug.WriteLine($"[Settings] Migrated legacy IP {legacyIP} to URL: {savedURL}");
-                    }
-                    else
-                    {
-                        savedURL = DEFAULT_URL;
-                        Preferences.Set(PREF_SERVER_URL, savedURL); // Save default
-                    }
+                    // Use production server as default
+                    savedURL = DEFAULT_URL;
+                    Preferences.Set(PREF_SERVER_URL, savedURL);
+                    System.Diagnostics.Debug.WriteLine($"[Settings] No saved URL, using default: {savedURL}");
+                }
+                
+                // Clean up legacy preference if it exists (one-time migration)
+                if (Preferences.ContainsKey(LEGACY_PREF_SERVER_IP))
+                {
+                    Preferences.Remove(LEGACY_PREF_SERVER_IP);
+                    System.Diagnostics.Debug.WriteLine($"[Settings] Removed legacy ServerIP preference");
                 }
                 
                 System.Diagnostics.Debug.WriteLine($"[Settings] Loaded URL: {savedURL}");
@@ -441,11 +438,48 @@ namespace FraudGuardAI
 
         private async void OnTestConnectionClicked(object sender, EventArgs e) => await TestConnectionAsync();
 
+        private void OnUseProductionClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // Turn off USB mode
+                if (UsbModeSwitch != null)
+                    UsbModeSwitch.IsToggled = false;
+                Preferences.Set(PREF_USB_MODE, false);
+                
+                // Set production URL
+                string productionUrl = AppConstants.PRODUCTION_SERVER_URL;
+                Preferences.Set(PREF_SERVER_URL, productionUrl);
+                
+                if (ServerIPEntry != null)
+                    ServerIPEntry.Text = productionUrl;
+                
+                UpdateConfigurationDisplay(productionUrl);
+                ShowStatus("✅ Production server configured", isError: false);
+                
+                System.Diagnostics.Debug.WriteLine($"[Settings] Switched to production: {productionUrl}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Settings] Error switching to production: {ex.Message}");
+                ShowStatus("Error setting production server", isError: true);
+            }
+        }
+
         #endregion
 
         #region Public Static Helpers
 
-        public static string GetServerURL() => Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
+        public static string GetServerURL()
+        {
+            bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
+            string url = isUsbMode ? USB_URL : Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
+            
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetServerURL] USB Mode: {isUsbMode}, Returning: {url}");
+            Console.WriteLine($"[SettingsPage.GetServerURL] USB Mode: {isUsbMode}, Returning: {url}");
+            
+            return url;
+        }
 
         public static string GetDeviceID() => Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
 
@@ -453,6 +487,9 @@ namespace FraudGuardAI
         {
             bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
             string baseUrl = isUsbMode ? USB_URL : GetServerURL();
+            
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetWebSocketUrl] Base URL: {baseUrl}");
+            Console.WriteLine($"[SettingsPage.GetWebSocketUrl] Base URL: {baseUrl}");
             
             // Convert http/https to ws/wss
             if (baseUrl.StartsWith("https://"))
@@ -471,7 +508,12 @@ namespace FraudGuardAI
         public static string GetAPIBaseUrl()
         {
             bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            return isUsbMode ? USB_URL : GetServerURL();
+            string url = isUsbMode ? USB_URL : GetServerURL();
+            
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetAPIBaseUrl] Returning: {url}");
+            Console.WriteLine($"[SettingsPage.GetAPIBaseUrl] Returning: {url}");
+            
+            return url;
         }
 
         #endregion

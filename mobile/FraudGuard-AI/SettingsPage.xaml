@@ -209,6 +209,16 @@
                                HeightRequest="48"
                                Clicked="OnTestConnectionClicked"/>
                     </Grid>
+                    
+                    <!-- Production Server Button -->
+                    <Button Text="🌐 Use Production Server (Render)"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           BackgroundColor="#7C3AED"
+                           TextColor="White"
+                           CornerRadius="14"
+                           HeightRequest="48"
+                           Clicked="OnUseProductionClicked"/>
                 </VerticalStackLayout>
             </Border>
 
