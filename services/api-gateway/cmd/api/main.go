@@ -27,7 +27,10 @@ func main() {
 		log.Fatalf(" Failed to load configuration: %v", err)
 	}
 
-	log.Println(" Starting FraudGuard AI API Gateway...")
+	log.Println("🚀 Starting FraudGuard AI API Gateway...")
+	log.Printf("📍 Environment: %s", os.Getenv("GO_ENV"))
+	log.Printf("🌐 Host: %s", cfg.Server.Host)
+	log.Printf("🔌 Port: %d", cfg.Server.Port)
 
 	// Initialize PostgreSQL database connection (for blacklist)
 	if err := db.Connect(&cfg.Database); err != nil {

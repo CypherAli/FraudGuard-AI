@@ -94,21 +94,33 @@ func CheckNumber(w http.ResponseWriter, r *http.Request) {
 // HealthCheck returns the health status of the API
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	// Check database connection
+	dbStatus := "connected"
+	var dbError string
+	
 	if err := db.HealthCheck(r.Context()); err != nil {
+		dbStatus = "disconnected"
+		dbError = err.Error()
+		log.Printf("⚠️ [HealthCheck] Database unhealthy: %v", err)
+		
+		// Return 200 OK even if DB is down (service is running)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
+		w.WriteHeader(http.StatusOK) // Changed from 503 to 200
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":   "unhealthy",
-			"database": "disconnected",
-			"error":    err.Error(),
+			"status":   "degraded",
+			"service":  "FraudGuard AI",
+			"database": dbStatus,
+			"error":    dbError,
+			"message":  "Service is running but database connection failed",
 		})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":   "healthy",
-		"database": "connected",
 		"service":  "FraudGuard AI",
+		"database": dbStatus,
+		"message":  "All systems operational",
 	})
 }
