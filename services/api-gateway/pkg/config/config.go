@@ -82,11 +82,17 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Render uses PORT env var, not SERVER_PORT
+	port := getEnvAsInt("PORT", 0)
+	if port == 0 {
+		port = getEnvAsInt("SERVER_PORT", 8080)
+	}
+
 	cfg := &Config{
 		Database: dbConfig,
 		Server: ServerConfig{
 			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
-			Port:         getEnvAsInt("SERVER_PORT", 8080),
+			Port:         port, // ✅ Use PORT from Render, fallback to SERVER_PORT or 8080
 			ReadTimeout:  getEnvAsDuration("SERVER_READ_TIMEOUT", 15*time.Second),
 			WriteTimeout: getEnvAsDuration("SERVER_WRITE_TIMEOUT", 15*time.Second),
 		},

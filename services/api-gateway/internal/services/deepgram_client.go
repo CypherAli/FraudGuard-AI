@@ -43,11 +43,11 @@ func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 	if len(audioData) == 0 {
 		return "", fmt.Errorf("empty audio data")
 	}
-	
+
 	if len(audioData) < 100 {
 		return "", fmt.Errorf("audio data too short (%d bytes)", len(audioData))
 	}
-	
+
 	// Configure Deepgram for raw PCM linear16
 	// encoding=linear16: Raw PCM 16-bit signed integer
 	// sample_rate=16000: 16kHz sampling rate
