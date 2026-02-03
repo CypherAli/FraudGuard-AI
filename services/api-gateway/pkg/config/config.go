@@ -57,8 +57,20 @@ func Load() (*Config, error) {
 	// Load .env file if it exists (ignore error if not found)
 	_ = godotenv.Load()
 
-	cfg := &Config{
-		Database: DatabaseConfig{
+	// Check if DATABASE_URL is set (Render/Heroku style)
+	databaseURL := os.Getenv("DATABASE_URL")
+	
+	var dbConfig DatabaseConfig
+	if databaseURL != "" {
+		// Parse DATABASE_URL (Render provides this)
+		dbConfig = DatabaseConfig{
+			MaxConns: getEnvAsInt("DB_MAX_CONNS", 25),
+			MinConns: getEnvAsInt("DB_MIN_CONNS", 5),
+		}
+		// We'll use DATABASE_URL directly in GetDSN()
+	} else {
+		// Use individual env vars (local development)
+		dbConfig = DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnvAsInt("DB_PORT", 5432),
 			User:     getEnv("DB_USER", "fraudguard"),
@@ -67,7 +79,11 @@ func Load() (*Config, error) {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 			MaxConns: getEnvAsInt("DB_MAX_CONNS", 25),
 			MinConns: getEnvAsInt("DB_MIN_CONNS", 5),
-		},
+		}
+	}
+
+	cfg := &Config{
+		Database: dbConfig,
 		Server: ServerConfig{
 			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
 			Port:         getEnvAsInt("SERVER_PORT", 8080),
@@ -88,8 +104,9 @@ func Load() (*Config, error) {
 	}
 
 	// Validate required fields
-	if cfg.Database.Password == "" {
-		return nil, fmt.Errorf("DB_PASSWORD is required")
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" && cfg.Database.Password == "" {
+		return nil, fmt.Errorf("DATABASE_URL or DB_PASSWORD is required")
 	}
 
 	return cfg, nil
@@ -129,6 +146,12 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 
 // GetDSN returns the PostgreSQL connection string
 func (c *DatabaseConfig) GetDSN() string {
+	// Check if DATABASE_URL is set (cloud deployment)
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		return databaseURL
+	}
+	
+	// Build from individual components (local development)
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
