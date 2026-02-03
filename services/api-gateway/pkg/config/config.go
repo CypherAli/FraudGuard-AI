@@ -104,7 +104,7 @@ func Load() (*Config, error) {
 	}
 
 	// Validate required fields
-	databaseURL := os.Getenv("DATABASE_URL")
+	databaseURL = os.Getenv("DATABASE_URL")
 	if databaseURL == "" && cfg.Database.Password == "" {
 		return nil, fmt.Errorf("DATABASE_URL or DB_PASSWORD is required")
 	}
