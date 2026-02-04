@@ -8,6 +8,13 @@
         android:label="FraudGuard AI"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
+        
+        <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
+        <service 
+            android:name=".Platforms.Android.Services.FraudGuardForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
     </application>
     
     <!-- Quyền ghi âm (BẮT BUỘC) -->
@@ -37,6 +44,12 @@
     
     <!-- Vibration (cho cảnh báo nguy hiểm) -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Full screen intent (hiển thị cảnh báo khi màn hình khóa) -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    
+    <!-- Android 13+ Post notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Khai báo audio recording feature -->
     <uses-feature 

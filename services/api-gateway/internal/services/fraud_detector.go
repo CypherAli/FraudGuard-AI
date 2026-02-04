@@ -63,7 +63,7 @@ func NewFraudDetector(deviceID string) *FraudDetector {
 		session:   newSessionState(deviceID),
 		keywords:  initializeKeywordMatcher(),
 		startTime: time.Now(),
-		config:    DefaultFraudDetectionConfig(), // Use default config
+		config:    LoadFromEnvironment(), // Load from environment for production tuning
 	}
 }
 
@@ -180,7 +180,9 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	fd.mu.Lock()
 	defer fd.mu.Unlock()
 
-	log.Printf("🔍 [%s] Analyzing text: %s", fd.deviceID, text)
+	log.Printf("🔍 [%s] ===== FRAUD ANALYSIS START =====", fd.deviceID)
+	log.Printf("🔍 [%s] Input text: '%s'", fd.deviceID, text)
+	log.Printf("🔍 [%s] Current accumulated score: %d", fd.deviceID, fd.session.AccumulatedScore)
 
 	// Update session
 	fd.session.TranscriptHistory = append(fd.session.TranscriptHistory, text)
@@ -188,9 +190,11 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	// Normalize text for matching
 	normalizedText := strings.ToLower(text)
+	log.Printf("🔍 [%s] Normalized text: '%s'", fd.deviceID, normalizedText)
 
 	// Calculate risk score from keywords
 	score, patterns := fd.calculateRiskScore(normalizedText)
+	log.Printf("🔍 [%s] This chunk score: %d, Patterns detected: %v", fd.deviceID, score, patterns)
 
 	// Add to accumulated score
 	fd.session.AccumulatedScore += score
@@ -198,6 +202,11 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	// Determine alert level
 	currentScore := fd.session.AccumulatedScore
+	log.Printf("🔍 [%s] NEW accumulated score: %d (added %d)", fd.deviceID, currentScore, score)
+	log.Printf("🔍 [%s] Thresholds - LOW:%d, MEDIUM:%d, HIGH:%d, CRITICAL:%d",
+		fd.deviceID, fd.config.LowThreshold, fd.config.MediumThreshold,
+		fd.config.HighThreshold, fd.config.CriticalThreshold)
+
 	result := FraudAnalysisResult{
 		RiskScore: currentScore,
 		Patterns:  patterns,
@@ -221,8 +230,10 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		fd.session.AlertsSent++
 		fd.alertCount++
 
-		log.Printf("🚨 [%s] CRITICAL ALERT: Score=%d, Patterns=%v",
-			fd.deviceID, currentScore, patterns)
+		log.Printf("🚨🚨🚨 [%s] CRITICAL ALERT TRIGGERED! Score=%d (threshold=%d), Patterns=%v",
+			fd.deviceID, currentScore, fd.config.CriticalThreshold, patterns)
+		log.Printf("🚨 [%s] Alert count: %d, Total patterns: %d",
+			fd.deviceID, fd.alertCount, len(fd.session.DetectedPatterns))
 
 	} else if currentScore >= fd.config.HighThreshold {
 		result.IsAlert = true
@@ -231,8 +242,9 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		fd.session.AlertsSent++
 		fd.alertCount++
 
-		log.Printf("⚠️ [%s] HIGH ALERT: Score=%d, Patterns=%v",
-			fd.deviceID, currentScore, patterns)
+		log.Printf("⚠️⚠️ [%s] HIGH ALERT TRIGGERED! Score=%d (threshold=%d), Patterns=%v",
+			fd.deviceID, currentScore, fd.config.HighThreshold, patterns)
+		log.Printf("⚠️ [%s] Alert count: %d", fd.deviceID, fd.alertCount)
 
 	} else if currentScore >= fd.config.MediumThreshold {
 		result.IsAlert = true
@@ -241,24 +253,28 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		fd.session.AlertsSent++
 		fd.alertCount++
 
-		log.Printf("⚡ [%s] MEDIUM ALERT: Score=%d, Patterns=%v",
-			fd.deviceID, currentScore, patterns)
+		log.Printf("⚡ [%s] MEDIUM ALERT TRIGGERED! Score=%d (threshold=%d), Patterns=%v",
+			fd.deviceID, currentScore, fd.config.MediumThreshold, patterns)
 
 	} else if currentScore >= fd.config.LowThreshold {
 		result.IsAlert = false
 		result.Action = "LOW"
 		result.Message = fmt.Sprintf("ℹ️ Lưu ý: Có một số từ khóa đáng chú ý (Điểm rủi ro: %d/100)", currentScore)
 
-		log.Printf("ℹ️ [%s] LOW RISK: Score=%d, Patterns=%v",
-			fd.deviceID, currentScore, patterns)
+		log.Printf("ℹ️ [%s] LOW RISK (no alert): Score=%d (threshold=%d), Patterns=%v",
+			fd.deviceID, currentScore, fd.config.LowThreshold, patterns)
 
 	} else {
 		result.IsAlert = false
 		result.Action = "SAFE"
 		result.Message = "✅ Cuộc gọi bình thường"
 
-		log.Printf("✅ [%s] SAFE: Score=%d", fd.deviceID, currentScore)
+		log.Printf("✅ [%s] SAFE (no alert): Score=%d (below threshold=%d)",
+			fd.deviceID, currentScore, fd.config.LowThreshold)
 	}
+
+	log.Printf("🔍 [%s] ===== FRAUD ANALYSIS END: IsAlert=%v, Action=%s =====",
+		fd.deviceID, result.IsAlert, result.Action)
 
 	return result
 }

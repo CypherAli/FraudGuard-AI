@@ -1,3 +1,4 @@
+using FraudGuardAI.Services;
 using Microsoft.Extensions.Logging;
 
 namespace FraudGuardAI;
@@ -18,6 +19,10 @@ public static class MauiProgram
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
+
+        // Register Firebase Authentication Service
+        builder.Services.AddSingleton<IAuthenticationService, FirebaseAuthService>();
+        builder.Services.AddSingleton<SecureStorageService>();
 
         return builder.Build();
     }

@@ -1,10 +1,12 @@
 using FraudGuardAI.Services;
+using FraudGuardAI.Pages.Auth;
 
 namespace FraudGuardAI
 {
     public partial class App : Application
     {
         private static AudioStreamingServiceLowLevel _audioService;
+        private readonly IAuthenticationService _authService;
         
         public App()
         {
@@ -13,12 +15,48 @@ namespace FraudGuardAI
             // Initialize shared audio service (singleton)
             _audioService = new AudioStreamingServiceLowLevel();
 
-            // ✅ USE APPSHELL FOR TAB NAVIGATION
-            // This enables the bottom tab bar with Protection, History, and Settings tabs
-            MainPage = new AppShell();
-            
-            // ❌ OLD WAY (no tabs):
-            // MainPage = new MainPage();
+            // Get authentication service
+            _authService = Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
+                ?? throw new InvalidOperationException("Authentication service not found");
+
+            // Check authentication state and set initial page
+            CheckAuthenticationAndNavigate();
+        }
+
+        private async void CheckAuthenticationAndNavigate()
+        {
+            try
+            {
+                // Check if user is authenticated
+                var isAuthenticated = await _authService.IsAuthenticatedAsync();
+
+                if (isAuthenticated)
+                {
+                    // User is logged in, go to main app
+                    System.Diagnostics.Debug.WriteLine("[App] User is authenticated, navigating to AppShell");
+                    MainPage = new AppShell();
+                }
+                else
+                {
+                    // User is not logged in, go to login page
+                    System.Diagnostics.Debug.WriteLine("[App] User is not authenticated, navigating to LoginPage");
+                    MainPage = new NavigationPage(new LoginPage())
+                    {
+                        BarBackgroundColor = Color.FromArgb("#0D1B2A"),
+                        BarTextColor = Color.FromArgb("#E0E6ED")
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[App] Error checking authentication: {ex.Message}");
+                // On error, default to login page
+                MainPage = new NavigationPage(new LoginPage())
+                {
+                    BarBackgroundColor = Color.FromArgb("#0D1B2A"),
+                    BarTextColor = Color.FromArgb("#E0E6ED")
+                };
+            }
         }
         
         /// <summary>

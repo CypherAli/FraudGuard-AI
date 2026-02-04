@@ -52,7 +52,7 @@ func Connect(cfg *config.DatabaseConfig) error {
 func Close() {
 	if Pool != nil {
 		Pool.Close()
-		log.Println("🔌 Database connection closed")
+		log.Println("Database connection closed")
 	}
 }
 

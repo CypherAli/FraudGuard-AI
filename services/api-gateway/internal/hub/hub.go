@@ -3,6 +3,9 @@ package hub
 import (
 	"log"
 	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the clients
@@ -85,4 +88,33 @@ func (h *Hub) GetClientCount() int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return len(h.clients)
+}
+
+// GracefulShutdown closes all client connections gracefully
+// Sends proper WebSocket close frames to trigger client-side reconnection logic
+func (h *Hub) GracefulShutdown() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	clientCount := len(h.clients)
+	if clientCount == 0 {
+		log.Println("🛑 No active WebSocket connections to close")
+		return
+	}
+
+	log.Printf("🛑 Graceful shutdown: Closing %d WebSocket connections...", clientCount)
+
+	for client := range h.clients {
+		// Send close frame to trigger graceful disconnect on client side
+		closeMsg := websocket.FormatCloseMessage(websocket.CloseGoingAway, "Server shutting down")
+		if err := client.conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(time.Second)); err != nil {
+			log.Printf("⚠️ Error sending close frame to %s: %v", client.deviceID, err)
+		}
+
+		// Close the send channel
+		close(client.send)
+		delete(h.clients, client)
+	}
+
+	log.Println("✅ All WebSocket connections closed gracefully")
 }

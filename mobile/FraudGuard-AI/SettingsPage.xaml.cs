@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using FraudGuardAI.Constants;
+using FraudGuardAI.Services;
+using FraudGuardAI.Pages.Auth;
 
 namespace FraudGuardAI
 {
@@ -23,6 +25,7 @@ namespace FraudGuardAI
 
         private readonly Color SuccessColor = Color.FromArgb("#34D399");
         private readonly Color ErrorColor = Color.FromArgb("#F87171");
+        private readonly IAuthenticationService _authService;
 
         #endregion
 
@@ -33,6 +36,10 @@ namespace FraudGuardAI
             try
             {
                 InitializeComponent();
+                
+                // Get authentication service from DI
+                _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
+                    ?? throw new InvalidOperationException("Authentication service not found");
             }
             catch (Exception ex)
             {
@@ -52,10 +59,27 @@ namespace FraudGuardAI
             {
                 LoadSettings();
                 UpdateCurrentConfig();
+                LoadUserInfo();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] OnAppearing Error: {ex.Message}");
+            }
+        }
+        
+        private async void LoadUserInfo()
+        {
+            try
+            {
+                var user = await _authService.GetCurrentUserAsync();
+                if (user != null && UserPhoneLabel != null)
+                {
+                    UserPhoneLabel.Text = user.PhoneNumber;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error loading user info: {ex.Message}");
             }
         }
         
@@ -463,6 +487,40 @@ namespace FraudGuardAI
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Error switching to production: {ex.Message}");
                 ShowStatus("Error setting production server", isError: true);
+            }
+        }
+        
+        private async void OnLogoutClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // Confirm logout
+                bool confirm = await DisplayAlert(
+                    "Đăng xuất",
+                    "Bạn có chắc chắn muốn đăng xuất?",
+                    "Đăng xuất",
+                    "Hủy"
+                );
+
+                if (!confirm)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine("[SettingsPage] Logging out user");
+
+                // Logout
+                await _authService.LogoutAsync();
+
+                // Navigate to login page
+                Application.Current!.MainPage = new NavigationPage(new LoginPage())
+                {
+                    BarBackgroundColor = Color.FromArgb("#0D1B2A"),
+                    BarTextColor = Color.FromArgb("#E0E6ED")
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Logout error: {ex.Message}");
+                await DisplayAlert("Lỗi", $"Không thể đăng xuất: {ex.Message}", "OK");
             }
         }
 
