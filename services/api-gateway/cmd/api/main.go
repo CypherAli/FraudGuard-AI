@@ -145,14 +145,17 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println(" Shutting down server...")
+	log.Println("🛑 Shutting down server...")
+
+	// Graceful shutdown WebSocket connections first
+	wsHub.GracefulShutdown()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf(" Server forced to shutdown: %v", err)
+		log.Printf("❌ Server forced to shutdown: %v", err)
 	}
 
-	log.Println(" Server stopped gracefully")
+	log.Println("✅ Server stopped gracefully")
 }

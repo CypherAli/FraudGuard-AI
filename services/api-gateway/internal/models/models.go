@@ -29,11 +29,15 @@ type Blacklist struct {
 }
 
 // AlertMessage represents a fraud alert sent to client
+// Fields are designed to match mobile app's expected JSON format
 type AlertMessage struct {
-	RiskScore int    `json:"risk_score"` // 0-100
-	Message   string `json:"message"`
-	Action    string `json:"action"` // SHOW_WARNING, BLOCK_CALL, ALLOW
-	Timestamp int64  `json:"timestamp"`
+	Type       string   `json:"type"`       // Always "alert" - required for mobile to recognize
+	AlertType  string   `json:"alert_type"` // CRITICAL, HIGH, MEDIUM, LOW
+	Confidence float64  `json:"confidence"` // 0.0-1.0 (converted from RiskScore)
+	Transcript string   `json:"transcript"` // Latest transcript that triggered alert
+	Keywords   []string `json:"keywords"`   // Detected fraud keywords/patterns
+	Timestamp  int64    `json:"timestamp"`
+	Message    string   `json:"message"` // Human-readable message
 }
 
 // ReportRequest represents a user report of fraudulent number

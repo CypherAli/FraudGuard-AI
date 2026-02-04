@@ -370,12 +370,26 @@ namespace FraudGuardAI.Services
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== PROCESSING SERVER MESSAGE =====");
+                System.Diagnostics.Debug.WriteLine($"[AudioService] Raw message ({message.Length} chars): {message}");
+                
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
+                
+                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON parsed successfully");
+
+                // Log all properties in the JSON
+                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON properties:");
+                foreach (var property in root.EnumerateObject())
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - {property.Name}: {property.Value}");
+                }
 
                 if (root.TryGetProperty("type", out var typeElement) &&
                     typeElement.GetString() == "alert")
                 {
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ Alert message detected!");
+                    
                     var alertData = new AlertData
                     {
                         AlertType = root.GetProperty("alert_type").GetString(),
@@ -386,28 +400,76 @@ namespace FraudGuardAI.Services
                             : Array.Empty<string>(),
                         Timestamp = DateTime.Now
                     };
-
+                    
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] Alert parsed:");
+                    System.Diagnostics.Debug.WriteLine($"  - AlertType: {alertData.AlertType}");
+                    System.Diagnostics.Debug.WriteLine($"  - Confidence: {alertData.Confidence}");
+                    System.Diagnostics.Debug.WriteLine($"  - Transcript: {alertData.Transcript}");
+                    System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alertData.Keywords)}");
+                    
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] 🚨 Triggering OnAlertReceived event...");
                     OnAlertReceived(alertData);
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ OnAlertReceived event triggered");
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ⚠️ Message is not an alert (type: {(root.TryGetProperty("type", out var t) ? t.GetString() : "missing")})");
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== MESSAGE PROCESSING COMPLETE =====");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Message processing error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[AudioService] Stack trace: {ex.StackTrace}");
                 OnError($"Message processing error: {ex.Message}", ex);
             }
         }
 
+        private int _reconnectAttempts = 0;
+        private const int MAX_RECONNECT_ATTEMPTS = 5;
+        private static readonly Random _random = new Random();
+        
         private async Task ReconnectAsync()
         {
             try
             {
+                _reconnectAttempts++;
+                
+                if (_reconnectAttempts > MAX_RECONNECT_ATTEMPTS)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Max reconnect attempts ({MAX_RECONNECT_ATTEMPTS}) reached");
+                    OnError("Failed to reconnect after multiple attempts", null);
+                    _reconnectAttempts = 0;
+                    return;
+                }
+                
+                // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+                int baseDelay = (int)Math.Pow(2, _reconnectAttempts - 1) * 1000;
+                
+                // Add jitter (0-1000ms) to prevent thundering herd
+                int jitter = _random.Next(0, 1000);
+                int totalDelay = baseDelay + jitter;
+                
+                System.Diagnostics.Debug.WriteLine($"[AudioService] 🔄 Reconnect attempt {_reconnectAttempts}/{MAX_RECONNECT_ATTEMPTS}");
+                System.Diagnostics.Debug.WriteLine($"[AudioService] Waiting {totalDelay}ms (base: {baseDelay}ms + jitter: {jitter}ms)");
+                
                 _webSocket?.Dispose();
                 _webSocket = null;
                 _isConnected = false;
-                await Task.Delay(1000);
-                await ConnectAsync();
+                
+                await Task.Delay(totalDelay);
+                
+                bool success = await ConnectAsync();
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ Reconnection successful");
+                    _reconnectAttempts = 0; // Reset on success
+                }
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Reconnect failed: {ex.Message}");
                 OnError($"Reconnect failed: {ex.Message}", ex);
             }
         }

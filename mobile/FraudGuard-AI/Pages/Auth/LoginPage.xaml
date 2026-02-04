@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.Pages.Auth.LoginPage"
+             BackgroundColor="#0D1B2A"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            
+            <!-- Logo and Title -->
+            <VerticalStackLayout Spacing="10" Margin="0,40,0,40">
+                <Label Text="🛡️" FontSize="64" HorizontalOptions="Center"/>
+                <Label Text="FraudGuard AI" 
+                       FontSize="32" 
+                       FontAttributes="Bold"
+                       TextColor="#E0E6ED"
+                       HorizontalOptions="Center"/>
+                <Label Text="Bảo vệ cuộc gọi của bạn" 
+                       FontSize="16" 
+                       TextColor="#8B95A5"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Phone Number Input -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Số điện thoại" 
+                       TextColor="#E0E6ED" 
+                       FontSize="14"
+                       FontAttributes="Bold"/>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       HasShadow="False">
+                    <Entry x:Name="PhoneEntry"
+                           Placeholder="+84 xxx xxx xxx"
+                           PlaceholderColor="#5C6B7A"
+                           TextColor="#E0E6ED"
+                           Keyboard="Telephone"
+                           FontSize="16"
+                           Margin="15,10"/>
+                </Frame>
+            </VerticalStackLayout>
+
+            <!-- Error Message -->
+            <Label x:Name="ErrorLabel"
+                   TextColor="#EF4444"
+                   FontSize="14"
+                   IsVisible="False"
+                   HorizontalOptions="Center"/>
+
+            <!-- Login Button -->
+            <Button x:Name="LoginButton"
+                    Text="Đăng nhập"
+                    BackgroundColor="#34D399"
+                    TextColor="#0D1B2A"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    Margin="0,20,0,0"
+                    Clicked="OnLoginClicked">
+                <Button.Shadow>
+                    <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
+                </Button.Shadow>
+            </Button>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator x:Name="LoadingIndicator"
+                             IsRunning="False"
+                             IsVisible="False"
+                             Color="#34D399"
+                             HeightRequest="40"/>
+
+            <!-- Divider -->
+            <Grid Margin="0,30,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <BoxView Grid.Column="0" 
+                         BackgroundColor="#2D3E50" 
+                         HeightRequest="1" 
+                         VerticalOptions="Center"/>
+                <Label Grid.Column="1" 
+                       Text="  HOẶC  " 
+                       TextColor="#5C6B7A" 
+                       FontSize="12"/>
+                <BoxView Grid.Column="2" 
+                         BackgroundColor="#2D3E50" 
+                         HeightRequest="1" 
+                         VerticalOptions="Center"/>
+            </Grid>
+
+            <!-- Register Button -->
+            <Button x:Name="RegisterButton"
+                    Text="Tạo tài khoản mới"
+                    BackgroundColor="Transparent"
+                    BorderColor="#34D399"
+                    BorderWidth="2"
+                    TextColor="#34D399"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    Clicked="OnRegisterClicked"/>
+
+            <!-- Info Text -->
+            <Label Text="Bằng cách đăng nhập, bạn đồng ý với Điều khoản sử dụng và Chính sách bảo mật của chúng tôi"
+                   TextColor="#5C6B7A"
+                   FontSize="12"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,20,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -110,17 +110,31 @@ func (c *Client) handleTextMessage(message []byte) {
 
 // sendAlert sends an alert message to this specific client
 func (c *Client) sendAlert(alert models.AlertMessage) {
+	log.Printf("📨 [%s] ===== SENDING ALERT TO CLIENT =====", c.deviceID)
+	log.Printf("📨 [%s] Alert: Type=%s, AlertType=%s, Confidence=%.2f",
+		c.deviceID, alert.Type, alert.AlertType, alert.Confidence)
+
 	alertJSON, err := json.Marshal(alert)
 	if err != nil {
-		log.Printf("Error marshaling alert: %v", err)
+		log.Printf("❌ [%s] Error marshaling alert to JSON: %v", c.deviceID, err)
 		return
 	}
 
+	log.Printf("📝 [%s] Alert JSON created (%d bytes): %s",
+		c.deviceID, len(alertJSON), string(alertJSON))
+
+	// Try to send to channel
+	log.Printf("📤 [%s] Attempting to send to WebSocket channel (buffer: %d/%d)...",
+		c.deviceID, len(c.send), cap(c.send))
+
 	select {
 	case c.send <- alertJSON:
-		log.Printf("📢 Alert sent to client %s: %s", c.deviceID, alert.Message)
+		log.Printf("✅✅✅ [%s] Alert successfully queued to WebSocket channel", c.deviceID)
+		log.Printf("📢 [%s] Alert message: %s", c.deviceID, alert.Message)
 	default:
-		log.Printf("⚠️ Failed to send alert to client %s (buffer full)", c.deviceID)
+		log.Printf("❌❌❌ [%s] FAILED to send alert - WebSocket buffer FULL (%d/%d)",
+			c.deviceID, len(c.send), cap(c.send))
+		log.Printf("⚠️ [%s] Alert dropped due to full buffer. Consider increasing buffer size.", c.deviceID)
 	}
 }
 

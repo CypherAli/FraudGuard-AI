@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.Pages.Auth.OtpVerificationPage"
+             BackgroundColor="#0D1B2A"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            
+            <!-- Back Button -->
+            <Button Text="← Quay lại"
+                    BackgroundColor="Transparent"
+                    TextColor="#34D399"
+                    FontSize="16"
+                    HorizontalOptions="Start"
+                    Clicked="OnBackClicked"
+                    Margin="0,20,0,0"/>
+
+            <!-- Icon -->
+            <Label Text="📱" 
+                   FontSize="64" 
+                   HorizontalOptions="Center"
+                   Margin="0,20,0,0"/>
+
+            <!-- Title -->
+            <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
+                <Label Text="Xác minh OTP" 
+                       FontSize="28" 
+                       FontAttributes="Bold"
+                       TextColor="#E0E6ED"
+                       HorizontalOptions="Center"/>
+                <Label x:Name="PhoneLabel"
+                       Text="Mã OTP đã được gửi đến" 
+                       FontSize="14" 
+                       TextColor="#8B95A5"
+                       HorizontalOptions="Center"/>
+                <Label x:Name="PhoneNumberLabel"
+                       FontSize="16" 
+                       FontAttributes="Bold"
+                       TextColor="#34D399"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- OTP Input Boxes -->
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,20,0,20">
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp1"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp2"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp3"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp4"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp5"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+                <Frame BackgroundColor="#1B2838" 
+                       BorderColor="#2D3E50" 
+                       CornerRadius="12" 
+                       Padding="0"
+                       WidthRequest="50"
+                       HeightRequest="60"
+                       HasShadow="False">
+                    <Entry x:Name="Otp6"
+                           TextColor="#E0E6ED"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Keyboard="Numeric"
+                           MaxLength="1"
+                           TextChanged="OnOtpDigitChanged"/>
+                </Frame>
+            </HorizontalStackLayout>
+
+            <!-- Error Message -->
+            <Label x:Name="ErrorLabel"
+                   TextColor="#EF4444"
+                   FontSize="14"
+                   IsVisible="False"
+                   HorizontalOptions="Center"/>
+
+            <!-- Verify Button -->
+            <Button x:Name="VerifyButton"
+                    Text="Xác minh"
+                    BackgroundColor="#34D399"
+                    TextColor="#0D1B2A"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    Margin="0,20,0,0"
+                    Clicked="OnVerifyClicked">
+                <Button.Shadow>
+                    <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
+                </Button.Shadow>
+            </Button>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator x:Name="LoadingIndicator"
+                             IsRunning="False"
+                             IsVisible="False"
+                             Color="#34D399"
+                             HeightRequest="40"/>
+
+            <!-- Resend OTP -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,20,0,0">
+                <Label Text="Không nhận được mã?" 
+                       TextColor="#8B95A5" 
+                       FontSize="14"/>
+                <Label x:Name="ResendLabel"
+                       Text="Gửi lại"
+                       TextColor="#34D399"
+                       FontSize="14"
+                       FontAttributes="Bold">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnResendTapped"/>
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
+
+            <!-- Countdown Timer -->
+            <Label x:Name="CountdownLabel"
+                   TextColor="#8B95A5"
+                   FontSize="12"
+                   HorizontalOptions="Center"
+                   IsVisible="False"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

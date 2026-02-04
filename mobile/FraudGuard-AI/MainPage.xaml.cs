@@ -5,6 +5,12 @@ using FraudGuardAI.Constants;
 using FraudGuardAI.Helpers;
 using FraudGuardAI.Services;
 using FraudGuardAI.Models;
+#if ANDROID
+using FraudGuardAI.Platforms.Android.Services;
+#endif
+#if ANDROID
+using FraudGuardAI.Platforms.Android.Services;
+#endif
 
 namespace FraudGuardAI
 {
@@ -137,6 +143,11 @@ namespace FraudGuardAI
                 {
                     _isProtectionActive = true;
 
+                    // Khởi động foreground service (Android) để chạy ngầm khi màn hình tắt
+#if ANDROID
+                    ServiceHelper.StartProtectionService();
+#endif
+
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await AnimateToActiveState();
@@ -144,7 +155,7 @@ namespace FraudGuardAI
                         ToggleButton.Text = "Stop Protection";
                         ToggleButton.BackgroundColor = AppConstants.DangerColor;
                         _ = PulseAnimation();
-                        UpdateDebugInfo("Protection ACTIVE (runs in background)");
+                        UpdateDebugInfo("Protection ACTIVE (runs in background + screen off)");
                     });
                 }
                 else
@@ -199,6 +210,11 @@ namespace FraudGuardAI
                 await _audioService.StopStreamingAsync();
                 _isProtectionActive = false;
 
+                // Dừng foreground service (Android)
+#if ANDROID
+                ServiceHelper.StopProtectionService();
+#endif
+
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await AnimateToInactiveState();
@@ -221,26 +237,56 @@ namespace FraudGuardAI
 
         private void OnAlertReceived(object sender, AlertEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[MainPage] ===== ALERT RECEIVED EVENT =====");
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Event sender: {sender?.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Alert data: {e?.Alert}");
+            
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 try
                 {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Running on main thread");
+                    
                     var alert = e.Alert;
+                    if (alert == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Alert is null!");
+                        return;
+                    }
+                    
                     double riskScore = alert.Confidence * 100;
+                    
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Alert details:");
+                    System.Diagnostics.Debug.WriteLine($"  - AlertType: {alert.AlertType}");
+                    System.Diagnostics.Debug.WriteLine($"  - Confidence: {alert.Confidence} ({riskScore:F0}%)");
+                    System.Diagnostics.Debug.WriteLine($"  - Transcript: {alert.Transcript}");
+                    System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alert.Keywords)}");
+                    System.Diagnostics.Debug.WriteLine($"  - Risk threshold: {AppConstants.HIGH_RISK_THRESHOLD}");
+                    
                     UpdateDebugInfo($"Alert: {alert.AlertType} - {riskScore:F0}%");
 
                     if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] 🚨 HIGH RISK ALERT - Triggering high risk handler");
                         await HandleHighRiskAlert(alert, riskScore);
                     }
                     else
                     {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] ⚠️ LOW RISK ALERT - Triggering low risk handler");
                         await HandleLowRiskAlert(alert, riskScore);
                     }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] ✅ Alert handled successfully");
                 }
                 catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Alert handling error: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Stack trace: {ex.StackTrace}");
                     UpdateDebugInfo($"Alert Error: {ex.Message}");
+                }
+                finally
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] ===== ALERT HANDLING COMPLETE =====");
                 }
             });
         }
@@ -283,6 +329,12 @@ namespace FraudGuardAI
             TriggerVibration();
             ShowAlertBanner(alert, riskScore, isHighRisk: true);
             _ = DangerFlashAnimation();
+
+            // Gửi notification ngay cả khi màn hình tắt (Android)
+#if ANDROID
+            var context = global::Android.App.Application.Context;
+            AlertNotificationHelper.ShowFraudAlert(context, alert.AlertType, riskScore, alert.Transcript);
+#endif
 
             await DisplayAlert(
                 "⚠️ HIGH RISK DETECTED",
