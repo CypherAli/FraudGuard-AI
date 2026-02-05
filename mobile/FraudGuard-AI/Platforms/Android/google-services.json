@@ -7,12 +7,21 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:568325847415:android:4bd20b06611acf879e0972",
+        "mobilesdk_app_id": "1:568325847415:android:9267f84f034f88279e0972",
         "android_client_info": {
           "package_name": "com.fraudguard.ai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "568325847415-8es1kbqp2daavqa6drp507n8qcr590gn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fraudguard.ai",
+            "certificate_hash": "2156a30de96123c7f6b9d6325330fd814e451f87"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAgEUKbUPY0z3oipWWz3KE9_IG-I3LVMGM"
