@@ -6,7 +6,7 @@ namespace FraudGuardAI
     public partial class App : Application
     {
         private static AudioStreamingServiceLowLevel _audioService;
-        private readonly IAuthenticationService _authService;
+        private IAuthenticationService _authService;
         
         public App()
         {
@@ -15,18 +15,59 @@ namespace FraudGuardAI
             // Initialize shared audio service (singleton)
             _audioService = new AudioStreamingServiceLowLevel();
 
-            // Get authentication service
-            _authService = Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                ?? throw new InvalidOperationException("Authentication service not found");
-
-            // Check authentication state and set initial page
-            CheckAuthenticationAndNavigate();
+            // Set a temporary loading page first
+            // Authentication check will happen in OnStart when services are available
+            MainPage = new ContentPage
+            {
+                BackgroundColor = Color.FromArgb("#0D1B2A"),
+                Content = new VerticalStackLayout
+                {
+                    VerticalOptions = LayoutOptions.Center,
+                    Children = 
+                    {
+                        new ActivityIndicator 
+                        { 
+                            IsRunning = true, 
+                            Color = Color.FromArgb("#14B8A6"),
+                            HeightRequest = 50,
+                            WidthRequest = 50
+                        },
+                        new Label 
+                        { 
+                            Text = "Đang tải...",
+                            TextColor = Color.FromArgb("#E0E6ED"),
+                            HorizontalOptions = LayoutOptions.Center,
+                            Margin = new Thickness(0, 16, 0, 0)
+                        }
+                    }
+                }
+            };
         }
 
-        private async void CheckAuthenticationAndNavigate()
+        protected override async void OnStart()
+        {
+            base.OnStart();
+            await CheckAuthenticationAndNavigate();
+        }
+
+        private async Task CheckAuthenticationAndNavigate()
         {
             try
             {
+                // Get authentication service - now safe to access
+                _authService = Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+                
+                if (_authService == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[App] Auth service not available, defaulting to login");
+                    MainPage = new NavigationPage(new LoginPage())
+                    {
+                        BarBackgroundColor = Color.FromArgb("#0D1B2A"),
+                        BarTextColor = Color.FromArgb("#E0E6ED")
+                    };
+                    return;
+                }
+
                 // Check if user is authenticated
                 var isAuthenticated = await _authService.IsAuthenticatedAsync();
 
