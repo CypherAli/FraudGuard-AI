@@ -1,6 +1,7 @@
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
+using Firebase;
 
 namespace FraudGuardAI
 {
@@ -10,6 +11,9 @@ namespace FraudGuardAI
         protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            
+            // Initialize Firebase - REQUIRED before using Firebase Auth
+            FirebaseApp.InitializeApp(this);
         }
     }
 }
