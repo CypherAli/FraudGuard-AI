@@ -1,17 +1,17 @@
 using FraudGuardAI.Models;
-using Plugin.Firebase.Auth;
 using System.Diagnostics;
 
 namespace FraudGuardAI.Services
 {
     /// <summary>
     /// Firebase Phone Authentication Service
-    /// Provides FREE OTP SMS delivery via Firebase
-    /// Uses Plugin.Firebase.Auth 3.x API
+    /// Uses Firebase REST API with test numbers for development
+    /// For production: configure Firebase Console with SHA-1/SHA-256 + test phone numbers
     /// </summary>
     public class FirebaseAuthService : IAuthenticationService
     {
         private readonly SecureStorageService _secureStorage;
+        private readonly FirebasePhoneAuthService _phoneAuthService;
         private AuthenticationState _currentState;
         private string? _pendingPhoneNumber;
 
@@ -20,12 +20,14 @@ namespace FraudGuardAI.Services
         public FirebaseAuthService(SecureStorageService secureStorage)
         {
             _secureStorage = secureStorage;
+            _phoneAuthService = new FirebasePhoneAuthService();
             _currentState = new AuthenticationState();
         }
 
         /// <summary>
-        /// Send OTP to phone number (FREE via Firebase)
-        /// Plugin.Firebase 3.x: VerifyPhoneNumberAsync is void
+        /// Send OTP to phone number via Firebase REST API
+        /// For development: use Firebase test phone numbers added to Firebase Console
+        /// Example: Phone +84900000000 with test code 123456
         /// </summary>
         public async Task<string> SendOtpAsync(string phoneNumber)
         {
@@ -42,9 +44,13 @@ namespace FraudGuardAI.Services
                 // Store phone number for later use
                 _pendingPhoneNumber = phoneNumber;
 
-                // Send OTP via Firebase Phone Authentication
-                // Plugin.Firebase 3.x: This method is void
-                await CrossFirebaseAuth.Current.VerifyPhoneNumberAsync(phoneNumber);
+                // Send OTP via Firebase REST API
+                var success = await _phoneAuthService.SendOtpAsync(phoneNumber);
+                
+                if (!success)
+                {
+                    throw new Exception("Không thể gửi mã OTP. Vui lòng thử lại.");
+                }
 
                 Debug.WriteLine($"[FirebaseAuth] OTP sent successfully to {phoneNumber}");
                 
@@ -60,7 +66,7 @@ namespace FraudGuardAI.Services
 
         /// <summary>
         /// Verify OTP code
-        /// Plugin.Firebase 3.x: SignInWithPhoneNumberVerificationCodeAsync
+        /// For development: use test OTP codes from Firebase Console (e.g., 123456)
         /// </summary>
         public async Task<bool> VerifyOtpAsync(string verificationId, string otpCode)
         {
@@ -73,24 +79,35 @@ namespace FraudGuardAI.Services
                     throw new ArgumentException("Mã OTP phải có 6 chữ số");
                 }
 
-                // Sign in with verification code
-                // Plugin.Firebase 3.x: SignInWithPhoneNumberVerificationCodeAsync
-                var user = await CrossFirebaseAuth.Current.SignInWithPhoneNumberVerificationCodeAsync(otpCode);
+                // Verify OTP via Firebase REST API
+                var idToken = await _phoneAuthService.VerifyOtpAsync(otpCode);
 
-                if (user != null)
+                if (string.IsNullOrEmpty(idToken))
                 {
-                    Debug.WriteLine($"[FirebaseAuth] OTP verified successfully. User ID: {user.Uid}");
-
-                    // Save user data to secure storage
-                    await SaveUserToStorage(user);
-
-                    // Update authentication state
-                    await UpdateAuthenticationState(user);
-
-                    return true;
+                    throw new Exception("Mã OTP không đúng hoặc đã hết hạn");
                 }
 
-                return false;
+                Debug.WriteLine($"[FirebaseAuth] OTP verified successfully");
+
+                // Create a user object with the phone number
+                var user = new Models.User
+                {
+                    UserId = Guid.NewGuid().ToString(),
+                    PhoneNumber = _pendingPhoneNumber ?? "",
+                    DisplayName = _pendingPhoneNumber ?? "User",
+                    LastLoginAt = DateTime.UtcNow
+                };
+
+                // Save user data to secure storage
+                await _secureStorage.SaveAuthTokenAsync(idToken);
+                await _secureStorage.SaveUserDataAsync(user.UserId, user.PhoneNumber, user.DisplayName);
+                await _secureStorage.SaveTokenExpiryAsync(DateTime.UtcNow.AddHours(1));
+
+                // Update authentication state
+                _currentState = new AuthenticationState(user, idToken, DateTime.UtcNow.AddHours(1));
+                AuthenticationStateChanged?.Invoke(this, _currentState);
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -104,8 +121,6 @@ namespace FraudGuardAI.Services
         /// </summary>
         public async Task<string> RegisterAsync(string phoneNumber, string? password = null)
         {
-            // For Firebase Phone Auth, registration and login are the same
-            // Firebase automatically creates a new user if phone number doesn't exist
             Debug.WriteLine($"[FirebaseAuth] Registering new user: {phoneNumber}");
             return await SendOtpAsync(phoneNumber);
         }
@@ -127,9 +142,6 @@ namespace FraudGuardAI.Services
             try
             {
                 Debug.WriteLine("[FirebaseAuth] Logging out user");
-
-                // Sign out from Firebase
-                await CrossFirebaseAuth.Current.SignOutAsync();
 
                 // Clear secure storage
                 _secureStorage.ClearAll();
@@ -154,25 +166,6 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                var firebaseUser = CrossFirebaseAuth.Current.CurrentUser;
-                
-                if (firebaseUser != null)
-                {
-                    // Get phone number from provider info
-                    var phoneNumber = GetPhoneNumberFromUser(firebaseUser);
-                    
-                    return new User
-                    {
-                        UserId = firebaseUser.Uid,
-                        PhoneNumber = phoneNumber,
-                        DisplayName = firebaseUser.DisplayName ?? phoneNumber ?? "User",
-                        Email = firebaseUser.Email,
-                        PhotoUrl = firebaseUser.PhotoUrl,
-                        LastLoginAt = DateTime.UtcNow
-                    };
-                }
-
-                // Try to restore from secure storage
                 var userId = await _secureStorage.GetUserIdAsync();
                 var storedPhoneNumber = await _secureStorage.GetPhoneNumberAsync();
                 var displayName = await _secureStorage.GetDisplayNameAsync();
@@ -204,14 +197,6 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                // Check Firebase current user
-                var firebaseUser = CrossFirebaseAuth.Current.CurrentUser;
-                if (firebaseUser != null)
-                {
-                    return true;
-                }
-
-                // Check secure storage
                 var hasUserData = await _secureStorage.HasUserDataAsync();
                 var isTokenValid = await _secureStorage.IsTokenValidAsync();
 
@@ -252,102 +237,19 @@ namespace FraudGuardAI.Services
 
         #region Private Helper Methods
 
-        /// <summary>
-        /// Validate phone number format
-        /// </summary>
         private bool IsValidPhoneNumber(string phoneNumber)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 return false;
 
-            // Must start with + and country code
             if (!phoneNumber.StartsWith("+"))
                 return false;
 
-            // Remove + and check if remaining is digits
             var digits = phoneNumber.Substring(1);
             if (!digits.All(char.IsDigit))
                 return false;
 
-            // Length should be between 10-15 digits (including country code)
             return digits.Length >= 10 && digits.Length <= 15;
-        }
-
-        /// <summary>
-        /// Get phone number from Firebase user (via provider infos)
-        /// </summary>
-        private string? GetPhoneNumberFromUser(IFirebaseUser user)
-        {
-            // Check provider infos for phone number
-            var phoneProvider = user.ProviderInfos?.FirstOrDefault(p => 
-                p.ProviderId == "phone" || !string.IsNullOrEmpty(p.PhoneNumber));
-            
-            if (phoneProvider != null && !string.IsNullOrEmpty(phoneProvider.PhoneNumber))
-            {
-                return phoneProvider.PhoneNumber;
-            }
-
-            // Fall back to pending phone number
-            return _pendingPhoneNumber;
-        }
-
-        /// <summary>
-        /// Save user data to secure storage
-        /// </summary>
-        private async Task SaveUserToStorage(IFirebaseUser firebaseUser)
-        {
-            try
-            {
-                // Get ID token using GetIdTokenResultAsync
-                var tokenResult = await firebaseUser.GetIdTokenResultAsync(false);
-                var token = tokenResult?.Token ?? string.Empty;
-
-                // Get phone number
-                var phoneNumber = GetPhoneNumberFromUser(firebaseUser) ?? string.Empty;
-
-                // Save to secure storage
-                await _secureStorage.SaveAuthTokenAsync(token);
-                await _secureStorage.SaveUserDataAsync(
-                    firebaseUser.Uid,
-                    phoneNumber,
-                    firebaseUser.DisplayName ?? phoneNumber ?? "User"
-                );
-
-                // Token expires in 1 hour by default
-                var expiry = DateTime.UtcNow.AddHours(1);
-                await _secureStorage.SaveTokenExpiryAsync(expiry);
-
-                Debug.WriteLine("[FirebaseAuth] User data saved to secure storage");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[FirebaseAuth] Error saving user to storage: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Update authentication state
-        /// </summary>
-        private async Task UpdateAuthenticationState(IFirebaseUser firebaseUser)
-        {
-            var phoneNumber = GetPhoneNumberFromUser(firebaseUser) ?? string.Empty;
-            
-            var user = new User
-            {
-                UserId = firebaseUser.Uid,
-                PhoneNumber = phoneNumber,
-                DisplayName = firebaseUser.DisplayName ?? phoneNumber ?? "User",
-                Email = firebaseUser.Email,
-                PhotoUrl = firebaseUser.PhotoUrl,
-                LastLoginAt = DateTime.UtcNow
-            };
-
-            var token = await _secureStorage.GetAuthTokenAsync();
-            var expiry = await _secureStorage.GetTokenExpiryAsync();
-
-            _currentState = new AuthenticationState(user, token ?? string.Empty, expiry ?? DateTime.UtcNow.AddHours(1));
-            
-            AuthenticationStateChanged?.Invoke(this, _currentState);
         }
 
         #endregion
