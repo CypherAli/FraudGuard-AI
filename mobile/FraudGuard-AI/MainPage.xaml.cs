@@ -34,6 +34,29 @@ namespace FraudGuardAI
             
             // Load dashboard stats asynchronously
             _ = LoadDashboardStatsAsync();
+            
+            // Auto-start protection if enabled in settings
+            _ = AutoStartProtectionIfEnabledAsync();
+        }
+        
+        private async Task AutoStartProtectionIfEnabledAsync()
+        {
+            try
+            {
+                // Wait a bit for UI to initialize
+                await Task.Delay(1000);
+                
+                // Check if auto protection is enabled and not already active
+                if (SettingsPage.IsAutoProtectionEnabled() && !_isProtectionActive && !_isConnecting)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] Auto-starting protection...");
+                    await StartProtectionAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Auto-start protection error: {ex.Message}");
+            }
         }
 
         #endregion

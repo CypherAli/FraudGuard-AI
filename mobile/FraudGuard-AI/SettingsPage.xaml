@@ -135,6 +135,38 @@
                     </Border.StrokeShape>
                     
                     <VerticalStackLayout Spacing="0">
+                        <!-- Auto Protection Toggle -->
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
+                            <Border WidthRequest="36" HeightRequest="36"
+                                   BackgroundColor="#14B8A620"
+                                   StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10"/>
+                                </Border.StrokeShape>
+                                <Label Text="🛡" FontSize="16"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                            
+                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
+                                <Label Text="Bảo vệ tự động"
+                                       FontSize="15"
+                                       TextColor="{StaticResource TextPrimary}"/>
+                                <Label Text="Tự động kích hoạt khi khởi động app"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}"/>
+                            </VerticalStackLayout>
+                            
+                            <Switch x:Name="AutoProtectionSwitch"
+                                   Grid.Column="2"
+                                   IsToggled="True"
+                                   OnColor="{StaticResource TealIcon}"
+                                   ThumbColor="White"
+                                   Toggled="OnAutoProtectionToggled"/>
+                        </Grid>
+                        
+                        <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="48,8,0,8"/>
+                        
                         <!-- Dark Mode Toggle -->
                         <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
                             <Border WidthRequest="36" HeightRequest="36"
@@ -293,7 +325,7 @@
                                         </Border.StrokeShape>
                                     </Border>
                                     <Label x:Name="ServerStatusLabel"
-                                           Text="Đã kết nối"
+                                           Text=""
                                            FontSize="12"
                                            TextColor="{StaticResource SafeGreen}"/>
                                 </HorizontalStackLayout>
@@ -405,7 +437,7 @@
                                        FontSize="12"
                                        TextColor="{StaticResource TextSecondary}"/>
                                 <Label x:Name="CurrentConfigLabel"
-                                       Text="wss://fraudguard-ai-j1j1.onrender.com/ws"
+                                       Text=""
                                        FontSize="12"
                                        TextColor="{StaticResource AccentBlue}"/>
                             </VerticalStackLayout>

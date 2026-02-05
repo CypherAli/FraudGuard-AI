@@ -120,7 +120,7 @@
                            HorizontalOptions="Center"/>
                     
                     <Label x:Name="BlockRateLabel"
-                           Text="Tỷ lệ chặn: 98.5%"
+                           Text="Chưa có dữ liệu"
                            FontSize="14"
                            TextColor="{StaticResource TextSecondary}"
                            HorizontalOptions="Center"/>
@@ -184,7 +184,8 @@
                                TextColor="{StaticResource TextPrimary}"/>
                         
                         <Label Grid.Row="2" x:Name="WeeklyChangeLabel"
-                               Text="↑ +12 tuần này"
+                               Text=""
+                               IsVisible="False"
                                FontSize="12"
                                TextColor="{StaticResource TealIcon}"/>
                     </Grid>
@@ -292,13 +293,14 @@
                         </HorizontalStackLayout>
                         
                         <Label Grid.Row="1" x:Name="EfficiencyLabel"
-                               Text="98.5%"
+                               Text="0%"
                                FontSize="32"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextPrimary}"/>
                         
                         <Label Grid.Row="2" x:Name="EfficiencyChangeLabel"
-                               Text="↑ +2.3%"
+                               Text=""
+                               IsVisible="False"
                                FontSize="12"
                                TextColor="{StaticResource TealIcon}"/>
                     </Grid>
@@ -371,17 +373,17 @@
                     
                     <VerticalStackLayout Grid.Column="1" Spacing="4" Margin="14,0,0,0">
                         <Label x:Name="AlertTypeLabel"
-                               Text="Warning"
+                               Text=""
                                FontSize="15"
                                FontAttributes="Bold"
                                TextColor="#FCA5A5"/>
                         <Label x:Name="AlertMessageLabel"
-                               Text="Potential fraud detected"
+                               Text=""
                                FontSize="13"
                                TextColor="#FECACA"
                                LineBreakMode="TailTruncation"/>
                         <Label x:Name="AlertConfidenceLabel"
-                               Text="Risk: 95%"
+                               Text=""
                                FontSize="12"
                                TextColor="#FCA5A5"
                                Opacity="0.8"/>
