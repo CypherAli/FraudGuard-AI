@@ -44,6 +44,9 @@
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+    
+    <!-- Suppress CA1416 warnings - Android code has proper API level checks -->
+    <NoWarn>$(NoWarn);CA1416;CA1422</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -70,8 +73,7 @@
     <PackageReference Include="Plugin.AudioRecorder" Version="1.1.0" />
     
     <!-- Firebase Authentication -->
-    <PackageReference Include="Plugin.Firebase" Version="3.0.1" />
-    <PackageReference Include="Plugin.Firebase.Auth" Version="3.0.1" />
+    <PackageReference Include="Plugin.Firebase.Auth" Version="3.1.1" />
   </ItemGroup>
 
   <!-- Fix collection duplicate: Exclude old version -->

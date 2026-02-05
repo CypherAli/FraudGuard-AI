@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Media;
 using Android.OS;
 using AndroidX.Core.App;
+using System.Runtime.Versioning;
 
 namespace FraudGuardAI.Platforms.Android.Services
 {
@@ -10,6 +11,7 @@ namespace FraudGuardAI.Platforms.Android.Services
     /// Helper để gửi notification cảnh báo khi phát hiện lừa đảo
     /// Notification này sẽ hiển thị ngay cả khi màn hình tắt
     /// </summary>
+    [SupportedOSPlatform("android26.0")]
     public static class AlertNotificationHelper
     {
         private const string ALERT_CHANNEL_ID = "FraudAlerts";

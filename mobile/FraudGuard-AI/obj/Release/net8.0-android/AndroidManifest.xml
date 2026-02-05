@@ -17,8 +17,13 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <uses-feature android:name="android.hardware.microphone" android:required="true" />
   <application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:label="FraudGuard AI" android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config" android:name="crc642df37a96ad9ab0dc.MainApplication" android:extractNativeLibs="true">
+    <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
+    <service android:name=".Platforms.Android.Services.FraudGuardForegroundService" android:enabled="true" android:exported="false" android:foregroundServiceType="microphone" />
+    <uses-library android:name="org.apache.http.legacy" android:required="false" />
     <receiver android:enabled="true" android:exported="false" android:label="Essentials Energy Saver Broadcast Receiver" android:name="crc640a8d9a12ddbf2cf2.EnergySaverBroadcastReceiver" />
     <activity android:configChanges="density|orientation|smallestScreenSize|screenLayout|screenSize|uiMode" android:theme="@style/Maui.SplashTheme" android:name="crc642df37a96ad9ab0dc.MainActivity" android:exported="true">
       <intent-filter>
@@ -26,6 +31,7 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <service android:foregroundServiceType="microphone" android:name="crc641fb5909a8af14b20.FraudGuardForegroundService" />
     <provider android:name="mono.MonoRuntimeProvider" android:exported="false" android:initOrder="1999999999" android:authorities="com.fraudguard.ai.mono.MonoRuntimeProvider.__mono_init__" />
   </application>
   <!-- Quyền ghi âm (BẮT BUỘC) -->
@@ -36,5 +42,7 @@
   <!-- Foreground Service (nếu cần chạy background) -->
   <!-- Wake Lock (giữ app không sleep khi recording) -->
   <!-- Vibration (cho cảnh báo nguy hiểm) -->
+  <!-- Full screen intent (hiển thị cảnh báo khi màn hình khóa) -->
+  <!-- Android 13+ Post notifications -->
   <!-- Khai báo audio recording feature -->
 </manifest>

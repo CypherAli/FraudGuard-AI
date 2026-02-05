@@ -4,194 +4,376 @@
              x:Class="FraudGuardAI.MainPage"
              Shell.NavBarIsVisible="False">
 
-    <Grid x:Name="MainGrid" 
-          RowDefinitions="Auto,*,Auto,Auto" 
-          Padding="24,48,24,24">
+    <ScrollView>
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Padding="20,48,20,20">
         
-        <!-- Header -->
-        <VerticalStackLayout Grid.Row="0" Spacing="4" HorizontalOptions="Center">
-            <Label Text="FraudGuard"
-                   FontSize="28"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   TextColor="{StaticResource TextPrimary}"/>
-            
-            <Label Text="Call Protection System"
-                   FontSize="14"
-                   HorizontalOptions="Center"
-                   TextColor="{StaticResource TextSecondary}"/>
-        </VerticalStackLayout>
-
-        <!-- Shield Section -->
-        <VerticalStackLayout Grid.Row="1" 
-                            VerticalOptions="Center" 
-                            HorizontalOptions="Center"
-                            Spacing="32">
-            
-            <!-- Shield Container -->
-            <Border x:Name="ShieldBorder"
-                    WidthRequest="180"
-                    HeightRequest="180"
-                    StrokeThickness="3"
-                    Stroke="#2A3F54"
-                    BackgroundColor="#1B2838"
-                    HorizontalOptions="Center">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="90"/>
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#000000"
-                           Opacity="0.4"
-                           Radius="30"
-                           Offset="0,10"/>
-                </Border.Shadow>
-                
-                <Grid>
-                    <!-- Inner Glow Ring -->
-                    <Border x:Name="GlowRing"
-                            WidthRequest="150"
-                            HeightRequest="150"
-                            StrokeThickness="2"
-                            Stroke="{StaticResource GlowGreen}"
-                            BackgroundColor="Transparent"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"
-                            Opacity="0">
+            <!-- Header -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Border WidthRequest="32" HeightRequest="32" 
+                            BackgroundColor="{StaticResource CyanAccent}"
+                            StrokeThickness="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="75"/>
+                            <RoundRectangle CornerRadius="8"/>
                         </Border.StrokeShape>
+                        <Label Text="🛡" FontSize="16" 
+                               HorizontalOptions="Center" 
+                               VerticalOptions="Center"/>
                     </Border>
-                    
-                    <!-- Shield Icon -->
-                    <Label x:Name="ShieldIcon"
-                           Text="🛡"
-                           FontSize="72"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"
-                           Opacity="0.4"/>
-                </Grid>
-            </Border>
-
-            <!-- Status Info -->
-            <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
-                <Label x:Name="StatusLabel"
-                       Text="Inactive"
-                       FontSize="24"
+                    <Label Text="CallGuard" 
+                           FontSize="20" 
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+                
+                <!-- Progress Bar -->
+                <Border Grid.Column="1" 
+                        HeightRequest="4" 
+                        BackgroundColor="{StaticResource ProgressBarBg}"
+                        Margin="16,0"
+                        VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="2"/>
+                    </Border.StrokeShape>
+                </Border>
+                
+                <Label Grid.Column="2" Text="☰" FontSize="24" 
+                       TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center"/>
+            </Grid>
+            
+            <!-- Title Section -->
+            <VerticalStackLayout Grid.Row="1" Spacing="4" Margin="0,16,0,16">
+                <Label Text="Bảng điều khiển"
+                       FontSize="28"
                        FontAttributes="Bold"
-                       HorizontalOptions="Center"
                        TextColor="{StaticResource TextPrimary}"/>
                 
-                <!-- Connection Indicator -->
-                <Border BackgroundColor="#1B2838"
-                       StrokeThickness="0"
-                       Padding="16,8"
-                       HorizontalOptions="Center">
+                <Label Text="Theo dõi và quản lý các cuộc gọi lừa đảo"
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}"/>
+                
+                <!-- Report Button -->
+                <Button x:Name="ReportButton"
+                        Text="+ Báo cáo số mới"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        BackgroundColor="{StaticResource OrangeIcon}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="40"
+                        HorizontalOptions="Start"
+                        Padding="16,0"
+                        Margin="0,12,0,0"
+                        Clicked="OnReportButtonClicked"/>
+            </VerticalStackLayout>
+            
+            <!-- Protection Status Card -->
+            <Border Grid.Row="2" 
+                    BackgroundColor="{StaticResource CardBg}"
+                    StrokeThickness="0"
+                    Padding="24"
+                    Margin="0,8,0,16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="20"/>
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="#000000" Opacity="0.3" Radius="20" Offset="0,8"/>
+                </Border.Shadow>
+                
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                    <!-- Shield Icon with Glow -->
+                    <Border x:Name="ShieldBorder"
+                            WidthRequest="80"
+                            HeightRequest="80"
+                            BackgroundColor="#1E3A4D"
+                            StrokeThickness="2"
+                            Stroke="{StaticResource TealIcon}"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="40"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource TealIcon}" Opacity="0.4" Radius="20"/>
+                        </Border.Shadow>
+                        
+                        <Grid>
+                            <Label Text="✓" FontSize="32"
+                                   TextColor="{StaticResource TealIcon}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+                    </Border>
+                    
+                    <Label x:Name="ProtectionStatusLabel"
+                           Text="Đang bảo vệ"
+                           FontSize="12"
+                           TextColor="{StaticResource TealIcon}"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label x:Name="StatusLabel"
+                           Text="Bảo vệ đang hoạt động"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label x:Name="BlockRateLabel"
+                           Text="Tỷ lệ chặn: 98.5%"
+                           FontSize="14"
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Border>
+            
+            <!-- Stats Cards Grid -->
+            <Grid Grid.Row="3" 
+                  ColumnDefinitions="*,*" 
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="12"
+                  RowSpacing="12"
+                  Margin="0,0,0,16">
+                
+                <!-- Card 1: Số đã chặn -->
+                <Border Grid.Row="0" Grid.Column="0"
+                        BackgroundColor="{StaticResource StatCardBg}"
+                        StrokeThickness="0"
+                        Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20"/>
+                        <RoundRectangle CornerRadius="16"/>
                     </Border.StrokeShape>
                     
-                    <HorizontalStackLayout Spacing="8">
-                        <Border x:Name="ConnectionDot"
-                               WidthRequest="8"
-                               HeightRequest="8"
-                               BackgroundColor="#5C6B7A"
-                               StrokeThickness="0"
-                               VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="4"/>
-                            </Border.StrokeShape>
-                        </Border>
-                        <Label x:Name="ConnectionStatusLabel"
-                               Text="Not Connected"
-                               FontSize="13"
-                               TextColor="{StaticResource TextSecondary}"
-                               VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Border>
-            </VerticalStackLayout>
-        </VerticalStackLayout>
-
-        <!-- Alert Banner -->
-        <Border x:Name="AlertBanner"
-                Grid.Row="2"
-                IsVisible="False"
-                BackgroundColor="{StaticResource DangerBackground}"
-                Padding="20,16"
-                Margin="0,0,0,20"
-                StrokeThickness="1"
-                Stroke="{StaticResource GlowRed}">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="16"/>
-            </Border.StrokeShape>
-            
-            <Grid ColumnDefinitions="Auto,*">
-                <Border WidthRequest="44"
-                       HeightRequest="44"
-                       BackgroundColor="#F8717130"
-                       StrokeThickness="0"
-                       VerticalOptions="Start">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="22"/>
-                    </Border.StrokeShape>
-                    <Label Text="⚠"
-                           FontSize="22"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"/>
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="SỐ ĐÃ CHẶN"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"/>
+                            <Border WidthRequest="28" HeightRequest="28"
+                                    BackgroundColor="{StaticResource OrangeIcon}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="End">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8"/>
+                                </Border.StrokeShape>
+                                <Label Text="🚫" FontSize="14"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </HorizontalStackLayout>
+                        
+                        <Label Grid.Row="1" x:Name="BlockedTotalLabel"
+                               Text="0"
+                               FontSize="36"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"/>
+                        
+                        <Label Grid.Row="2" x:Name="WeeklyChangeLabel"
+                               Text="↑ +12 tuần này"
+                               FontSize="12"
+                               TextColor="{StaticResource TealIcon}"/>
+                    </Grid>
                 </Border>
                 
-                <VerticalStackLayout Grid.Column="1" Spacing="4" Margin="14,0,0,0">
-                    <Label x:Name="AlertTypeLabel"
-                           Text="Warning"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="#FCA5A5"/>
-                    <Label x:Name="AlertMessageLabel"
-                           Text="Potential fraud detected"
-                           FontSize="13"
-                           TextColor="#FECACA"
-                           LineBreakMode="TailTruncation"/>
-                    <Label x:Name="AlertConfidenceLabel"
-                           Text="Risk: 95%"
-                           FontSize="12"
-                           TextColor="#FCA5A5"
-                           Opacity="0.8"/>
-                </VerticalStackLayout>
+                <!-- Card 2: Chặn hôm nay -->
+                <Border Grid.Row="0" Grid.Column="1"
+                        BackgroundColor="{StaticResource StatCardBg}"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+                    
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="CHẶN HÔM NAY"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"/>
+                            <Border WidthRequest="28" HeightRequest="28"
+                                    BackgroundColor="{StaticResource BlueIcon}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="End">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8"/>
+                                </Border.StrokeShape>
+                                <Label Text="📞" FontSize="14"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </HorizontalStackLayout>
+                        
+                        <Label Grid.Row="1" x:Name="BlockedTodayLabel"
+                               Text="0"
+                               FontSize="36"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"/>
+                    </Grid>
+                </Border>
+                
+                <!-- Card 3: Mối đe dọa nghiêm trọng -->
+                <Border Grid.Row="1" Grid.Column="0"
+                        BackgroundColor="{StaticResource StatCardBg}"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+                    
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="MỐI ĐE DỌA NGHIÊM TRỌNG"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   LineBreakMode="TailTruncation"/>
+                            <Border WidthRequest="28" HeightRequest="28"
+                                    BackgroundColor="{StaticResource RedIcon}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="End">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8"/>
+                                </Border.StrokeShape>
+                                <Label Text="⚠" FontSize="14"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </HorizontalStackLayout>
+                        
+                        <Label Grid.Row="1" x:Name="ThreatsLabel"
+                               Text="0"
+                               FontSize="36"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"/>
+                    </Grid>
+                </Border>
+                
+                <!-- Card 4: Hiệu quả bảo vệ -->
+                <Border Grid.Row="1" Grid.Column="1"
+                        BackgroundColor="{StaticResource StatCardBg}"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+                    
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="HIỆU QUẢ BẢO VỆ"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"/>
+                            <Border WidthRequest="28" HeightRequest="28"
+                                    BackgroundColor="{StaticResource BlueIcon}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="End">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8"/>
+                                </Border.StrokeShape>
+                                <Label Text="📈" FontSize="14"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </HorizontalStackLayout>
+                        
+                        <Label Grid.Row="1" x:Name="EfficiencyLabel"
+                               Text="98.5%"
+                               FontSize="32"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"/>
+                        
+                        <Label Grid.Row="2" x:Name="EfficiencyChangeLabel"
+                               Text="↑ +2.3%"
+                               FontSize="12"
+                               TextColor="{StaticResource TealIcon}"/>
+                    </Grid>
+                </Border>
             </Grid>
-        </Border>
-
-        <!-- Action Button -->
-        <Button x:Name="ToggleButton"
-                Grid.Row="3"
-                Text="Start Protection"
-                FontSize="17"
-                FontAttributes="Bold"
-                HeightRequest="56"
-                CornerRadius="28"
-                BackgroundColor="{StaticResource SafeColor}"
-                TextColor="#0D1B2A"
-                Clicked="OnToggleButtonClicked"
-                Margin="0,0,0,16">
-            <Button.Shadow>
-                <Shadow Brush="#34D399"
-                       Opacity="0.35"
-                       Radius="20"
-                       Offset="0,8"/>
-            </Button.Shadow>
-        </Button>
-
-        <!-- Debug Label -->
-        <Label x:Name="DebugLabel"
-               Grid.Row="3"
-               Text=""
-               FontSize="10"
-               TextColor="#5C6B7A"
-               HorizontalOptions="Center"
-               Margin="0,60,0,0">
-            <Label.Triggers>
-                <DataTrigger TargetType="Label" Binding="{Binding Source={x:Static Application.Current}, Path=Properties[IsDebugMode]}" Value="False">
-                    <Setter Property="IsVisible" Value="False" />
-                </DataTrigger>
-            </Label.Triggers>
-        </Label>
-    </Grid>
+            
+            <!-- Recent Calls Section -->
+            <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,8,0,12">
+                <Label Text="Cuộc gọi gần đây"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       VerticalOptions="Center"/>
+                
+                <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                    <Label Text="🕐" FontSize="12" VerticalOptions="Center"/>
+                    <Label Text="Hôm nay"
+                           FontSize="13"
+                           TextColor="{StaticResource TextSecondary}"
+                           VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Grid>
+            
+            <!-- Recent Calls List (Placeholder) -->
+            <VerticalStackLayout Grid.Row="5" x:Name="RecentCallsContainer">
+                <Border BackgroundColor="{StaticResource StatCardBg}"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="📱" FontSize="32" HorizontalOptions="Center"/>
+                        <Label Text="Chưa có cuộc gọi nào"
+                               FontSize="14"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+            
+            <!-- Alert Banner (Hidden by default) -->
+            <Border x:Name="AlertBanner"
+                    Grid.Row="5"
+                    IsVisible="False"
+                    BackgroundColor="{StaticResource DangerBackground}"
+                    Padding="20,16"
+                    Margin="0,12,0,0"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource GlowRed}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+                
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border WidthRequest="44"
+                           HeightRequest="44"
+                           BackgroundColor="#F8717130"
+                           StrokeThickness="0"
+                           VerticalOptions="Start">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="22"/>
+                        </Border.StrokeShape>
+                        <Label Text="⚠"
+                               FontSize="22"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+                    
+                    <VerticalStackLayout Grid.Column="1" Spacing="4" Margin="14,0,0,0">
+                        <Label x:Name="AlertTypeLabel"
+                               Text="Warning"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="#FCA5A5"/>
+                        <Label x:Name="AlertMessageLabel"
+                               Text="Potential fraud detected"
+                               FontSize="13"
+                               TextColor="#FECACA"
+                               LineBreakMode="TailTruncation"/>
+                        <Label x:Name="AlertConfidenceLabel"
+                               Text="Risk: 95%"
+                               FontSize="12"
+                               TextColor="#FCA5A5"
+                               Opacity="0.8"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollView>
 </ContentPage>

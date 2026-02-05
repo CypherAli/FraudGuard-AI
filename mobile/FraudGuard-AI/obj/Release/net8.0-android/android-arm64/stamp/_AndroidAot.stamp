@@ -14,6 +14,8 @@ obj\Release\net8.0-android\android-arm64\aot\Microsoft.Maui.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Microsoft.Maui.Essentials.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Microsoft.Maui.Graphics.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Plugin.AudioRecorder.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Plugin.Firebase.Auth.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Plugin.Firebase.Core.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.Activity.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.AppCompat.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.AppCompat.AppCompatResources.dll.so
@@ -36,10 +38,18 @@ obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.Navigation.Runtime
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.Navigation.UI.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.RecyclerView.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.SavedState.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.Security.SecurityCrypto.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.SwipeRefreshLayout.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.VersionedParcelable.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.ViewPager.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.AndroidX.ViewPager2.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.Firebase.Auth.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.Firebase.Auth.Interop.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.Firebase.Common.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.Firebase.Components.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.Google.Android.Material.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.GooglePlayServices.Basement.dll.so
+obj\Release\net8.0-android\android-arm64\aot\Xamarin.GooglePlayServices.Tasks.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.Kotlin.StdLib.dll.so
 obj\Release\net8.0-android\android-arm64\aot\Xamarin.KotlinX.Coroutines.Core.Jvm.dll.so
 obj\Release\net8.0-android\android-arm64\aot\System.Collections.Concurrent.dll.so

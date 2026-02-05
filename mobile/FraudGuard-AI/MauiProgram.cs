@@ -21,8 +21,8 @@ public static class MauiProgram
 #endif
 
         // Register Firebase Authentication Service
-        builder.Services.AddSingleton<IAuthenticationService, FirebaseAuthService>();
         builder.Services.AddSingleton<SecureStorageService>();
+        builder.Services.AddSingleton<IAuthenticationService, FirebaseAuthService>();
 
         return builder.Build();
     }
