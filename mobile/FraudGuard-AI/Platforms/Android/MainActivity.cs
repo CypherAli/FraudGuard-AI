@@ -1,7 +1,7 @@
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
-using Firebase;
+using Plugin.Firebase.Core;
 
 namespace FraudGuardAI
 {
@@ -12,8 +12,8 @@ namespace FraudGuardAI
         {
             base.OnCreate(savedInstanceState);
             
-            // Initialize Firebase - REQUIRED before using Firebase Auth
-            FirebaseApp.InitializeApp(this);
+            // Initialize Firebase using Plugin.Firebase.Core
+            CrossFirebase.Initialize(this);
         }
     }
 }

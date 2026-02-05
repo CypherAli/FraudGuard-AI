@@ -5,15 +5,15 @@ namespace FraudGuardAI.Pages.Auth
 {
     public partial class RegisterPage : ContentPage
     {
-        private readonly IAuthenticationService _authService;
+        private IAuthenticationService? _authService;
+
+        private IAuthenticationService AuthService => 
+            _authService ??= Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
+                ?? throw new InvalidOperationException("Authentication service not found");
 
         public RegisterPage()
         {
             InitializeComponent();
-            
-            // Get authentication service from DI
-            _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                ?? throw new InvalidOperationException("Authentication service not found");
         }
 
         private async void OnRegisterClicked(object sender, EventArgs e)
@@ -71,7 +71,7 @@ namespace FraudGuardAI.Pages.Auth
                 Debug.WriteLine($"[RegisterPage] Registering user: {phoneNumber}");
 
                 // Register user (send OTP)
-                var verificationId = await _authService.RegisterAsync(phoneNumber, password);
+                var verificationId = await AuthService.RegisterAsync(phoneNumber, password);
 
                 Debug.WriteLine($"[RegisterPage] OTP sent. Verification ID: {verificationId}");
 
