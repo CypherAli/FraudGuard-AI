@@ -124,6 +124,20 @@
                            FontSize="14"
                            TextColor="{StaticResource TextSecondary}"
                            HorizontalOptions="Center"/>
+                    
+                    <!-- Toggle Protection Button -->
+                    <Button x:Name="ToggleProtectionButton"
+                            Text="Kích hoạt bảo vệ"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="{StaticResource CyanAccent}"
+                            TextColor="White"
+                            CornerRadius="20"
+                            HeightRequest="44"
+                            WidthRequest="180"
+                            HorizontalOptions="Center"
+                            Margin="0,8,0,0"
+                            Clicked="OnToggleProtectionClicked"/>
                 </VerticalStackLayout>
             </Border>
             

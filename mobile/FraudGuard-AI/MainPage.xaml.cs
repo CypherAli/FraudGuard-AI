@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using FraudGuardAI.Constants;
@@ -30,7 +31,9 @@ namespace FraudGuardAI
         {
             InitializeComponent();
             InitializeAudioService();
-            LoadDashboardStats();
+            
+            // Load dashboard stats asynchronously
+            _ = LoadDashboardStatsAsync();
         }
 
         #endregion
@@ -64,11 +67,50 @@ namespace FraudGuardAI
             }
         }
 
-        private void LoadDashboardStats()
+        private async void LoadDashboardStats()
         {
-            // Load stats from storage or API
-            // For now, use default values
-            UpdateStatsDisplay();
+            try
+            {
+                // Load real stats from backend API
+                string deviceId = SettingsPage.GetDeviceID();
+                var historyService = new HistoryService();
+                
+                // Get all call history to calculate stats
+                var allCalls = await historyService.GetHistoryAsync(deviceId, limit: 1000);
+                var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
+                
+                // Calculate real stats
+                _stats.BlockedTotal = fraudCalls.Count;
+                _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.Date == DateTime.Today);
+                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= 0.8);
+                
+                // Calculate efficiency: (fraud detected / total calls) * 100
+                if (allCalls.Count > 0)
+                {
+                    _stats.ProtectionEfficiency = (fraudCalls.Count / (double)allCalls.Count) * 100;
+                }
+                else
+                {
+                    _stats.ProtectionEfficiency = 0;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Stats loaded: {_stats.BlockedTotal} blocked, {_stats.ProtectionEfficiency:F1}% efficiency");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Failed to load stats: {ex.Message}");
+                // Keep zero values if API fails
+            }
+            finally
+            {
+                UpdateStatsDisplay();
+            }
+        }
+
+        private async Task LoadDashboardStatsAsync()
+        {
+            LoadDashboardStats();
+            await Task.CompletedTask;
         }
 
         private void UpdateStatsDisplay()
@@ -79,15 +121,68 @@ namespace FraudGuardAI
                 BlockedTodayLabel.Text = _stats.BlockedTodayDisplay;
                 ThreatsLabel.Text = _stats.ThreatsDisplay;
                 EfficiencyLabel.Text = _stats.EfficiencyDisplay;
-                WeeklyChangeLabel.Text = $"↑ {_stats.WeeklyChangeDisplay}";
-                EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
-                BlockRateLabel.Text = $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
+                
+                // Only show weekly change if we have data
+                if (_stats.WeeklyChange > 0)
+                {
+                    WeeklyChangeLabel.Text = $"↑ +{_stats.WeeklyChange} tuần này";
+                    WeeklyChangeLabel.IsVisible = true;
+                }
+                else
+                {
+                    WeeklyChangeLabel.IsVisible = false;
+                }
+                
+                if (_stats.EfficiencyChange > 0)
+                {
+                    EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
+                    EfficiencyChangeLabel.IsVisible = true;
+                }
+                else
+                {
+                    EfficiencyChangeLabel.IsVisible = false;
+                }
+                
+                // Show "Chưa có dữ liệu" if no calls yet
+                if (_stats.BlockedTotal == 0)
+                {
+                    BlockRateLabel.Text = "Chưa có dữ liệu";
+                }
+                else
+                {
+                    BlockRateLabel.Text = $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
+                }
             });
         }
 
         #endregion
 
         #region Button Event Handlers
+
+        private async void OnToggleProtectionClicked(object sender, EventArgs e)
+        {
+            // Toggle protection on/off
+            if (_isProtectionActive)
+            {
+                await StopProtectionAsync();
+            }
+            else
+            {
+                // Check permissions first
+                var hasPermissions = await PermissionManager.RequestAllPermissionsAsync();
+                if (!hasPermissions)
+                {
+                    await DisplayAlert(
+                        "Thiếu quyền",
+                        "Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.",
+                        "OK"
+                    );
+                    return;
+                }
+                
+                await StartProtectionAsync();
+            }
+        }
 
         private async void OnReportButtonClicked(object sender, EventArgs e)
         {
@@ -208,18 +303,26 @@ namespace FraudGuardAI
                     StatusLabel.Text = "Đang kết nối...";
                     ProtectionStatusLabel.Text = "Đang kết nối";
                     ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
+                    ToggleProtectionButton.IsEnabled = false;
+                    ToggleProtectionButton.Text = "Đang kết nối...";
                 }
                 else if (isActive)
                 {
                     StatusLabel.Text = "Bảo vệ đang hoạt động";
                     ProtectionStatusLabel.Text = "Đang bảo vệ";
                     ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
+                    ToggleProtectionButton.IsEnabled = true;
+                    ToggleProtectionButton.Text = "Tắt bảo vệ";
+                    ToggleProtectionButton.BackgroundColor = Color.FromArgb("#EF4444");
                 }
                 else
                 {
                     StatusLabel.Text = "Chưa kích hoạt";
                     ProtectionStatusLabel.Text = "Đã tắt";
                     ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
+                    ToggleProtectionButton.IsEnabled = true;
+                    ToggleProtectionButton.Text = "Kích hoạt bảo vệ";
+                    ToggleProtectionButton.BackgroundColor = Color.FromArgb("#14B8A6");
                 }
             });
         }
