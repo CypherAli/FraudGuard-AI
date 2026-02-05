@@ -177,7 +177,7 @@ public final class R {
 		public static final int call_notification_incoming_text = 0x7f100027;
 		public static final int call_notification_ongoing_text = 0x7f100028;
 		public static final int call_notification_screening_text = 0x7f100029;
-		public static final int status_bar_notification_info_overflow = 0x7f1000bf;
+		public static final int status_bar_notification_info_overflow = 0x7f1000c5;
 	}
 	public static final class style {
 		public static final int TextAppearance_Compat_Notification = 0x7f1101c6;

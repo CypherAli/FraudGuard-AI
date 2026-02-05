@@ -254,6 +254,7 @@ network-security-config;obj\Debug\net8.0-android\res\xml\network_security_config
 padding;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\drawable\common_google_signin_btn_icon_disabled.xml
 padding;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\drawable\common_google_signin_btn_text_disabled.xml
 paths;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\176\jl\res\xml\microsoft_maui_essentials_fileprovider_file_paths.xml
+resources;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\googsvcsjson\values\goog_svcs_json.xml
 resources;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\172\jl\res\values\attrs.xml
 resources;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\172\jl\res\values\styles.xml
 resources;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\173\jl\res\values\strings.xml
@@ -448,6 +449,7 @@ solid;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\r
 solid;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\drawable\common_google_signin_btn_text_dark_focused.xml
 solid;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\drawable\common_google_signin_btn_text_disabled.xml
 solid;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\drawable\common_google_signin_btn_text_light_focused.xml
+string;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\googsvcsjson\values\goog_svcs_json.xml
 string;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\173\jl\res\values\strings.xml
 string;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\174\jl\res\values\values.xml
 string;E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\lp\190\jl\res\values-af\values.xml

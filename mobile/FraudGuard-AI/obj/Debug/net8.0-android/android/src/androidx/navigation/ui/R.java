@@ -24,7 +24,7 @@ public final class R {
 	}
 	public static final class string {
 		public static final int dest_title = 0x7f100041;
-		public static final int nav_app_bar_navigate_up_description = 0x7f1000b1;
-		public static final int nav_app_bar_open_drawer_description = 0x7f1000b2;
+		public static final int nav_app_bar_navigate_up_description = 0x7f1000b6;
+		public static final int nav_app_bar_open_drawer_description = 0x7f1000b7;
 	}
 }

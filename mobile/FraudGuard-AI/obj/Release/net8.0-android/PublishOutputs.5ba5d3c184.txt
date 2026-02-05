@@ -1,4 +1,0 @@
-E:\FraudGuard-AI\mobile\FraudGuard-AI\bin\Release\net8.0-android\publish\com.fraudguard.ai-Signed.aab
-E:\FraudGuard-AI\mobile\FraudGuard-AI\bin\Release\net8.0-android\publish\com.fraudguard.ai.aab
-E:\FraudGuard-AI\mobile\FraudGuard-AI\bin\Release\net8.0-android\publish\com.fraudguard.ai-Signed.apk
-E:\FraudGuard-AI\mobile\FraudGuard-AI\bin\Release\net8.0-android\publish\_Microsoft.Android.Resource.Designer.dll
