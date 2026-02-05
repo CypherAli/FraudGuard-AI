@@ -6,7 +6,7 @@
     the contents are regenerated.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" package="com.fraudguard.ai" android:versionCode="1" android:versionName="1.0">
-  <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
+  <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" tools:overrideLibrary="com.google.android.recaptcha" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -17,6 +17,8 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <uses-feature android:name="android.hardware.microphone" android:required="true" />
   <!-- Quyền ghi âm (BẮT BUỘC) -->
   <!-- Quyền Internet (BẮT BUỘC cho WebSocket) -->
@@ -26,16 +28,23 @@
   <!-- Foreground Service (nếu cần chạy background) -->
   <!-- Wake Lock (giữ app không sleep khi recording) -->
   <!-- Vibration (cho cảnh báo nguy hiểm) -->
+  <!-- Full screen intent (hiển thị cảnh báo khi màn hình khóa) -->
+  <!-- Android 13+ Post notifications -->
   <!-- Khai báo audio recording feature -->
   <permission android:name="com.fraudguard.ai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature" />
   <uses-permission android:name="com.fraudguard.ai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+  <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
   <application android:name="crc642df37a96ad9ab0dc.MainApplication" android:allowBackup="true" android:appComponentFactory="androidx.core.app.CoreComponentFactory" android:debuggable="true" android:extractNativeLibs="true" android:icon="@mipmap/appicon" android:label="FraudGuard AI" android:networkSecurityConfig="@xml/network_security_config" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="true">
+    <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
+    <service android:name="com.fraudguard.ai.Platforms.Android.Services.FraudGuardForegroundService" android:enabled="true" android:exported="false" android:foregroundServiceType="microphone" />
+    <uses-library android:name="org.apache.http.legacy" android:required="false" />
     <activity android:name="crc642df37a96ad9ab0dc.MainActivity" android:configChanges="density|orientation|smallestScreenSize|screenLayout|screenSize|uiMode" android:exported="true" android:theme="@style/Maui.SplashTheme">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <service android:name="crc641fb5909a8af14b20.FraudGuardForegroundService" android:foregroundServiceType="microphone" />
     <activity android:name="crc6468b6408a11370c2f.WebAuthenticatorIntermediateActivity" android:configChanges="orientation|screenSize" android:exported="false" />
     <provider android:name="microsoft.maui.essentials.fileProvider" android:authorities="com.fraudguard.ai.fileProvider" android:exported="false" android:grantUriPermissions="true">
       <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/microsoft_maui_essentials_fileprovider_file_paths" />
@@ -47,12 +56,10 @@
     <service android:name="crc64396a3fe5f8138e3f.KeepAliveService" />
     <provider android:name="mono.MonoRuntimeProvider" android:authorities="com.fraudguard.ai.mono.MonoRuntimeProvider.__mono_init__" android:exported="false" android:initOrder="1999999999" />
     <provider android:name="androidx.startup.InitializationProvider" android:authorities="com.fraudguard.ai.androidx-startup" android:exported="false" tools:node="merge">
+      <meta-data android:name="androidx.profileinstaller.ProfileInstallerInitializer" android:value="androidx.startup" />
       <meta-data android:name="androidx.lifecycle.ProcessLifecycleInitializer" android:value="androidx.startup" />
       <meta-data android:name="androidx.emoji2.text.EmojiCompatInitializer" android:value="androidx.startup" />
-      <meta-data android:name="androidx.profileinstaller.ProfileInstallerInitializer" android:value="androidx.startup" />
     </provider>
-    <uses-library android:name="androidx.window.extensions" android:required="false" />
-    <uses-library android:name="androidx.window.sidecar" android:required="false" />
     <receiver android:name="androidx.profileinstaller.ProfileInstallReceiver" android:directBootAware="false" android:enabled="true" android:exported="true" android:permission="android.permission.DUMP">
       <intent-filter>
         <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
@@ -67,5 +74,31 @@
         <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
       </intent-filter>
     </receiver>
+    <uses-library android:name="androidx.window.extensions" android:required="false" />
+    <uses-library android:name="androidx.window.sidecar" android:required="false" />
+    <activity android:name="com.google.firebase.auth.internal.GenericIdpActivity" android:excludeFromRecents="true" android:exported="true" android:launchMode="singleTask" android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:host="firebase.auth" android:path="/" android:scheme="genericidp" />
+      </intent-filter>
+    </activity>
+    <activity android:name="com.google.firebase.auth.internal.RecaptchaActivity" android:excludeFromRecents="true" android:exported="true" android:launchMode="singleTask" android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:host="firebase.auth" android:path="/" android:scheme="recaptcha" />
+      </intent-filter>
+    </activity>
+    <service android:name="com.google.firebase.components.ComponentDiscoveryService" android:directBootAware="true" android:exported="false" tools:targetApi="n">
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.auth.FirebaseAuthRegistrar" android:value="com.google.firebase.components.ComponentRegistrar" />
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar" android:value="com.google.firebase.components.ComponentRegistrar" />
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar" android:value="com.google.firebase.components.ComponentRegistrar" />
+    </service>
+    <provider android:name="com.google.firebase.provider.FirebaseInitProvider" android:authorities="com.fraudguard.ai.firebaseinitprovider" android:directBootAware="true" android:exported="false" android:initOrder="100" />
+    <activity android:name="com.google.android.gms.common.api.GoogleApiActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
   </application>
 </manifest>

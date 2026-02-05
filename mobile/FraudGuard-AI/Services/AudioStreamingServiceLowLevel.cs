@@ -171,37 +171,99 @@ namespace FraudGuardAI.Services
 
         public async Task StopStreamingAsync()
         {
+            System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync called");
+            
             try
             {
+                // 1. Set flags FIRST to stop loops immediately
                 _isStreaming = false;
-
-                if (_audioRecord != null)
-                {
-                    if (_audioRecord.RecordingState == RecordState.Recording)
-                    {
-                        _audioRecord.Stop();
-                    }
-                    _audioRecord.Release();
-                    _audioRecord.Dispose();
-                    _audioRecord = null;
-                }
-
-                _cancellationTokenSource?.Cancel();
-
-                if (_webSocket?.State == WebSocketState.Open)
-                {
-                    await _webSocket.CloseAsync(
-                        WebSocketCloseStatus.NormalClosure,
-                        "Client closing",
-                        CancellationToken.None
-                    );
-                }
-
                 _isConnected = false;
+                
+                // 2. Cancel all running tasks to unblock any awaits
+                _cancellationTokenSource?.Cancel();
+                
+                // 3. Notify UI immediately (don't wait for cleanup)
+                OnConnectionStatusChanged(false, "Stopping...");
+                
+                // 4. Run cleanup in background with timeout to not block UI
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Stop AudioRecord with timeout
+                        var audioCleanupTask = Task.Run(() =>
+                        {
+                            try
+                            {
+                                if (_audioRecord != null)
+                                {
+                                    if (_audioRecord.RecordingState == RecordState.Recording)
+                                    {
+                                        _audioRecord.Stop();
+                                    }
+                                    _audioRecord.Release();
+                                    _audioRecord.Dispose();
+                                    _audioRecord = null;
+                                    System.Diagnostics.Debug.WriteLine("[AudioService] AudioRecord stopped and disposed");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[AudioService] AudioRecord cleanup error: {ex.Message}");
+                            }
+                        });
+                        
+                        // Wait max 2 seconds for audio cleanup
+                        await Task.WhenAny(audioCleanupTask, Task.Delay(2000));
+                        
+                        // Close WebSocket with timeout
+                        if (_webSocket != null)
+                        {
+                            try
+                            {
+                                if (_webSocket.State == WebSocketState.Open)
+                                {
+                                    using var closeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                                    await _webSocket.CloseAsync(
+                                        WebSocketCloseStatus.NormalClosure,
+                                        "Client closing",
+                                        closeTimeout.Token
+                                    );
+                                    System.Diagnostics.Debug.WriteLine("[AudioService] WebSocket closed gracefully");
+                                }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                System.Diagnostics.Debug.WriteLine("[AudioService] WebSocket close timed out, forcing abort");
+                                _webSocket?.Abort();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[AudioService] WebSocket close error: {ex.Message}");
+                                _webSocket?.Abort();
+                            }
+                            finally
+                            {
+                                _webSocket?.Dispose();
+                                _webSocket = null;
+                            }
+                        }
+                        
+                        System.Diagnostics.Debug.WriteLine("[AudioService] Cleanup complete");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AudioService] Background cleanup error: {ex.Message}");
+                    }
+                });
+                
+                // 5. Final status update
                 OnConnectionStatusChanged(false, "Disconnected");
+                System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync completed (cleanup running in background)");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[AudioService] StopStreamingAsync error: {ex.Message}");
                 OnError($"Error stopping: {ex.Message}", ex);
             }
         }

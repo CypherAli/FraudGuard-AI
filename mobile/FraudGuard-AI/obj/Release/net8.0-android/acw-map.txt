@@ -505,6 +505,21 @@ microsoft.maui.devices.EnergySaverBroadcastReceiver;crc640a8d9a12ddbf2cf2.Energy
 Microsoft.Maui.Graphics.Platform.PlatformGraphicsView, Microsoft.Maui.Graphics;crc643f2b18b2570eaa5a.PlatformGraphicsView
 Microsoft.Maui.Graphics.Platform.PlatformGraphicsView;crc643f2b18b2570eaa5a.PlatformGraphicsView
 microsoft.maui.graphics.platform.PlatformGraphicsView;crc643f2b18b2570eaa5a.PlatformGraphicsView
+Plugin.Firebase.Auth.FirebaseAuthImplementation+AuthStateListener, Plugin.Firebase.Auth;crc64faee23b57982443e.FirebaseAuthImplementation_AuthStateListener
+Plugin.Firebase.Auth.FirebaseAuthImplementation.AuthStateListener;crc64faee23b57982443e.FirebaseAuthImplementation_AuthStateListener
+plugin.firebase.auth.FirebaseAuthImplementation_AuthStateListener;crc64faee23b57982443e.FirebaseAuthImplementation_AuthStateListener
+Plugin.Firebase.Auth.Platforms.Android.PhoneNumber.PhoneVerificationStateChangeCallbacks, Plugin.Firebase.Auth;crc64f75742c42e58f319.PhoneVerificationStateChangeCallbacks
+Plugin.Firebase.Auth.Platforms.Android.PhoneNumber.PhoneVerificationStateChangeCallbacks;crc64f75742c42e58f319.PhoneVerificationStateChangeCallbacks
+plugin.firebase.auth.platforms.android.phonenumber.PhoneVerificationStateChangeCallbacks;crc64f75742c42e58f319.PhoneVerificationStateChangeCallbacks
+Plugin.Firebase.Core.Platforms.Android.OnCompleteListener, Plugin.Firebase.Core;crc64d20aaac0e78511d5.OnCompleteListener
+Plugin.Firebase.Core.Platforms.Android.OnCompleteListener;crc64d20aaac0e78511d5.OnCompleteListener
+plugin.firebase.core.platforms.android.OnCompleteListener;crc64d20aaac0e78511d5.OnCompleteListener
+Plugin.Firebase.Core.Platforms.Android.OnFailureListener, Plugin.Firebase.Core;crc64d20aaac0e78511d5.OnFailureListener
+Plugin.Firebase.Core.Platforms.Android.OnFailureListener;crc64d20aaac0e78511d5.OnFailureListener
+plugin.firebase.core.platforms.android.OnFailureListener;crc64d20aaac0e78511d5.OnFailureListener
+Plugin.Firebase.Core.Platforms.Android.OnSuccessListener, Plugin.Firebase.Core;crc64d20aaac0e78511d5.OnSuccessListener
+Plugin.Firebase.Core.Platforms.Android.OnSuccessListener;crc64d20aaac0e78511d5.OnSuccessListener
+plugin.firebase.core.platforms.android.OnSuccessListener;crc64d20aaac0e78511d5.OnSuccessListener
 AndroidX.Activity.ContextAware.IOnContextAvailableListener, Xamarin.AndroidX.Activity;androidx.activity.contextaware.OnContextAvailableListener
 AndroidX.Activity.ContextAware.IOnContextAvailableListener;androidx.activity.contextaware.OnContextAvailableListener
 androidx.activity.contextaware.OnContextAvailableListener;androidx.activity.contextaware.OnContextAvailableListener
@@ -598,6 +613,12 @@ androidx.core.internal.view.SupportMenuItem;androidx.core.internal.view.SupportM
 AndroidX.Core.App.ActivityCompat+IPermissionCompatDelegate, Xamarin.AndroidX.Core;androidx.core.app.ActivityCompat$PermissionCompatDelegate
 AndroidX.Core.App.ActivityCompat.IPermissionCompatDelegate;androidx.core.app.ActivityCompat$PermissionCompatDelegate
 androidx.core.app.ActivityCompat$PermissionCompatDelegate;androidx.core.app.ActivityCompat$PermissionCompatDelegate
+AndroidX.Core.App.INotificationBuilderWithBuilderAccessor, Xamarin.AndroidX.Core;androidx.core.app.NotificationBuilderWithBuilderAccessor
+AndroidX.Core.App.INotificationBuilderWithBuilderAccessor;androidx.core.app.NotificationBuilderWithBuilderAccessor
+androidx.core.app.NotificationBuilderWithBuilderAccessor;androidx.core.app.NotificationBuilderWithBuilderAccessor
+AndroidX.Core.App.NotificationCompat+IExtender, Xamarin.AndroidX.Core;androidx.core.app.NotificationCompat$Extender
+AndroidX.Core.App.NotificationCompat.IExtender;androidx.core.app.NotificationCompat$Extender
+androidx.core.app.NotificationCompat$Extender;androidx.core.app.NotificationCompat$Extender
 AndroidX.Core.App.SharedElementCallback+IOnSharedElementsReadyListener, Xamarin.AndroidX.Core;androidx.core.app.SharedElementCallback$OnSharedElementsReadyListener
 AndroidX.Core.App.SharedElementCallback.IOnSharedElementsReadyListener;androidx.core.app.SharedElementCallback$OnSharedElementsReadyListener
 androidx.core.app.SharedElementCallback$OnSharedElementsReadyListener;androidx.core.app.SharedElementCallback$OnSharedElementsReadyListener
@@ -787,6 +808,51 @@ androidx.viewpager.widget.ViewPager$PageTransformer;androidx.viewpager.widget.Vi
 AndroidX.ViewPager2.Widget.ViewPager2+IPageTransformer, Xamarin.AndroidX.ViewPager2;androidx.viewpager2.widget.ViewPager2$PageTransformer
 AndroidX.ViewPager2.Widget.ViewPager2.IPageTransformer;androidx.viewpager2.widget.ViewPager2$PageTransformer
 androidx.viewpager2.widget.ViewPager2$PageTransformer;androidx.viewpager2.widget.ViewPager2$PageTransformer
+Firebase.Auth.FirebaseAuth+IAuthStateListener, Xamarin.Firebase.Auth;com.google.firebase.auth.FirebaseAuth$AuthStateListener
+Firebase.Auth.FirebaseAuth.IAuthStateListener;com.google.firebase.auth.FirebaseAuth$AuthStateListener
+com.google.firebase.auth.FirebaseAuth$AuthStateListener;com.google.firebase.auth.FirebaseAuth$AuthStateListener
+Firebase.Auth.FirebaseAuth+IAuthStateListenerImplementor, Xamarin.Firebase.Auth;mono.com.google.firebase.auth.FirebaseAuth_AuthStateListenerImplementor
+Firebase.Auth.FirebaseAuth.IAuthStateListenerImplementor;mono.com.google.firebase.auth.FirebaseAuth_AuthStateListenerImplementor
+mono.com.google.firebase.auth.FirebaseAuth_AuthStateListenerImplementor;mono.com.google.firebase.auth.FirebaseAuth_AuthStateListenerImplementor
+Firebase.Auth.FirebaseAuth+IIdTokenListener, Xamarin.Firebase.Auth;com.google.firebase.auth.FirebaseAuth$IdTokenListener
+Firebase.Auth.FirebaseAuth.IIdTokenListener;com.google.firebase.auth.FirebaseAuth$IdTokenListener
+com.google.firebase.auth.FirebaseAuth$IdTokenListener;com.google.firebase.auth.FirebaseAuth$IdTokenListener
+Firebase.Auth.FirebaseAuth+IIdTokenListenerImplementor, Xamarin.Firebase.Auth;mono.com.google.firebase.auth.FirebaseAuth_IdTokenListenerImplementor
+Firebase.Auth.FirebaseAuth.IIdTokenListenerImplementor;mono.com.google.firebase.auth.FirebaseAuth_IdTokenListenerImplementor
+mono.com.google.firebase.auth.FirebaseAuth_IdTokenListenerImplementor;mono.com.google.firebase.auth.FirebaseAuth_IdTokenListenerImplementor
+Firebase.Auth.IAdditionalUserInfo, Xamarin.Firebase.Auth;com.google.firebase.auth.AdditionalUserInfo
+Firebase.Auth.IAdditionalUserInfo;com.google.firebase.auth.AdditionalUserInfo
+com.google.firebase.auth.AdditionalUserInfo;com.google.firebase.auth.AdditionalUserInfo
+Firebase.Auth.IAuthResult, Xamarin.Firebase.Auth;com.google.firebase.auth.AuthResult
+Firebase.Auth.IAuthResult;com.google.firebase.auth.AuthResult
+com.google.firebase.auth.AuthResult;com.google.firebase.auth.AuthResult
+Firebase.Auth.IFirebaseUserMetadata, Xamarin.Firebase.Auth;com.google.firebase.auth.FirebaseUserMetadata
+Firebase.Auth.IFirebaseUserMetadata;com.google.firebase.auth.FirebaseUserMetadata
+com.google.firebase.auth.FirebaseUserMetadata;com.google.firebase.auth.FirebaseUserMetadata
+Firebase.Auth.ISignInMethodQueryResult, Xamarin.Firebase.Auth;com.google.firebase.auth.SignInMethodQueryResult
+Firebase.Auth.ISignInMethodQueryResult;com.google.firebase.auth.SignInMethodQueryResult
+com.google.firebase.auth.SignInMethodQueryResult;com.google.firebase.auth.SignInMethodQueryResult
+Firebase.Auth.IUserInfo, Xamarin.Firebase.Auth;com.google.firebase.auth.UserInfo
+Firebase.Auth.IUserInfo;com.google.firebase.auth.UserInfo
+com.google.firebase.auth.UserInfo;com.google.firebase.auth.UserInfo
+Firebase.Auth.Internal.IIdTokenListener, Xamarin.Firebase.Auth.Interop;com.google.firebase.auth.internal.IdTokenListener
+Firebase.Auth.Internal.IIdTokenListener;com.google.firebase.auth.internal.IdTokenListener
+com.google.firebase.auth.internal.IdTokenListener;com.google.firebase.auth.internal.IdTokenListener
+Firebase.FirebaseApp+IBackgroundStateChangeListener, Xamarin.Firebase.Common;com.google.firebase.FirebaseApp$BackgroundStateChangeListener
+Firebase.FirebaseApp.IBackgroundStateChangeListener;com.google.firebase.FirebaseApp$BackgroundStateChangeListener
+com.google.firebase.FirebaseApp$BackgroundStateChangeListener;com.google.firebase.FirebaseApp$BackgroundStateChangeListener
+Firebase.FirebaseApp+IBackgroundStateChangeListenerImplementor, Xamarin.Firebase.Common;mono.com.google.firebase.FirebaseApp_BackgroundStateChangeListenerImplementor
+Firebase.FirebaseApp.IBackgroundStateChangeListenerImplementor;mono.com.google.firebase.FirebaseApp_BackgroundStateChangeListenerImplementor
+mono.com.google.firebase.FirebaseApp_BackgroundStateChangeListenerImplementor;mono.com.google.firebase.FirebaseApp_BackgroundStateChangeListenerImplementor
+Firebase.IFirebaseAppLifecycleListener, Xamarin.Firebase.Common;com.google.firebase.FirebaseAppLifecycleListener
+Firebase.IFirebaseAppLifecycleListener;com.google.firebase.FirebaseAppLifecycleListener
+com.google.firebase.FirebaseAppLifecycleListener;com.google.firebase.FirebaseAppLifecycleListener
+Firebase.IFirebaseAppLifecycleListenerImplementor, Xamarin.Firebase.Common;mono.com.google.firebase.FirebaseAppLifecycleListenerImplementor
+Firebase.IFirebaseAppLifecycleListenerImplementor;mono.com.google.firebase.FirebaseAppLifecycleListenerImplementor
+mono.com.google.firebase.FirebaseAppLifecycleListenerImplementor;mono.com.google.firebase.FirebaseAppLifecycleListenerImplementor
+Firebase.Inject.IProvider, Xamarin.Firebase.Components;com.google.firebase.inject.Provider
+Firebase.Inject.IProvider;com.google.firebase.inject.Provider
+com.google.firebase.inject.Provider;com.google.firebase.inject.Provider
 Google.Android.Material.Shape.ICornerSize, Xamarin.Google.Android.Material;com.google.android.material.shape.CornerSize
 Google.Android.Material.Shape.ICornerSize;com.google.android.material.shape.CornerSize
 com.google.android.material.shape.CornerSize;com.google.android.material.shape.CornerSize
@@ -865,6 +931,33 @@ com.google.android.material.appbar.AppBarLayout$OnOffsetChangedListener;com.goog
 Google.Android.Material.AppBar.AppBarLayout+IOnOffsetChangedListenerImplementor, Xamarin.Google.Android.Material;mono.com.google.android.material.appbar.AppBarLayout_OnOffsetChangedListenerImplementor
 Google.Android.Material.AppBar.AppBarLayout.IOnOffsetChangedListenerImplementor;mono.com.google.android.material.appbar.AppBarLayout_OnOffsetChangedListenerImplementor
 mono.com.google.android.material.appbar.AppBarLayout_OnOffsetChangedListenerImplementor;mono.com.google.android.material.appbar.AppBarLayout_OnOffsetChangedListenerImplementor
+Android.Gms.Common.Internal.SafeParcel.ISafeParcelable, Xamarin.GooglePlayServices.Basement;com.google.android.gms.common.internal.safeparcel.SafeParcelable
+Android.Gms.Common.Internal.SafeParcel.ISafeParcelable;com.google.android.gms.common.internal.safeparcel.SafeParcelable
+com.google.android.gms.common.internal.safeparcel.SafeParcelable;com.google.android.gms.common.internal.safeparcel.SafeParcelable
+Android.Gms.Tasks.IContinuation, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.Continuation
+Android.Gms.Tasks.IContinuation;com.google.android.gms.tasks.Continuation
+com.google.android.gms.tasks.Continuation;com.google.android.gms.tasks.Continuation
+Android.Gms.Tasks.IOnCanceledListener, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.OnCanceledListener
+Android.Gms.Tasks.IOnCanceledListener;com.google.android.gms.tasks.OnCanceledListener
+com.google.android.gms.tasks.OnCanceledListener;com.google.android.gms.tasks.OnCanceledListener
+Android.Gms.Tasks.IOnCompleteListener, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.OnCompleteListener
+Android.Gms.Tasks.IOnCompleteListener;com.google.android.gms.tasks.OnCompleteListener
+com.google.android.gms.tasks.OnCompleteListener;com.google.android.gms.tasks.OnCompleteListener
+Android.Gms.Tasks.IOnFailureListener, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.OnFailureListener
+Android.Gms.Tasks.IOnFailureListener;com.google.android.gms.tasks.OnFailureListener
+com.google.android.gms.tasks.OnFailureListener;com.google.android.gms.tasks.OnFailureListener
+Android.Gms.Tasks.IOnSuccessListener, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.OnSuccessListener
+Android.Gms.Tasks.IOnSuccessListener;com.google.android.gms.tasks.OnSuccessListener
+com.google.android.gms.tasks.OnSuccessListener;com.google.android.gms.tasks.OnSuccessListener
+Android.Gms.Tasks.IOnTokenCanceledListener, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.OnTokenCanceledListener
+Android.Gms.Tasks.IOnTokenCanceledListener;com.google.android.gms.tasks.OnTokenCanceledListener
+com.google.android.gms.tasks.OnTokenCanceledListener;com.google.android.gms.tasks.OnTokenCanceledListener
+Android.Gms.Tasks.ISuccessContinuation, Xamarin.GooglePlayServices.Tasks;com.google.android.gms.tasks.SuccessContinuation
+Android.Gms.Tasks.ISuccessContinuation;com.google.android.gms.tasks.SuccessContinuation
+com.google.android.gms.tasks.SuccessContinuation;com.google.android.gms.tasks.SuccessContinuation
+Android.Gms.Extensions.AwaitableTaskCompleteListener`1, Xamarin.GooglePlayServices.Tasks;crc6495d4f5d63cc5c882.AwaitableTaskCompleteListener_1
+Android.Gms.Extensions.AwaitableTaskCompleteListener`1;crc6495d4f5d63cc5c882.AwaitableTaskCompleteListener_1
+android.gms.extensions.AwaitableTaskCompleteListener_1;crc6495d4f5d63cc5c882.AwaitableTaskCompleteListener_1
 Kotlin.IFunction, Xamarin.Kotlin.StdLib;kotlin.Function
 Kotlin.IFunction;kotlin.Function
 kotlin.Function;kotlin.Function
@@ -907,3 +1000,6 @@ fraudguardai.MainActivity;crc642df37a96ad9ab0dc.MainActivity
 FraudGuardAI.MainApplication, FraudGuardAI;crc642df37a96ad9ab0dc.MainApplication
 FraudGuardAI.MainApplication;crc642df37a96ad9ab0dc.MainApplication
 fraudguardai.MainApplication;crc642df37a96ad9ab0dc.MainApplication
+FraudGuardAI.Platforms.Android.Services.FraudGuardForegroundService, FraudGuardAI;crc641fb5909a8af14b20.FraudGuardForegroundService
+FraudGuardAI.Platforms.Android.Services.FraudGuardForegroundService;crc641fb5909a8af14b20.FraudGuardForegroundService
+fraudguardai.platforms.android.services.FraudGuardForegroundService;crc641fb5909a8af14b20.FraudGuardForegroundService

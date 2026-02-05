@@ -26,9 +26,9 @@
             Route="MainPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    Glyph="🛡️"
+                    Glyph="○"
                     Size="24"
-                    Color="#34D399"/>
+                    Color="#E0E6ED"/>
             </ShellContent.Icon>
         </ShellContent>
 
@@ -38,9 +38,9 @@
             Route="HistoryPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    Glyph="📋"
+                    Glyph="◎"
                     Size="24"
-                    Color="#60A5FA"/>
+                    Color="#E0E6ED"/>
             </ShellContent.Icon>
         </ShellContent>
 
@@ -50,9 +50,9 @@
             Route="SettingsPage">
             <ShellContent.Icon>
                 <FontImageSource
-                    Glyph="⚙️"
+                    Glyph="⚙"
                     Size="24"
-                    Color="#FBBF24"/>
+                    Color="#14B8A6"/>
             </ShellContent.Icon>
         </ShellContent>
     </TabBar>

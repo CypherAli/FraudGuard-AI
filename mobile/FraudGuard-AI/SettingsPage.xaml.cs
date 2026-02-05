@@ -60,6 +60,7 @@ namespace FraudGuardAI
                 LoadSettings();
                 UpdateCurrentConfig();
                 LoadUserInfo();
+                CheckServerConnection();
             }
             catch (Exception ex)
             {
@@ -72,14 +73,54 @@ namespace FraudGuardAI
             try
             {
                 var user = await _authService.GetCurrentUserAsync();
-                if (user != null && UserPhoneLabel != null)
+                if (user != null)
                 {
-                    UserPhoneLabel.Text = user.PhoneNumber;
+                    if (UserNameLabel != null)
+                        UserNameLabel.Text = user.DisplayName ?? "Người dùng";
+                    if (UserEmailLabel != null)
+                        UserEmailLabel.Text = user.Email ?? "user@example.com";
+                    if (PhoneNumberLabel != null)
+                        PhoneNumberLabel.Text = !string.IsNullOrEmpty(user.PhoneNumber) ? user.PhoneNumber : "Chưa cập nhật";
+                    if (AvatarInitials != null && !string.IsNullOrEmpty(user.DisplayName))
+                        AvatarInitials.Text = GetInitials(user.DisplayName);
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error loading user info: {ex.Message}");
+            }
+        }
+        
+        private string GetInitials(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "ND";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+                return $"{parts[0][0]}{parts[parts.Length - 1][0]}".ToUpper();
+            return name.Length >= 2 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+        }
+        
+        private async void CheckServerConnection()
+        {
+            try
+            {
+                var audioService = App.GetAudioService();
+                bool isConnected = audioService?.IsConnected ?? false;
+                
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (ServerStatusDot != null)
+                        ServerStatusDot.BackgroundColor = isConnected ? SuccessColor : Color.FromArgb("#5C6B7A");
+                    if (ServerStatusLabel != null)
+                    {
+                        ServerStatusLabel.Text = isConnected ? "Đã kết nối" : "Chưa kết nối";
+                        ServerStatusLabel.TextColor = isConnected ? SuccessColor : Color.FromArgb("#8B9CAF");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error checking connection: {ex.Message}");
             }
         }
         
@@ -89,8 +130,6 @@ namespace FraudGuardAI
             {
                 if (CurrentConfigLabel != null)
                     CurrentConfigLabel.Text = GetWebSocketUrl();
-                if (CurrentAPILabel != null)
-                    CurrentAPILabel.Text = GetAPIBaseUrl();
             }
             catch { }
         }
@@ -126,38 +165,17 @@ namespace FraudGuardAI
                 }
                 
                 System.Diagnostics.Debug.WriteLine($"[Settings] Loaded URL: {savedURL}");
-                Console.WriteLine($"[Settings] Loaded URL: {savedURL}");
                 if (ServerIPEntry != null)
                     ServerIPEntry.Text = savedURL;
-
-                string savedDeviceID = Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
-                if (string.IsNullOrEmpty(savedDeviceID))
-                {
-                    savedDeviceID = DEFAULT_DEVICE_ID;
-                    Preferences.Set(PREF_DEVICE_ID, savedDeviceID); // Save default
-                }
                 
-                System.Diagnostics.Debug.WriteLine($"[Settings] Loaded Device ID: {savedDeviceID}");
-                Console.WriteLine($"[Settings] Loaded Device ID: {savedDeviceID}");
-                if (DeviceIDEntry != null)
-                    DeviceIDEntry.Text = savedDeviceID;
-
-                // Update UI based on USB mode
-                UpdateUIForUsbMode(usbMode);
-                
-                // Update config display with appropriate URL
-                string displayURL = usbMode ? USB_URL : savedURL;
-                UpdateConfigurationDisplay(displayURL);
+                // Update config display
+                UpdateConfigurationDisplay(usbMode ? USB_URL : savedURL);
                 
                 System.Diagnostics.Debug.WriteLine($"[Settings] LoadSettings completed successfully (USB Mode: {usbMode})");
-                Console.WriteLine($"[Settings] LoadSettings completed successfully (USB Mode: {usbMode})");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Load error: {ex.Message}");
-                Console.WriteLine($"[Settings] Load error: {ex.Message}");
-                if (StatusLabel != null)
-                    ShowStatus("Error loading settings", isError: true);
             }
         }
 
@@ -166,12 +184,6 @@ namespace FraudGuardAI
             try
             {
                 string url = ServerIPEntry.Text?.Trim();
-
-                if (string.IsNullOrWhiteSpace(url))
-                {
-                    ShowStatus("Please enter a server URL", isError: true);
-                    return;
-                }
 
                 // Accept both full URLs and IP addresses
                 if (!url.StartsWith("http://") && !url.StartsWith("https://"))
@@ -183,40 +195,25 @@ namespace FraudGuardAI
                     }
                     else
                     {
-                        ShowStatus("Invalid URL or IP format", isError: true);
+                        System.Diagnostics.Debug.WriteLine("[Settings] Invalid URL or IP format");
                         return;
                     }
                 }
 
                 Preferences.Set(PREF_SERVER_URL, url);
                 UpdateConfigurationDisplay(url);
-                ShowStatus("Configuration saved", isError: false);
+                System.Diagnostics.Debug.WriteLine($"[Settings] Configuration saved: {url}");
             }
             catch (Exception ex)
             {
-                ShowStatus($"Error: {ex.Message}", isError: true);
+                System.Diagnostics.Debug.WriteLine($"[Settings] Error: {ex.Message}");
             }
         }
 
         private void SaveDeviceID()
         {
-            try
-            {
-                string deviceID = DeviceIDEntry.Text?.Trim();
-
-                if (string.IsNullOrWhiteSpace(deviceID))
-                {
-                    ShowStatus("Please enter a Device ID", isError: true);
-                    return;
-                }
-
-                Preferences.Set(PREF_DEVICE_ID, deviceID);
-                ShowStatus("Device ID saved", isError: false);
-            }
-            catch (Exception ex)
-            {
-                ShowStatus($"Error: {ex.Message}", isError: true);
-            }
+            // DeviceID is now auto-generated, no longer user-configurable
+            System.Diagnostics.Debug.WriteLine("[Settings] SaveDeviceID called but no longer applicable");
         }
 
         #endregion
@@ -250,15 +247,8 @@ namespace FraudGuardAI
                 bool isUsbMode = e.Value;
                 Preferences.Set(PREF_USB_MODE, isUsbMode);
                 
-                UpdateUIForUsbMode(isUsbMode);
-                
-                string displayURL = isUsbMode ? USB_URL : ServerIPEntry.Text?.Trim() ?? DEFAULT_URL;
+                string displayURL = isUsbMode ? USB_URL : ServerIPEntry?.Text?.Trim() ?? DEFAULT_URL;
                 UpdateConfigurationDisplay(displayURL);
-                
-                string message = isUsbMode 
-                    ? "USB Mode ON - Using localhost" 
-                    : "WiFi Mode - Using custom URL";
-                ShowStatus(message, isError: false);
                 
                 System.Diagnostics.Debug.WriteLine($"[Settings] USB Mode: {isUsbMode}");
                 Console.WriteLine($"[Settings] USB Mode: {isUsbMode}");
@@ -266,31 +256,10 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] USB toggle error: {ex.Message}");
-                ShowStatus("Error toggling mode", isError: true);
             }
         }
 
-        private void UpdateUIForUsbMode(bool isUsbMode)
-        {
-            try
-            {
-                // Show/hide IP input based on mode
-                if (IPInputSection != null)
-                    IPInputSection.IsVisible = !isUsbMode;
-                
-                // Update hint label
-                if (ServerModeLabel != null)
-                {
-                    ServerModeLabel.Text = isUsbMode 
-                        ? "USB connected - Auto localhost" 
-                        : "Enter your server IP";
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Settings] UI update error: {ex.Message}");
-            }
-        }
+        // UpdateUIForUsbMode removed - no longer needed with new UI
 
         #endregion
 
@@ -304,22 +273,17 @@ namespace FraudGuardAI
                 string cleanUrl = url.Replace("http://", "").Replace("https://", "");
                 bool isHttps = url.StartsWith("https://");
                 string protocol = isHttps ? "wss" : "ws";
-                string httpProtocol = isHttps ? "https" : "http";
                 
                 // If URL includes port, use it as is, otherwise add :8080
                 if (cleanUrl.Contains(":"))
                 {
                     if (CurrentConfigLabel != null)
                         CurrentConfigLabel.Text = $"{protocol}://{cleanUrl}/ws";
-                    if (CurrentAPILabel != null)
-                        CurrentAPILabel.Text = $"{httpProtocol}://{cleanUrl}/api";
                 }
                 else
                 {
                     if (CurrentConfigLabel != null)
                         CurrentConfigLabel.Text = $"{protocol}://{cleanUrl}:8080/ws";
-                    if (CurrentAPILabel != null)
-                        CurrentAPILabel.Text = $"{httpProtocol}://{cleanUrl}:8080/api";
                 }
             }
             catch (Exception ex)
@@ -328,31 +292,7 @@ namespace FraudGuardAI
             }
         }
 
-        private void ShowStatus(string message, bool isError)
-        {
-            try
-            {
-                if (StatusLabel != null)
-                {
-                    StatusLabel.Text = isError ? $"✕ {message}" : $"✓ {message}";
-                    StatusLabel.TextColor = isError ? ErrorColor : SuccessColor;
-                    StatusLabel.IsVisible = true;
-
-                    Task.Delay(3000).ContinueWith(_ =>
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            if (StatusLabel != null)
-                                StatusLabel.IsVisible = false;
-                        });
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Settings] ShowStatus error: {ex.Message}");
-            }
-        }
+        // ShowStatus removed - using DisplayAlert instead for notifications
 
         #endregion
 
@@ -372,8 +312,7 @@ namespace FraudGuardAI
                 if (string.IsNullOrWhiteSpace(serverUrl))
                 {
                     System.Diagnostics.Debug.WriteLine($"[Settings] Empty URL");
-                    Console.WriteLine($"[Settings] Empty URL");
-                    ShowStatus("Please enter a server URL", isError: true);
+                    await DisplayAlert("Lỗi", "Vui lòng nhập URL server", "OK");
                     return;
                 }
 
@@ -388,7 +327,7 @@ namespace FraudGuardAI
                     }
                     else
                     {
-                        ShowStatus("Invalid URL format", isError: true);
+                        await DisplayAlert("Lỗi", "Định dạng URL không hợp lệ", "OK");
                         return;
                     }
                 }
@@ -412,38 +351,31 @@ namespace FraudGuardAI
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     System.Diagnostics.Debug.WriteLine($"[Settings] Response: {content}");
-                    Console.WriteLine($"[Settings] Response: {content}");
-                    ShowStatus("✅ Connection successful", isError: false);
-                    await DisplayAlert("✅ Success", $"Connected to server!\n\n{testUrl}", "OK");
+                    await DisplayAlert("✅ Thành công", $"Đã kết nối đến server!\n\n{testUrl}", "OK");
                 }
                 else
                 {
-                    ShowStatus($"❌ Server error: {response.StatusCode}", isError: true);
+                    await DisplayAlert("Lỗi", $"Server trả về lỗi: {response.StatusCode}", "OK");
                 }
             }
             catch (HttpRequestException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] HttpRequestException: {ex.Message}");
-                Console.WriteLine($"[Settings] HttpRequestException: {ex.Message}");
-                ShowStatus("❌ Cannot connect to server", isError: true);
-                await DisplayAlert("❌ Connection Failed",
-                    $"Cannot connect to server.\n\nError: {ex.Message}\n\nPlease check:\n• URL is correct\n• Server is running\n• Internet connection (for Ngrok)\n• Same WiFi (for LAN IP)",
+                await DisplayAlert("❌ Kết nối thất bại",
+                    $"Không thể kết nối đến server.\n\nLỗi: {ex.Message}\n\nKiểm tra:\n• URL đúng chưa\n• Server đang chạy\n• Kết nối mạng",
                     "OK");
             }
             catch (TaskCanceledException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Timeout: {ex.Message}");
-                Console.WriteLine($"[Settings] Timeout: {ex.Message}");
-                ShowStatus("❌ Connection timeout", isError: true);
-                await DisplayAlert("⏱️ Timeout",
-                    "Connection timed out.\n\nThe server might be:\n• Not running\n• Blocked by firewall\n• Wrong URL",
+                await DisplayAlert("⏱️ Hết thời gian",
+                    "Kết nối đã hết thời gian.\n\nServer có thể:\n• Không chạy\n• Bị firewall chặn\n• URL sai",
                     "OK");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Settings] Exception: {ex.Message}");
-                Console.WriteLine($"[Settings] Exception: {ex.Message}");
-                ShowStatus($"❌ Error: {ex.Message}", isError: true);
+                await DisplayAlert("Lỗi", $"Lỗi: {ex.Message}", "OK");
             }
             finally
             {
@@ -458,36 +390,74 @@ namespace FraudGuardAI
 
         private void OnSaveButtonClicked(object sender, EventArgs e) => SaveServerIP();
 
-        private void OnSaveDeviceIDClicked(object sender, EventArgs e) => SaveDeviceID();
-
         private async void OnTestConnectionClicked(object sender, EventArgs e) => await TestConnectionAsync();
 
-        private void OnUseProductionClicked(object sender, EventArgs e)
+        private async void OnEditProfileClicked(object sender, EventArgs e)
         {
             try
             {
-                // Turn off USB mode
-                if (UsbModeSwitch != null)
-                    UsbModeSwitch.IsToggled = false;
-                Preferences.Set(PREF_USB_MODE, false);
-                
-                // Set production URL
-                string productionUrl = AppConstants.PRODUCTION_SERVER_URL;
-                Preferences.Set(PREF_SERVER_URL, productionUrl);
-                
-                if (ServerIPEntry != null)
-                    ServerIPEntry.Text = productionUrl;
-                
-                UpdateConfigurationDisplay(productionUrl);
-                ShowStatus("✅ Production server configured", isError: false);
-                
-                System.Diagnostics.Debug.WriteLine($"[Settings] Switched to production: {productionUrl}");
+                string newName = await DisplayPromptAsync(
+                    "Chỉnh sửa hồ sơ",
+                    "Nhập tên hiển thị mới:",
+                    "Lưu",
+                    "Hủy",
+                    placeholder: "Tên của bạn"
+                );
+
+                if (!string.IsNullOrEmpty(newName))
+                {
+                    UserNameLabel.Text = newName;
+                    AvatarInitials.Text = GetInitials(newName);
+                    // TODO: Save to server
+                    await DisplayAlert("Thành công", "Đã cập nhật hồ sơ", "OK");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Error switching to production: {ex.Message}");
-                ShowStatus("Error setting production server", isError: true);
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Edit profile error: {ex.Message}");
             }
+        }
+
+        private void OnDarkModeToggled(object sender, ToggledEventArgs e)
+        {
+            // Dark mode is always on for this design
+            // Could implement theme switching here if needed
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Dark mode: {e.Value}");
+        }
+
+        private async void OnLanguageClicked(object sender, EventArgs e)
+        {
+            string action = await DisplayActionSheet(
+                "Chọn ngôn ngữ",
+                "Hủy",
+                null,
+                "Tiếng Việt",
+                "English"
+            );
+
+            if (!string.IsNullOrEmpty(action) && action != "Hủy")
+            {
+                LanguageLabel.Text = action;
+                // TODO: Apply language change
+            }
+        }
+
+        private async void OnSecurityClicked(object sender, EventArgs e)
+        {
+            await DisplayAlert(
+                "Bảo mật tài khoản",
+                "Tính năng đang được phát triển.\n\nSẽ bao gồm:\n• Đổi mật khẩu\n• Xác thực 2 bước\n• Quản lý phiên đăng nhập",
+                "OK"
+            );
+        }
+
+        private async void OnHelpClicked(object sender, EventArgs e)
+        {
+            await DisplayAlert(
+                "Trợ giúp & Hỗ trợ",
+                "FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0",
+                "OK"
+            );
         }
         
         private async void OnLogoutClicked(object sender, EventArgs e)

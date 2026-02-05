@@ -8,9 +8,6 @@ using FraudGuardAI.Models;
 #if ANDROID
 using FraudGuardAI.Platforms.Android.Services;
 #endif
-#if ANDROID
-using FraudGuardAI.Platforms.Android.Services;
-#endif
 
 namespace FraudGuardAI
 {
@@ -21,6 +18,9 @@ namespace FraudGuardAI
         private AudioStreamingServiceLowLevel _audioService;
         private bool _isProtectionActive = false;
         private bool _isConnecting = false;
+        private CancellationTokenSource _animationCts;
+        private bool _pulseAnimationRunning = false;
+        private DashboardStats _stats = new();
 
         #endregion
 
@@ -30,10 +30,7 @@ namespace FraudGuardAI
         {
             InitializeComponent();
             InitializeAudioService();
-
-            string wsUrl = SettingsPage.GetWebSocketUrl();
-            string deviceId = SettingsPage.GetDeviceID();
-            UpdateDebugInfo($"Ready - WS: {wsUrl}");
+            LoadDashboardStats();
         }
 
         #endregion
@@ -58,51 +55,56 @@ namespace FraudGuardAI
                 if (_isProtectionActive)
                 {
                     System.Diagnostics.Debug.WriteLine("[MainPage] Service already streaming from previous session");
+                    UpdateProtectionUI(true);
                 }
             }
             catch (Exception ex)
             {
-                UpdateDebugInfo($"Init Error: {ex.Message}");
-                DisplayAlert("Error", $"Cannot initialize service: {ex.Message}", "OK");
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Init Error: {ex.Message}");
             }
+        }
+
+        private void LoadDashboardStats()
+        {
+            // Load stats from storage or API
+            // For now, use default values
+            UpdateStatsDisplay();
+        }
+
+        private void UpdateStatsDisplay()
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                BlockedTotalLabel.Text = _stats.BlockedTotalDisplay;
+                BlockedTodayLabel.Text = _stats.BlockedTodayDisplay;
+                ThreatsLabel.Text = _stats.ThreatsDisplay;
+                EfficiencyLabel.Text = _stats.EfficiencyDisplay;
+                WeeklyChangeLabel.Text = $"↑ {_stats.WeeklyChangeDisplay}";
+                EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
+                BlockRateLabel.Text = $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
+            });
         }
 
         #endregion
 
         #region Button Event Handlers
 
-        private async void OnToggleButtonClicked(object sender, EventArgs e)
+        private async void OnReportButtonClicked(object sender, EventArgs e)
         {
-            if (_isConnecting) return; // Prevent double-tap
+            // Navigate to report page or show dialog
+            string result = await DisplayPromptAsync(
+                "Báo cáo số mới",
+                "Nhập số điện thoại lừa đảo:",
+                "Báo cáo",
+                "Hủy",
+                placeholder: "0912345678",
+                keyboard: Keyboard.Telephone
+            );
 
-            try
+            if (!string.IsNullOrEmpty(result))
             {
-                if (!_isProtectionActive)
-                {
-                    // Check permissions first
-                    bool hasPermission = await PermissionManager.RequestMicrophonePermissionAsync();
-                    if (!hasPermission)
-                    {
-                        UpdateDebugInfo("Permission denied");
-                        return;
-                    }
-
-                    await StartProtectionAsync();
-                }
-                else
-                {
-                    await StopProtectionAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("Toggle Button", ex);
-                bool retry = await ErrorHandler.ShowErrorWithRetry(ex);
-                if (retry)
-                {
-                    await Task.Delay(500);
-                    OnToggleButtonClicked(sender, e);
-                }
+                await DisplayAlert("Thành công", $"Đã báo cáo số {result}", "OK");
+                // TODO: Send report to server
             }
         }
 
@@ -110,19 +112,15 @@ namespace FraudGuardAI
 
         #region Protection Control
 
-        private async Task StartProtectionAsync()
+        public async Task StartProtectionAsync()
         {
             if (_isConnecting) return;
             
             _isConnecting = true;
-            UpdateDebugInfo("Starting protection...");
-            UpdateButtonState(isLoading: true);
+            UpdateProtectionUI(false, connecting: true);
 
             try
             {
-                // Show connecting status
-                await ShowConnectingState();
-
                 // Add timeout for connection attempt
                 var connectionTask = _audioService.StartStreamingAsync();
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
@@ -133,17 +131,17 @@ namespace FraudGuardAI
                 {
                     success = await connectionTask;
                 }
-                else
-                {
-                    UpdateDebugInfo("Connection timeout after 10s");
-                    success = false;
-                }
 
                 if (success)
                 {
                     _isProtectionActive = true;
+                    
+                    // Create new animation token for this session
+                    _animationCts?.Cancel();
+                    _animationCts = new CancellationTokenSource();
+                    var ct = _animationCts.Token;
 
-                    // Khởi động foreground service (Android) để chạy ngầm khi màn hình tắt
+                    // Start foreground service (Android)
 #if ANDROID
                     ServiceHelper.StartProtectionService();
 #endif
@@ -151,84 +149,107 @@ namespace FraudGuardAI
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await AnimateToActiveState();
-                        StatusLabel.Text = "Protected";
-                        ToggleButton.Text = "Stop Protection";
-                        ToggleButton.BackgroundColor = AppConstants.DangerColor;
-                        _ = PulseAnimation();
-                        UpdateDebugInfo("Protection ACTIVE (runs in background + screen off)");
+                        UpdateProtectionUI(true);
+                        _ = PulseAnimation(ct);
                     });
                 }
                 else
                 {
-                    await ShowConnectionFailedState();
-                    bool retry = await Application.Current.MainPage.DisplayAlert(
-                        "Connection Failed",
-                        "Unable to connect to protection server.\n\n" +
-                        "• Check server IP in Settings\n" +
-                        "• Verify server is running\n" +
-                        "• Ensure same WiFi network",
-                        "Retry",
-                        "Settings"
-                    );
-
-                    if (retry)
-                    {
-                        await Task.Delay(500);
-                        await StartProtectionAsync();
-                    }
-                    else
-                    {
-                        await Shell.Current.GoToAsync("//SettingsPage");
-                    }
+                    await ShowConnectionFailed();
                 }
             }
             catch (Exception ex)
             {
                 ErrorHandler.LogError("Start Protection", ex);
-                await ShowConnectionFailedState();
-                bool retry = await ErrorHandler.ShowErrorWithRetry(ex);
+                await ShowConnectionFailed();
+            }
+            finally
+            {
+                _isConnecting = false;
+            }
+        }
+
+        public async Task StopProtectionAsync()
+        {
+            try
+            {
+                // Cancel animations immediately
+                _animationCts?.Cancel();
+                _isProtectionActive = false;
+                
+                // Stop streaming with timeout
+                var stopTask = _audioService.StopStreamingAsync();
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.WhenAny(stopTask, timeoutTask);
+
+                // Stop foreground service (Android)
+#if ANDROID
+                ServiceHelper.StopProtectionService();
+#endif
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    UpdateProtectionUI(false);
+                    AlertBanner.IsVisible = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] StopProtectionAsync error: {ex.Message}");
+            }
+        }
+
+        private void UpdateProtectionUI(bool isActive, bool connecting = false)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (connecting)
+                {
+                    StatusLabel.Text = "Đang kết nối...";
+                    ProtectionStatusLabel.Text = "Đang kết nối";
+                    ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
+                }
+                else if (isActive)
+                {
+                    StatusLabel.Text = "Bảo vệ đang hoạt động";
+                    ProtectionStatusLabel.Text = "Đang bảo vệ";
+                    ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
+                }
+                else
+                {
+                    StatusLabel.Text = "Chưa kích hoạt";
+                    ProtectionStatusLabel.Text = "Đã tắt";
+                    ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
+                }
+            });
+        }
+
+        private async Task ShowConnectionFailed()
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                UpdateProtectionUI(false);
+                
+                bool retry = await Application.Current.MainPage.DisplayAlert(
+                    "Kết nối thất bại",
+                    "Không thể kết nối đến máy chủ bảo vệ.\n\n" +
+                    "• Kiểm tra địa chỉ Server trong Cài đặt\n" +
+                    "• Đảm bảo server đang chạy\n" +
+                    "• Kiểm tra kết nối mạng",
+                    "Thử lại",
+                    "Cài đặt"
+                );
+
                 if (retry)
                 {
                     await Task.Delay(500);
                     await StartProtectionAsync();
                 }
-            }
-            finally
-            {
-                _isConnecting = false;
-                UpdateButtonState(isLoading: false);
-            }
-        }
-
-        private async Task StopProtectionAsync()
-        {
-            UpdateDebugInfo("Stopping protection...");
-            ToggleButton.IsEnabled = false;
-
-            try
-            {
-                await _audioService.StopStreamingAsync();
-                _isProtectionActive = false;
-
-                // Dừng foreground service (Android)
-#if ANDROID
-                ServiceHelper.StopProtectionService();
-#endif
-
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                else
                 {
-                    await AnimateToInactiveState();
-                    StatusLabel.Text = "Inactive";
-                    ToggleButton.Text = "Start Protection";
-                    ToggleButton.BackgroundColor = AppConstants.SafeColor;
-                    AlertBanner.IsVisible = false;
-                    UpdateDebugInfo("Protection STOPPED by user");
-                });
-            }
-            finally
-            {
-                ToggleButton.IsEnabled = true;
-            }
+                    await Shell.Current.GoToAsync("//SettingsPage");
+                }
+            });
         }
 
         #endregion
@@ -237,86 +258,50 @@ namespace FraudGuardAI
 
         private void OnAlertReceived(object sender, AlertEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] ===== ALERT RECEIVED EVENT =====");
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Event sender: {sender?.GetType().Name}");
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Alert data: {e?.Alert}");
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Alert received: {e?.Alert?.AlertType}");
             
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Running on main thread");
-                    
                     var alert = e.Alert;
-                    if (alert == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Alert is null!");
-                        return;
-                    }
+                    if (alert == null) return;
                     
                     double riskScore = alert.Confidence * 100;
                     
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Alert details:");
-                    System.Diagnostics.Debug.WriteLine($"  - AlertType: {alert.AlertType}");
-                    System.Diagnostics.Debug.WriteLine($"  - Confidence: {alert.Confidence} ({riskScore:F0}%)");
-                    System.Diagnostics.Debug.WriteLine($"  - Transcript: {alert.Transcript}");
-                    System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alert.Keywords)}");
-                    System.Diagnostics.Debug.WriteLine($"  - Risk threshold: {AppConstants.HIGH_RISK_THRESHOLD}");
-                    
-                    UpdateDebugInfo($"Alert: {alert.AlertType} - {riskScore:F0}%");
+                    // Update stats
+                    _stats.BlockedTotal++;
+                    _stats.BlockedToday++;
+                    if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
+                    {
+                        _stats.SeriousThreats++;
+                    }
+                    UpdateStatsDisplay();
 
                     if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainPage] 🚨 HIGH RISK ALERT - Triggering high risk handler");
                         await HandleHighRiskAlert(alert, riskScore);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainPage] ⚠️ LOW RISK ALERT - Triggering low risk handler");
                         await HandleLowRiskAlert(alert, riskScore);
                     }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] ✅ Alert handled successfully");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Alert handling error: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Stack trace: {ex.StackTrace}");
-                    UpdateDebugInfo($"Alert Error: {ex.Message}");
-                }
-                finally
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] ===== ALERT HANDLING COMPLETE =====");
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Alert handling error: {ex.Message}");
                 }
             });
         }
 
         private void OnErrorOccurred(object sender, Services.ErrorEventArgs e)
         {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                UpdateDebugInfo($"Error: {e.Message}");
-            });
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Error: {e.Message}");
         }
 
         private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e)
         {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (e.IsConnected)
-                {
-                    ConnectionDot.BackgroundColor = AppConstants.SafeColor;
-                    ConnectionStatusLabel.Text = "Connected";
-                    ConnectionStatusLabel.TextColor = AppConstants.SafeColor;
-                }
-                else
-                {
-                    ConnectionDot.BackgroundColor = AppConstants.InactiveColor;
-                    ConnectionStatusLabel.Text = "Disconnected";
-                    ConnectionStatusLabel.TextColor = AppConstants.TextSecondary;
-                }
-                UpdateDebugInfo($"Connection: {e.Message}");
-            });
+            System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.Message}");
         }
 
         #endregion
@@ -328,22 +313,20 @@ namespace FraudGuardAI
             await AnimateToDangerState();
             TriggerVibration();
             ShowAlertBanner(alert, riskScore, isHighRisk: true);
-            _ = DangerFlashAnimation();
 
-            // Gửi notification ngay cả khi màn hình tắt (Android)
 #if ANDROID
             var context = global::Android.App.Application.Context;
             AlertNotificationHelper.ShowFraudAlert(context, alert.AlertType, riskScore, alert.Transcript);
 #endif
 
             await DisplayAlert(
-                "⚠️ HIGH RISK DETECTED",
-                $"Fraud indicators found!\n\n" +
-                $"Type: {alert.AlertType}\n" +
-                $"Risk Level: {riskScore:F0}%\n" +
-                $"Content: {alert.Transcript}\n\n" +
-                $"Consider ending this call immediately.",
-                "Understood"
+                "⚠️ NGUY HIỂM CAO",
+                $"Phát hiện dấu hiệu lừa đảo!\n\n" +
+                $"Loại: {alert.AlertType}\n" +
+                $"Mức độ rủi ro: {riskScore:F0}%\n" +
+                $"Nội dung: {alert.Transcript}\n\n" +
+                $"Hãy cân nhắc kết thúc cuộc gọi ngay.",
+                "Đã hiểu"
             );
         }
 
@@ -364,11 +347,11 @@ namespace FraudGuardAI
                 ? AppConstants.DangerBackground 
                 : AppConstants.WarningBackground;
 
-            AlertTypeLabel.Text = isHighRisk ? "High Risk Detected" : alert.AlertType;
+            AlertTypeLabel.Text = isHighRisk ? "Phát hiện rủi ro cao" : alert.AlertType;
             AlertMessageLabel.Text = string.IsNullOrEmpty(alert.Transcript)
-                ? "Suspicious activity detected"
+                ? "Phát hiện hoạt động đáng ngờ"
                 : alert.Transcript;
-            AlertConfidenceLabel.Text = $"Risk Level: {riskScore:F0}%";
+            AlertConfidenceLabel.Text = $"Mức độ rủi ro: {riskScore:F0}%";
         }
 
         #endregion
@@ -378,64 +361,43 @@ namespace FraudGuardAI
         private async Task AnimateToActiveState()
         {
             await Task.WhenAll(
-                ShieldBorder.ScaleTo(0.95, 150, Easing.CubicOut),
-                ShieldIcon.FadeTo(0.5, 150)
+                ShieldBorder.ScaleTo(0.95, 150, Easing.CubicOut)
             );
 
-            ShieldIcon.Opacity = 1.0;
-            ShieldBorder.Stroke = AppConstants.SafeColor;
-            GlowRing.Stroke = AppConstants.GlowGreen;
-            await GlowRing.FadeTo(1, AppConstants.FADE_DURATION);
-
-            await Task.WhenAll(
-                ShieldBorder.ScaleTo(1, AppConstants.SCALE_OUT_DURATION, Easing.SpringOut)
-            );
+            ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
+            
+            await ShieldBorder.ScaleTo(1, 200, Easing.SpringOut);
         }
 
         private async Task AnimateToDangerState()
         {
             await ShieldBorder.ScaleTo(0.95, 100);
             
-            MainGrid.BackgroundColor = AppConstants.DangerBackground;
             ShieldBorder.Stroke = AppConstants.DangerColor;
-            GlowRing.Stroke = AppConstants.GlowRed;
-            StatusLabel.Text = "⚠️ THREAT DETECTED";
+            StatusLabel.Text = "⚠️ PHÁT HIỆN MỐI ĐE DỌA";
             StatusLabel.TextColor = Color.FromArgb("#FCA5A5");
 
             await ShieldBorder.ScaleTo(1.05, 150, Easing.SpringOut);
             await ShieldBorder.ScaleTo(1, 100);
         }
 
-        private async Task AnimateToInactiveState()
+        private async Task PulseAnimation(CancellationToken ct)
         {
-            await Task.WhenAll(
-                ShieldBorder.ScaleTo(0.95, AppConstants.SCALE_IN_DURATION),
-                GlowRing.FadeTo(0, AppConstants.SCALE_IN_DURATION)
-            );
-
-            MainGrid.BackgroundColor = AppConstants.BackgroundDark;
-            ShieldBorder.Stroke = Color.FromArgb("#2A3F54");
-            ShieldIcon.Opacity = 0.4;
-            StatusLabel.TextColor = Color.FromArgb("#E0E6ED");
-
-            await ShieldBorder.ScaleTo(1, AppConstants.SCALE_OUT_DURATION, Easing.SpringOut);
-        }
-
-        private async Task PulseAnimation()
-        {
-            while (_isProtectionActive)
+            if (_pulseAnimationRunning) return;
+            _pulseAnimationRunning = true;
+            try
             {
-                await GlowRing.ScaleTo(1.1, AppConstants.PULSE_DURATION / 2, Easing.SinInOut);
-                await GlowRing.ScaleTo(1.0, AppConstants.PULSE_DURATION / 2, Easing.SinInOut);
+                while (_isProtectionActive && !ct.IsCancellationRequested)
+                {
+                    await ShieldBorder.ScaleTo(1.05, 1000, Easing.SinInOut);
+                    if (ct.IsCancellationRequested) break;
+                    await ShieldBorder.ScaleTo(1.0, 1000, Easing.SinInOut);
+                }
             }
-        }
-
-        private async Task DangerFlashAnimation()
-        {
-            for (int i = 0; i < AppConstants.DANGER_FLASH_COUNT; i++)
+            catch (TaskCanceledException) { }
+            finally
             {
-                await MainGrid.FadeTo(0.8, AppConstants.DANGER_FLASH_DURATION / 2);
-                await MainGrid.FadeTo(1.0, AppConstants.DANGER_FLASH_DURATION / 2);
+                _pulseAnimationRunning = false;
             }
         }
 
@@ -453,54 +415,8 @@ namespace FraudGuardAI
             }
             catch (Exception ex)
             {
-                UpdateDebugInfo($"Vibration Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Vibration Error: {ex.Message}");
             }
-        }
-
-        #endregion
-
-        #region Debug Helpers
-
-        private void UpdateDebugInfo(string message)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                var timestamp = DateTime.Now.ToString(AppConstants.TIMESTAMP_FORMAT);
-                DebugLabel.Text = $"[{timestamp}] {message}";
-                System.Diagnostics.Debug.WriteLine($"[FraudGuard] {message}");
-            });
-        }
-
-        #endregion
-
-        #region UI State Helpers
-
-        private void UpdateButtonState(bool isLoading)
-        {
-            ToggleButton.IsEnabled = !isLoading;
-            if (isLoading)
-            {
-                ToggleButton.Text = "Connecting...";
-            }
-        }
-
-        private async Task ShowConnectingState()
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                StatusLabel.Text = "Connecting...";
-                ConnectionStatusLabel.Text = "Establishing connection";
-            });
-        }
-
-        private async Task ShowConnectionFailedState()
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                StatusLabel.Text = "Connection Failed";
-                ToggleButton.Text = "Start Protection";
-                ToggleButton.BackgroundColor = AppConstants.SafeColor;
-            });
         }
 
         #endregion
@@ -511,7 +427,11 @@ namespace FraudGuardAI
         {
             base.OnAppearing();
             
-            // Reattach to shared service when returning to page
+            // Cancel any stale animations
+            _animationCts?.Cancel();
+            _animationCts = new CancellationTokenSource();
+            
+            // Reattach to shared service
             var sharedService = App.GetAudioService();
             if (sharedService != null)
             {
@@ -530,39 +450,43 @@ namespace FraudGuardAI
                 // Update UI to reflect current state
                 if (_isProtectionActive)
                 {
-                    MainThread.BeginInvokeOnMainThread(async () =>
+                    var ct = _animationCts.Token;
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        await AnimateToActiveState();
-                        StatusLabel.Text = "Protected";
-                        ToggleButton.Text = "Stop Protection";
-                        ToggleButton.BackgroundColor = AppConstants.DangerColor;
-                        _ = PulseAnimation();
+                        UpdateProtectionUI(true);
+                        if (!_pulseAnimationRunning)
+                        {
+                            _ = PulseAnimation(ct);
+                        }
+                    });
+                }
+                else
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        UpdateProtectionUI(false);
                     });
                 }
             }
+            
+            // Refresh stats
+            UpdateStatsDisplay();
         }
 
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
             
-            // ✅ KHÔNG BAO GIỜ TỰ ĐỘNG STOP
-            // Connection chỉ ngắt khi user bấm nút Stop Protection
+            // Cancel animations
+            _animationCts?.Cancel();
             
-            // Only detach event handlers to prevent duplicate calls
+            // Only detach event handlers
             if (_audioService != null)
             {
                 _audioService.AlertReceived -= OnAlertReceived;
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
             }
-            
-            System.Diagnostics.Debug.WriteLine("[MainPage] OnDisappearing - Connection MAINTAINED (continues in background)");
-            
-            // NOTE: Service continues running:
-            // - When switching tabs
-            // - When app goes to background (Home button)
-            // - Until user explicitly presses Stop Protection button
         }
 
         #endregion

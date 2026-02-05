@@ -38,6 +38,15 @@
             <Color x:Key="DangerRed">#F87171</Color>
             <Color x:Key="AccentBlue">#60A5FA</Color>
             <Color x:Key="WarningYellow">#FBBF24</Color>
+            
+            <!-- CallGuard Theme Colors -->
+            <Color x:Key="StatCardBg">#1E2A3A</Color>
+            <Color x:Key="OrangeIcon">#F97316</Color>
+            <Color x:Key="BlueIcon">#3B82F6</Color>
+            <Color x:Key="RedIcon">#EF4444</Color>
+            <Color x:Key="TealIcon">#14B8A6</Color>
+            <Color x:Key="CyanAccent">#22D3EE</Color>
+            <Color x:Key="ProgressBarBg">#0EA5E9</Color>
 
             <!-- Global Styles -->
             <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
