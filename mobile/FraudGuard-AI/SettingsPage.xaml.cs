@@ -16,6 +16,7 @@ namespace FraudGuardAI
         private const string PREF_SERVER_URL = "ServerURL";  // Changed from ServerIP to support full URLs
         private const string PREF_DEVICE_ID = "DeviceID";
         private const string PREF_USB_MODE = "UsbMode";
+        private const string PREF_AUTO_PROTECTION = "AutoProtection";  // Enable/Disable auto protection
         private const string DEFAULT_URL = AppConstants.PRODUCTION_SERVER_URL;  // Use production by default
         private const string USB_URL = AppConstants.USB_SERVER_URL; // For emulator
         private const string DEFAULT_DEVICE_ID = "android_device";
@@ -146,6 +147,11 @@ namespace FraudGuardAI
                 bool usbMode = Preferences.Get(PREF_USB_MODE, false);
                 if (UsbModeSwitch != null)
                     UsbModeSwitch.IsToggled = usbMode;
+                
+                // Load Auto Protection preference
+                bool autoProtection = Preferences.Get(PREF_AUTO_PROTECTION, true);  // Default to enabled
+                if (AutoProtectionSwitch != null)
+                    AutoProtectionSwitch.IsToggled = autoProtection;
 
                 // Get saved URL or use default
                 string savedURL = Preferences.Get(PREF_SERVER_URL, "");
@@ -510,6 +516,8 @@ namespace FraudGuardAI
         }
 
         public static string GetDeviceID() => Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
+        
+        public static bool IsAutoProtectionEnabled() => Preferences.Get(PREF_AUTO_PROTECTION, true);
 
         public static string GetWebSocketUrl()
         {

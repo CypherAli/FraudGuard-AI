@@ -1,21 +1,121 @@
-# ✅ Các Sửa Đổi Logic Chuẩn - Loại Bỏ Test Data
+# ✅ Các Sửa Đổi Logic Chuẩn - Loại Bỏ Test Data & Hardcode
 
 ## 🎯 Tóm Tắt
 
-Đã sửa **3 vấn đề chính** trong logic ứng dụng:
+Đã sửa **4 vấn đề chính** và loại bỏ **HOÀN TOÀN hardcode** trong ứng dụng theo đúng logic và hệ thống.
 
-### 1. ❌ Loại Bỏ Data Test/Dummy
-**Trước:**
-- Tỷ lệ chặn: `98.5%` (hardcode)
-- Weekly change: `+12` (giả)
-- Efficiency change: `+2.3%` (giả)
+---
 
-**Sau:**
-- Tất cả giá trị bắt đầu từ `0`
-- Load **dữ liệu thực** từ backend API
-- Tính toán stats từ call history thực tế
+## 📋 KIỂM TRA HARDCODE HOÀN TẤT ✅
 
-### 2. ✅ Thêm Nút Kích Hoạt/Tắt Bảo Vệ
+### ✅ Đã Loại Bỏ Hardcode Theo Hệ Thống:
+
+#### 1. **MainPage.xaml** - Alert Banner
+- ❌ ~~`Text="Warning"`~~ → `Text=""` (set từ `ShowAlertBanner()`)
+- ❌ ~~`Text="Potential fraud detected"`~~ → `Text=""` (set từ `ShowAlertBanner()`)
+- ❌ ~~`Text="Risk: 95%"`~~ → `Text=""` (set từ `ShowAlertBanner()`)
+
+**Logic:** Alert được populate từ method `ShowAlertBanner(AlertData alert, double riskScore, bool isHighRisk)` khi có fraud detection.
+
+#### 2. **SettingsPage.xaml** - Connection Status & Config
+- ❌ ~~`Text="wss://fraudguard-ai-j1j1.onrender.com/ws"`~~ → `Text=""` (set từ `UpdateConfigurationDisplay()`)
+- ❌ ~~`Text="Đã kết nối"`~~ → `Text=""` (set từ `CheckServerConnection()`)
+
+**Logic:** Configuration URL và status được cập nhật dynamic từ user settings và server connectivity check.
+
+#### 3. **HistoryPage.xaml** - Ngôn ngữ nhất quán
+- ❌ ~~`Text="Call History"`~~ → `Text="Lịch sử cuộc gọi"`
+- ❌ ~~`Text="Recent analyzed calls"`~~ → `Text="Cuộc gọi đã được phân tích"`
+- ❌ ~~`Text="No history yet"`~~ → `Text="Chưa có lịch sử"`
+- ❌ ~~`Text="Analyzed calls will appear here"`~~ → `Text="Cuộc gọi được phân tích sẽ hiển thị ở đây"`
+- ❌ ~~`Text="Evidence"`~~ → `Text="Bằng chứng"`
+- ❌ ~~`Text="Unable to load history"`~~ → `Text="Không thể tải lịch sử"`
+- ❌ ~~`Text="Try Again"`~~ → `Text="Thử lại"`
+
+**Logic:** Đồng nhất ngôn ngữ tiếng Việt trong toàn bộ app.
+
+#### 4. **MainPage.xaml** - Stats Cards
+- ❌ ~~`Text="Tỷ lệ chặn: 98.5%"`~~ → `Text="Chưa có dữ liệu"` (update từ API)
+- ❌ ~~`Text="↑ +12 tuần này"`~~ → `Text=""` + `IsVisible="False"` (show khi có data)
+- ❌ ~~`Text="98.5%"`~~ → `Text="0%"` (calculate từ API)
+- ❌ ~~`Text="↑ +2.3%"`~~ → `Text=""` + `IsVisible="False"` (show khi có data)
+
+**Logic:** Tất cả stats load từ `LoadDashboardStats()` → `HistoryService` API.
+
+---
+
+### ✅ Các "Hardcode" Hợp Lý (GIỮ NGUYÊN):
+
+#### Config Constants (AppConstants.cs)
+✓ `PRODUCTION_SERVER_URL = "https://fraudguard-ai-jljl.onrender.com"`
+✓ `LOCAL_SERVER_URL = "http://192.168.1.234:8080"`
+✓ `USB_SERVER_URL = "http://10.0.2.2:8080"`
+→ **Lý do:** Configuration constants chuẩn, có thể toggle qua Settings UI
+
+#### UI Constants
+✓ `HIGH_RISK_THRESHOLD = 80.0`
+✓ `PULSE_DURATION = 2000`
+→ **Lý do:** Business logic và animation constants
+
+#### Fallback Values
+✓ `"Người dùng"` → Fallback khi user.DisplayName == null
+✓ `"user@example.com"` → Fallback khi user.Email == null
+✓ `"Chưa cập nhật"` → Placeholder cho phone number
+→ **Lý do:** UX tốt hơn là hiển thị null/empty
+
+#### Example Text trong Settings
+✓ `"https://xxxx.ngrok-free.app"` → Ví dụ minh họa cho user
+✓ `"http://192.168.1.12:8080"` → Ví dụ LAN URL
+→ **Lý do:** Hướng dẫn user format URL
+
+#### Initial Values
+✓ `Text="0"` trong stats cards → Giá trị khởi tạo, được override từ API
+→ **Lý do:** Tránh blank screen khi loading
+
+#### Static Labels
+✓ `"SỐ ĐÃ CHẶN"`, `"CHẶN HÔM NAY"`, `"CallGuard"` → UI labels cố định
+→ **Lý do:** Không phải data, là static UI text
+
+---
+
+## 1. ❌ Loại Bỏ Data Test/Dummy
+
+### Trước:
+### Trước:
+```xaml
+<!-- MainPage.xaml - Hardcoded -->
+<Label Text="Tỷ lệ chặn: 98.5%"/>
+<Label Text="↑ +12 tuần này"/>
+<Label Text="98.5%"/>  
+<Label Text="↑ +2.3%"/>
+```
+
+### Sau:
+```xaml
+<!-- MainPage.xaml - Dynamic -->
+<Label x:Name="BlockRateLabel" Text="Chưa có dữ liệu"/>
+<Label x:Name="WeeklyChangeLabel" Text="" IsVisible="False"/>
+<Label x:Name="EfficiencyLabel" Text="0%"/>
+<Label x:Name="EfficiencyChangeLabel" Text="" IsVisible="False"/>
+```
+
+```csharp
+// MainPage.xaml.cs - Load thực từ API
+private async void LoadDashboardStats()
+{
+    var historyService = new HistoryService();
+    var allCalls = await historyService.GetHistoryAsync(deviceId, limit: 1000);
+    var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
+    
+    _stats.BlockedTotal = fraudCalls.Count;
+    _stats.ProtectionEfficiency = (fraudCalls.Count / (double)allCalls.Count) * 100;
+    // All values start from 0 and populated from real data
+}
+```
+
+---
+
+## 2. ✅ Thêm Nút Kích Hoạt/Tắt Bảo Vệ
 **Trước:**
 - Không có cách nào để user bật/tắt protection
 - Status luôn là "Chưa kích hoạt"
@@ -25,7 +125,47 @@
 - Nút đổi thành **"Tắt bảo vệ"** khi đang active
 - Đổi màu: 🟢 Xanh (bật) ↔️ 🔴 Đỏ (tắt)
 
-### 3. 📊 Logic Load Stats Thực Từ API
+### 3. 🔧 Thêm Toggle "Bảo Vệ Tự Động" Trong Settings
+**Vấn đề:**
+- App không có toggle để bật/tắt tính năng bảo vệ vĩnh viễn
+- Chỉ có nút tạm thời ở trang chính
+- User phải bật lại mỗi lần mở app
+
+**Giải pháp:**
+- ➕ Thêm **Switch "Bảo vệ tự động"** trong Settings
+- ✅ **Mặc định: BẬT** (auto protection enabled)
+- 🚀 App tự động kích hoạt bảo vệ khi mở nếu toggle BẬT
+- 📱 User có thể TẮT để chuyển sang chế độ thủ công
+
+**Thay đổi code:**
+```csharp
+// SettingsPage.xaml - Thêm UI toggle
+<Switch x:Name="AutoProtectionSwitch"
+       IsToggled="True"
+       OnColor="{StaticResource TealIcon}"
+       Toggled="OnAutoProtectionToggled"/>
+
+// SettingsPage.xaml.cs - Lưu preference
+private const string PREF_AUTO_PROTECTION = "AutoProtection";
+public static bool IsAutoProtectionEnabled() => Preferences.Get(PREF_AUTO_PROTECTION, true);
+
+// MainPage.xaml.cs - Auto-start khi mở app
+private async Task AutoStartProtectionIfEnabledAsync()
+{
+    if (SettingsPage.IsAutoProtectionEnabled() && !_isProtectionActive)
+    {
+        await StartProtectionAsync();
+    }
+}
+```
+
+**Kết quả:**
+- ✅ User có control hoàn toàn về auto-protection
+- ✅ Không cần hardcode, dùng Preferences để lưu setting
+- ✅ App nhớ lựa chọn của user qua các lần mở app
+- ✅ Có thông báo rõ ràng khi bật/tắt
+
+### 4. 📊 Logic Load Stats Thực Từ API
 **Trước:**
 ```csharp
 private void LoadDashboardStats()

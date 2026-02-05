@@ -10,14 +10,14 @@
         
         <!-- Header -->
         <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,24">
-            <Label Text="Call History"
+            <Label Text="Lịch sử cuộc gọi"
                    FontSize="26"
                    FontAttributes="Bold"
                    TextColor="{StaticResource TextPrimary}"
                    HorizontalOptions="Start"/>
             
             <Label x:Name="SubtitleLabel"
-                   Text="Recent analyzed calls"
+                   Text="Cuộc gọi đã được phân tích"
                    FontSize="14"
                    TextColor="{StaticResource TextSecondary}"/>
         </VerticalStackLayout>
@@ -61,13 +61,13 @@
                                VerticalOptions="Center"/>
                     </Border>
                     
-                    <Label Text="No history yet"
+                    <Label Text="Chưa có lịch sử"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}"
                            HorizontalOptions="Center"/>
                     
-                    <Label Text="Analyzed calls will appear here"
+                    <Label Text="Cuộc gọi được phân tích sẽ hiển thị ở đây"
                            FontSize="14"
                            TextColor="{StaticResource TextSecondary}"
                            HorizontalOptions="Center"/>
@@ -147,7 +147,7 @@
 
                                     <!-- Evidence -->
                                     <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="4">
-                                        <Label Text="Evidence"
+                                        <Label Text="Bằng chứng"
                                               FontSize="11"
                                               FontAttributes="Bold"
                                               TextColor="{StaticResource TextSecondary}"
@@ -187,13 +187,13 @@
                     </Border>
                     
                     <Label x:Name="ErrorMessageLabel"
-                           Text="Unable to load history"
+                           Text="Không thể tải lịch sử"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="{StaticResource DangerRed}"
                            HorizontalOptions="Center"/>
                     
-                    <Button Text="Try Again"
+                    <Button Text="Thử lại"
                            FontSize="15"
                            BackgroundColor="{StaticResource AccentBlue}"
                            TextColor="White"
