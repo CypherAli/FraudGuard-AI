@@ -161,8 +161,7 @@
                                    Grid.Column="2"
                                    IsToggled="True"
                                    OnColor="{StaticResource TealIcon}"
-                                   ThumbColor="White"
-                                   Toggled="OnAutoProtectionToggled"/>
+                                   ThumbColor="White"/>
                         </Grid>
                         
                         <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="48,8,0,8"/>
