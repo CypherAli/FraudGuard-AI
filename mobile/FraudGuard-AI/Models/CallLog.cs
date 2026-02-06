@@ -25,11 +25,23 @@ namespace FraudGuardAI.Models
         public string Evidence { get; set; }
         
         public DateTime CreatedAt { get; set; }
+        
+        // Additional properties for stats calculation
+        /// <summary>
+        /// Confidence score from 0.0 to 1.0 (e.g., 0.85 = 85%)
+        /// Computed from RiskScore if not provided by API
+        /// </summary>
+        public double Confidence => RiskScore / 100.0;
+        
+        /// <summary>
+        /// Alias for StartTime, used for filtering by date
+        /// </summary>
+        public DateTime Timestamp => StartTime;
 
         // Computed properties for UI display
         public string DurationDisplay => FormatDuration(DurationSeconds);
         
-        public string RiskLevelDisplay => IsFraud ? "🚨 NGUY HIỂM" : "✅ An toàn";
+        public string RiskLevelDisplay => IsFraud ? " NGUY HIỂM" : " An toàn";
         
         public Color CardBackgroundColor => IsFraud 
             ? Color.FromArgb("#FFEBEE") // Light red

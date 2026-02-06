@@ -107,13 +107,13 @@
                     </Border>
                     
                     <Label x:Name="ProtectionStatusLabel"
-                           Text="Đang bảo vệ"
+                           Text="Đã tắt"
                            FontSize="12"
-                           TextColor="{StaticResource TealIcon}"
+                           TextColor="{StaticResource TextSecondary}"
                            HorizontalOptions="Center"/>
                     
                     <Label x:Name="StatusLabel"
-                           Text="Bảo vệ đang hoạt động"
+                           Text="Chưa kích hoạt"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}"

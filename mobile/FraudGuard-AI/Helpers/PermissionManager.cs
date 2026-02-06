@@ -67,6 +67,36 @@ namespace FraudGuardAI.Helpers
                 "Not Now"
             );
         }
+        
+        /// <summary>
+        /// Request all required permissions (Microphone + Notification)
+        /// </summary>
+        public static async Task<bool> RequestAllPermissionsAsync()
+        {
+            // Request microphone permission
+            bool hasMicrophone = await RequestMicrophonePermissionAsync();
+            if (!hasMicrophone)
+                return false;
+            
+            // Notification permission is optional but recommended
+            // On Android 13+, we should request it
+            #if ANDROID
+            try
+            {
+                var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+                if (status != PermissionStatus.Granted)
+                {
+                    status = await Permissions.RequestAsync<Permissions.PostNotifications>();
+                }
+            }
+            catch
+            {
+                // Notification permission might not be available on older Android versions
+            }
+            #endif
+            
+            return true;
+        }
 
         /// <summary>
         /// Show dialog when permission is denied
@@ -77,7 +107,7 @@ namespace FraudGuardAI.Helpers
                 return false;
 
             return await Application.Current.MainPage.DisplayAlert(
-                "⚠️ Permission Required",
+                " Permission Required",
                 "FraudGuard cannot protect you without microphone access.\n\n" +
                 "To enable:\n" +
                 "1. Tap 'Open Settings' below\n" +
@@ -109,15 +139,15 @@ namespace FraudGuardAI.Helpers
             await Application.Current.MainPage.DisplayAlert(
                 "Troubleshooting",
                 "Common Issues:\n\n" +
-                "🔴 Cannot Connect:\n" +
+                " Cannot Connect:\n" +
                 "  • Check WiFi connection\n" +
                 "  • Verify server IP in Settings\n" +
                 "  • Ensure server is running\n\n" +
-                "🔴 No Audio:\n" +
+                " No Audio:\n" +
                 "  • Check microphone permission\n" +
                 "  • Test with another app\n" +
                 "  • Restart FraudGuard\n\n" +
-                "🔴 False Alerts:\n" +
+                " False Alerts:\n" +
                 "  • Adjust sensitivity in Settings\n" +
                 "  • Report false positives\n\n" +
                 "Need more help? Contact support.",
