@@ -83,10 +83,22 @@ namespace FraudGuardAI
                     System.Diagnostics.Debug.WriteLine("[MainPage] Service already streaming from previous session");
                     UpdateProtectionUI(true);
                 }
+                else
+                {
+                    // Ensure UI reflects inactive state on startup
+                    System.Diagnostics.Debug.WriteLine("[MainPage] Service not active, setting inactive UI");
+                    UpdateProtectionUI(false);
+                }
+                
+                // Update stats display to reflect current protection state
+                UpdateStatsDisplay();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainPage] Init Error: {ex.Message}");
+                // Ensure UI shows inactive state on error
+                UpdateProtectionUI(false);
+                UpdateStatsDisplay();
             }
         }
 
@@ -105,7 +117,8 @@ namespace FraudGuardAI
                 // Calculate real stats
                 _stats.BlockedTotal = fraudCalls.Count;
                 _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.Date == DateTime.Today);
-                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= 0.8);
+                // Convert HIGH_RISK_THRESHOLD (80.0) to 0-1 scale (0.8) for comparison
+                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= (AppConstants.HIGH_RISK_THRESHOLD / 100.0));
                 
                 // Calculate efficiency: (fraud detected / total calls) * 100
                 if (allCalls.Count > 0)
@@ -166,8 +179,8 @@ namespace FraudGuardAI
                     EfficiencyChangeLabel.IsVisible = false;
                 }
                 
-                // Show "Chưa có dữ liệu" if no calls yet
-                if (_stats.BlockedTotal == 0)
+                // Show "Chưa có dữ liệu" if protection is not active OR no calls yet
+                if (!_isProtectionActive || _stats.BlockedTotal == 0)
                 {
                     BlockRateLabel.Text = "Chưa có dữ liệu";
                 }
