@@ -6,6 +6,9 @@ namespace FraudGuardAI.Pages.Auth
     public partial class LoginPage : ContentPage
     {
         private IAuthenticationService? _authService;
+        private string? _pendingEmail;
+        private DateTime _otpSentTime;
+        private IDispatcherTimer? _countdownTimer;
 
         private IAuthenticationService? AuthService => 
             _authService ??= Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
@@ -15,53 +18,95 @@ namespace FraudGuardAI.Pages.Auth
             InitializeComponent();
         }
 
-        private async void OnLoginClicked(object sender, EventArgs e)
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            
+            // Check if user is already authenticated (persistent login)
+            try
+            {
+                if (AuthService != null && await AuthService.IsAuthenticatedAsync())
+                {
+                    Debug.WriteLine("[LoginPage] User already authenticated, navigating to main");
+                    Application.Current!.MainPage = new AppShell();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] Auth check error: {ex.Message}");
+            }
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            StopCountdownTimer();
+        }
+
+        private async void OnSendOtpClicked(object sender, EventArgs e)
+        {
+            await SendOtp();
+        }
+
+        private async void OnResendOtpClicked(object sender, EventArgs e)
+        {
+            await SendOtp();
+        }
+
+        private async Task SendOtp()
         {
             try
             {
-                // Check if auth service is available
                 if (AuthService == null)
                 {
                     ShowError("Dịch vụ xác thực chưa sẵn sàng. Vui lòng khởi động lại ứng dụng.");
                     return;
                 }
 
-                // Hide error message
-                ErrorLabel.IsVisible = false;
+                HideError();
 
-                // Get phone number
-                var phoneNumber = PhoneEntry.Text?.Trim();
+                var email = EmailEntry.Text?.Trim();
 
-                // Validate input
-                if (string.IsNullOrWhiteSpace(phoneNumber))
+                if (string.IsNullOrWhiteSpace(email))
                 {
-                    ShowError("Vui lòng nhập số điện thoại");
+                    ShowError("Vui lòng nhập email");
                     return;
                 }
 
-                // Ensure phone number starts with +
-                if (!phoneNumber.StartsWith("+"))
+                if (!email.Contains("@") || !email.Contains("."))
                 {
-                    // Auto-add +84 for Vietnam if not provided
-                    phoneNumber = "+84" + phoneNumber.TrimStart('0');
+                    ShowError("Email không hợp lệ");
+                    return;
                 }
 
-                // Show loading
                 SetLoading(true);
 
-                Debug.WriteLine($"[LoginPage] Sending OTP to {phoneNumber}");
+                Debug.WriteLine($"[LoginPage] Sending OTP to: {email}");
 
-                // Send OTP
-                var verificationId = await AuthService.LoginAsync(phoneNumber);
+                var success = await AuthService.SendOtpAsync(email);
 
-                Debug.WriteLine($"[LoginPage] OTP sent. Verification ID: {verificationId}");
+                if (success)
+                {
+                    _pendingEmail = email;
+                    _otpSentTime = DateTime.Now;
 
-                // Navigate to OTP verification page
-                await Navigation.PushAsync(new OtpVerificationPage(verificationId, phoneNumber, false));
+                    // Show OTP section
+                    EmailSection.IsVisible = false;
+                    OtpSection.IsVisible = true;
+                    OtpSentToLabel.Text = $"Kiểm tra email {email}";
+                    OtpEntry.Text = "";
+                    OtpEntry.Focus();
+
+                    // Start countdown timer
+                    StartCountdownTimer();
+
+                    Debug.WriteLine($"[LoginPage] OTP sent successfully");
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[LoginPage] Error: {ex.Message}");
+                Debug.WriteLine($"[LoginPage] SendOtp error: {ex.Message}");
                 ShowError(ex.Message);
             }
             finally
@@ -70,10 +115,117 @@ namespace FraudGuardAI.Pages.Auth
             }
         }
 
-        private async void OnRegisterClicked(object sender, EventArgs e)
+        private async void OnVerifyOtpClicked(object sender, EventArgs e)
         {
-            // Navigate to register page
-            await Navigation.PushAsync(new RegisterPage());
+            try
+            {
+                if (AuthService == null)
+                {
+                    ShowError("Dịch vụ xác thực chưa sẵn sàng.");
+                    return;
+                }
+
+                HideError();
+
+                var otp = OtpEntry.Text?.Trim();
+
+                if (string.IsNullOrWhiteSpace(otp))
+                {
+                    ShowError("Vui lòng nhập mã OTP");
+                    return;
+                }
+
+                if (otp.Length != 6 || !otp.All(char.IsDigit))
+                {
+                    ShowError("Mã OTP phải là 6 chữ số");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(_pendingEmail))
+                {
+                    ShowError("Email không hợp lệ. Vui lòng thử lại.");
+                    OnChangeEmailClicked(sender, e);
+                    return;
+                }
+
+                SetLoading(true);
+
+                Debug.WriteLine($"[LoginPage] Verifying OTP for: {_pendingEmail}");
+
+                var success = await AuthService.VerifyOtpAsync(_pendingEmail, otp);
+
+                if (success)
+                {
+                    Debug.WriteLine("[LoginPage] OTP verified successfully!");
+                    StopCountdownTimer();
+
+                    await DisplayAlert("🎉 Thành công!", 
+                        "Đăng nhập thành công!\nChào mừng bạn đến với FraudGuard AI.", 
+                        "Bắt đầu");
+
+                    // Navigate to main page
+                    Application.Current!.MainPage = new AppShell();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] VerifyOtp error: {ex.Message}");
+                ShowError(ex.Message);
+            }
+            finally
+            {
+                SetLoading(false);
+            }
+        }
+
+        private void OnChangeEmailClicked(object sender, EventArgs e)
+        {
+            StopCountdownTimer();
+            OtpSection.IsVisible = false;
+            EmailSection.IsVisible = true;
+            EmailEntry.Focus();
+            HideError();
+        }
+
+        private void StartCountdownTimer()
+        {
+            StopCountdownTimer();
+
+            _countdownTimer = Application.Current?.Dispatcher.CreateTimer();
+            if (_countdownTimer != null)
+            {
+                _countdownTimer.Interval = TimeSpan.FromSeconds(1);
+                _countdownTimer.Tick += UpdateCountdown;
+                _countdownTimer.Start();
+            }
+        }
+
+        private void StopCountdownTimer()
+        {
+            if (_countdownTimer != null)
+            {
+                _countdownTimer.Stop();
+                _countdownTimer = null;
+            }
+        }
+
+        private void UpdateCountdown(object? sender, EventArgs e)
+        {
+            var elapsed = DateTime.Now - _otpSentTime;
+            var remaining = TimeSpan.FromMinutes(5) - elapsed;
+
+            if (remaining.TotalSeconds <= 0)
+            {
+                CountdownLabel.Text = "⚠️ Mã OTP đã hết hạn";
+                CountdownLabel.TextColor = Color.FromArgb("#EF4444");
+                ResendLabel.TextColor = Color.FromArgb("#34D399");
+                StopCountdownTimer();
+            }
+            else
+            {
+                CountdownLabel.Text = $"Mã hết hạn sau: {remaining.Minutes}:{remaining.Seconds:D2}";
+                CountdownLabel.TextColor = Color.FromArgb("#8B95A5");
+            }
         }
 
         private void ShowError(string message)
@@ -82,13 +234,19 @@ namespace FraudGuardAI.Pages.Auth
             ErrorLabel.IsVisible = true;
         }
 
+        private void HideError()
+        {
+            ErrorLabel.IsVisible = false;
+        }
+
         private void SetLoading(bool isLoading)
         {
             LoadingIndicator.IsRunning = isLoading;
             LoadingIndicator.IsVisible = isLoading;
-            LoginButton.IsEnabled = !isLoading;
-            RegisterButton.IsEnabled = !isLoading;
-            PhoneEntry.IsEnabled = !isLoading;
+            SendOtpButton.IsEnabled = !isLoading;
+            VerifyOtpButton.IsEnabled = !isLoading;
+            EmailEntry.IsEnabled = !isLoading;
+            OtpEntry.IsEnabled = !isLoading;
         }
     }
 }

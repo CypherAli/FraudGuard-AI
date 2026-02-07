@@ -3,39 +3,24 @@ using FraudGuardAI.Models;
 namespace FraudGuardAI.Services
 {
     /// <summary>
-    /// Interface for authentication service
+    /// Interface for Email OTP authentication service
     /// </summary>
     public interface IAuthenticationService
     {
         /// <summary>
-        /// Send OTP to phone number
+        /// Send OTP to email
         /// </summary>
-        /// <param name="phoneNumber">Phone number with country code (e.g., +84xxxxxxxxx)</param>
-        /// <returns>Verification ID for OTP verification</returns>
-        Task<string> SendOtpAsync(string phoneNumber);
+        /// <param name="email">User email</param>
+        /// <returns>True if OTP sent successfully</returns>
+        Task<bool> SendOtpAsync(string email);
 
         /// <summary>
-        /// Verify OTP code
+        /// Verify OTP and login
         /// </summary>
-        /// <param name="verificationId">Verification ID from SendOtpAsync</param>
-        /// <param name="otpCode">6-digit OTP code</param>
+        /// <param name="email">User email</param>
+        /// <param name="otp">6-digit OTP code</param>
         /// <returns>True if verification successful</returns>
-        Task<bool> VerifyOtpAsync(string verificationId, string otpCode);
-
-        /// <summary>
-        /// Register new user with phone number
-        /// </summary>
-        /// <param name="phoneNumber">Phone number with country code</param>
-        /// <param name="password">User password (optional, for future use)</param>
-        /// <returns>Verification ID for OTP verification</returns>
-        Task<string> RegisterAsync(string phoneNumber, string? password = null);
-
-        /// <summary>
-        /// Login existing user with phone number
-        /// </summary>
-        /// <param name="phoneNumber">Phone number with country code</param>
-        /// <returns>Verification ID for OTP verification</returns>
-        Task<string> LoginAsync(string phoneNumber);
+        Task<bool> VerifyOtpAsync(string email, string otp);
 
         /// <summary>
         /// Logout current user
@@ -45,13 +30,11 @@ namespace FraudGuardAI.Services
         /// <summary>
         /// Get current authenticated user
         /// </summary>
-        /// <returns>Current user or null if not authenticated</returns>
         Task<User?> GetCurrentUserAsync();
 
         /// <summary>
         /// Check if user is authenticated
         /// </summary>
-        /// <returns>True if user is logged in</returns>
         Task<bool> IsAuthenticatedAsync();
 
         /// <summary>
