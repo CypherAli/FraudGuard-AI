@@ -109,11 +109,12 @@ func Load() (*Config, error) {
 		},
 	}
 
-	// Validate required fields
-	databaseURL = os.Getenv("DATABASE_URL")
-	if databaseURL == "" && cfg.Database.Password == "" {
-		return nil, fmt.Errorf("DATABASE_URL or DB_PASSWORD is required")
-	}
+	// Validate required fields - DATABASE is OPTIONAL now
+	// Server will work without database (auth endpoints still work)
+	// databaseURL = os.Getenv("DATABASE_URL")
+	// if databaseURL == "" && cfg.Database.Password == "" {
+	// 	return nil, fmt.Errorf("DATABASE_URL or DB_PASSWORD is required")
+	// }
 
 	return cfg, nil
 }
