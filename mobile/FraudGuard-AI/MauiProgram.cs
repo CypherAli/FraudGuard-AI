@@ -16,11 +16,12 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-            })
+            // TEMP FIX: Comment out custom fonts to avoid crash - will use default fonts
+            //.ConfigureFonts(fonts =>
+            //{
+            //    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            //    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            //})
             .RegisterFirebaseServices();
 
 #if DEBUG

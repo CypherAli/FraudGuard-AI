@@ -58,6 +58,12 @@ build_metadata.AdditionalFiles.ManifestResourceName = FraudGuardAI.Pages.Auth.Re
 build_metadata.AdditionalFiles.TargetPath = Pages\Auth\RegisterPage.xaml
 build_metadata.AdditionalFiles.RelativePath = Pages\Auth\RegisterPage.xaml
 
+[E:/FraudGuard-AI/mobile/FraudGuard-AI/Pages/PhoneAuthPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = FraudGuardAI.Pages.PhoneAuthPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\PhoneAuthPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\PhoneAuthPage.xaml
+
 [E:/FraudGuard-AI/mobile/FraudGuard-AI/SettingsPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = FraudGuardAI.SettingsPage.xaml

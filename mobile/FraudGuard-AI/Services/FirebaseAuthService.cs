@@ -5,15 +5,14 @@ using System.Diagnostics;
 namespace FraudGuardAI.Services
 {
     /// <summary>
-    /// Firebase Phone Authentication Service
-    /// Provides FREE OTP SMS delivery via Firebase
-    /// Uses Plugin.Firebase.Auth 3.x API
+    /// Firebase Phone Authentication Service - FREE OTP SMS via Firebase
     /// </summary>
     public class FirebaseAuthService : IAuthenticationService
     {
         private readonly SecureStorageService _secureStorage;
         private AuthenticationState _currentState;
         private string? _pendingPhoneNumber;
+        private string? _verificationId; // Store verification ID from callback
 
         public event EventHandler<AuthenticationState>? AuthenticationStateChanged;
 
@@ -23,10 +22,7 @@ namespace FraudGuardAI.Services
             _currentState = new AuthenticationState();
         }
 
-        /// <summary>
-        /// Send OTP to phone number (FREE via Firebase)
-        /// Plugin.Firebase 3.x: VerifyPhoneNumberAsync is void
-        /// </summary>
+        /// <summary>Send OTP to phone number</summary>
         public async Task<string> SendOtpAsync(string phoneNumber)
         {
             try
@@ -41,15 +37,27 @@ namespace FraudGuardAI.Services
 
                 // Store phone number for later use
                 _pendingPhoneNumber = phoneNumber;
+                _verificationId = null;
 
-                // Send OTP via Firebase Phone Authentication
-                // Plugin.Firebase 3.x: This method is void
-                await CrossFirebaseAuth.Current.VerifyPhoneNumberAsync(phoneNumber);
-
-                Debug.WriteLine($"[FirebaseAuth] OTP sent successfully to {phoneNumber}");
+#if ANDROID
+                // Android: Use native handler with proper callbacks
+                var activity = Platform.CurrentActivity 
+                    ?? throw new InvalidOperationException("Current Activity is null");
                 
-                // Return phone number as verification identifier
+                _verificationId = await Platforms.Android.PhoneAuthHandler.SendOtpAsync(
+                    phoneNumber, 
+                    activity
+                );
+                
+                Debug.WriteLine($"[FirebaseAuth] OTP sent. VerificationId: {_verificationId}");
+                return _verificationId;
+#else
+                // iOS: Use Plugin.Firebase
+                await CrossFirebaseAuth.Current.VerifyPhoneNumberAsync(phoneNumber);
+                _verificationId = phoneNumber;
+                Debug.WriteLine($"[FirebaseAuth] OTP sent to iOS device");
                 return phoneNumber;
+#endif
             }
             catch (Exception ex)
             {
@@ -58,10 +66,7 @@ namespace FraudGuardAI.Services
             }
         }
 
-        /// <summary>
-        /// Verify OTP code
-        /// Plugin.Firebase 3.x: SignInWithPhoneNumberVerificationCodeAsync
-        /// </summary>
+        /// <summary>Verify OTP code</summary>
         public async Task<bool> VerifyOtpAsync(string verificationId, string otpCode)
         {
             try
@@ -73,55 +78,79 @@ namespace FraudGuardAI.Services
                     throw new ArgumentException("Mã OTP phải có 6 chữ số");
                 }
 
-                // Sign in with verification code
-                // Plugin.Firebase 3.x: SignInWithPhoneNumberVerificationCodeAsync
-                var user = await CrossFirebaseAuth.Current.SignInWithPhoneNumberVerificationCodeAsync(otpCode);
+                // Use stored verification ID if available
+                var actualVerificationId = !string.IsNullOrEmpty(_verificationId) ? _verificationId : verificationId;
 
+                if (string.IsNullOrEmpty(actualVerificationId))
+                {
+                    throw new InvalidOperationException("VerificationId not found. Please send OTP again.");
+                }
+
+                Debug.WriteLine($"[FirebaseAuth] Using VerificationId: {actualVerificationId.Substring(0, Math.Min(10, actualVerificationId.Length))}...");
+
+#if ANDROID
+                // Android: Create native credential and sign in
+                var credential = Platforms.Android.PhoneAuthHandler.GetCredential(
+                    actualVerificationId, 
+                    otpCode
+                );
+                
+                // Sign in using Firebase Android SDK
+                var auth = Firebase.Auth.FirebaseAuth.Instance;
+                var authResult = await auth.SignInWithCredentialAsync(credential);
+                
+                if (authResult?.User != null)
+                {
+                    var firebaseUser = authResult.User;
+                    Debug.WriteLine($"[FirebaseAuth] Android auth successful. UID: {firebaseUser.Uid}");
+                    
+                    // Convert to Plugin.Firebase user for consistency
+                    var user = CrossFirebaseAuth.Current.CurrentUser;
+                    
+                    if (user != null)
+                    {
+                        // Save user data
+                        await SaveUserToStorage(user);
+                        await UpdateAuthenticationState(user);
+                        _verificationId = null;
+                        return true;
+                    }
+                }
+#else
+                // iOS: Use Plugin.Firebase
+                var user = await CrossFirebaseAuth.Current.SignInWithPhoneNumberVerificationCodeAsync(
+                    actualVerificationId, 
+                    otpCode
+                );
+                
                 if (user != null)
                 {
-                    Debug.WriteLine($"[FirebaseAuth] OTP verified successfully. User ID: {user.Uid}");
-
-                    // Save user data to secure storage
                     await SaveUserToStorage(user);
-
-                    // Update authentication state
                     await UpdateAuthenticationState(user);
-
+                    _verificationId = null;
                     return true;
                 }
+#endif
 
                 return false;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[FirebaseAuth] Error verifying OTP: {ex.Message}");
+                Debug.WriteLine($"[FirebaseAuth] Stack trace: {ex.StackTrace}");
                 throw new Exception($"Mã OTP không đúng hoặc đã hết hạn: {ex.Message}", ex);
             }
         }
 
-        /// <summary>
-        /// Register new user (same as login for phone auth)
-        /// </summary>
+        /// <summary>Register/Login user (same flow for Firebase Phone Auth)</summary>
         public async Task<string> RegisterAsync(string phoneNumber, string? password = null)
-        {
-            // For Firebase Phone Auth, registration and login are the same
-            // Firebase automatically creates a new user if phone number doesn't exist
-            Debug.WriteLine($"[FirebaseAuth] Registering new user: {phoneNumber}");
-            return await SendOtpAsync(phoneNumber);
-        }
+            => await SendOtpAsync(phoneNumber);
 
-        /// <summary>
-        /// Login existing user
-        /// </summary>
+        /// <summary>Login user</summary>
         public async Task<string> LoginAsync(string phoneNumber)
-        {
-            Debug.WriteLine($"[FirebaseAuth] Logging in user: {phoneNumber}");
-            return await SendOtpAsync(phoneNumber);
-        }
+            => await SendOtpAsync(phoneNumber);
 
-        /// <summary>
-        /// Logout current user
-        /// </summary>
+        /// <summary>Logout current user</summary>
         public async Task LogoutAsync()
         {
             try
@@ -147,9 +176,7 @@ namespace FraudGuardAI.Services
             }
         }
 
-        /// <summary>
-        /// Get current authenticated user
-        /// </summary>
+        /// <summary>Get current authenticated user</summary>
         public async Task<User?> GetCurrentUserAsync()
         {
             try
@@ -197,9 +224,7 @@ namespace FraudGuardAI.Services
             }
         }
 
-        /// <summary>
-        /// Check if user is authenticated
-        /// </summary>
+        /// <summary>Check if user is authenticated</summary>
         public async Task<bool> IsAuthenticatedAsync()
         {
             try
@@ -224,9 +249,7 @@ namespace FraudGuardAI.Services
             }
         }
 
-        /// <summary>
-        /// Get authentication state
-        /// </summary>
+        /// <summary>Get authentication state</summary>
         public async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var isAuthenticated = await IsAuthenticatedAsync();
@@ -250,11 +273,8 @@ namespace FraudGuardAI.Services
             return _currentState;
         }
 
-        #region Private Helper Methods
+        #region Private Helpers
 
-        /// <summary>
-        /// Validate phone number format
-        /// </summary>
         private bool IsValidPhoneNumber(string phoneNumber)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
@@ -273,9 +293,6 @@ namespace FraudGuardAI.Services
             return digits.Length >= 10 && digits.Length <= 15;
         }
 
-        /// <summary>
-        /// Get phone number from Firebase user (via provider infos)
-        /// </summary>
         private string? GetPhoneNumberFromUser(IFirebaseUser user)
         {
             // Check provider infos for phone number
@@ -291,9 +308,6 @@ namespace FraudGuardAI.Services
             return _pendingPhoneNumber;
         }
 
-        /// <summary>
-        /// Save user data to secure storage
-        /// </summary>
         private async Task SaveUserToStorage(IFirebaseUser firebaseUser)
         {
             try
@@ -325,9 +339,6 @@ namespace FraudGuardAI.Services
             }
         }
 
-        /// <summary>
-        /// Update authentication state
-        /// </summary>
         private async Task UpdateAuthenticationState(IFirebaseUser firebaseUser)
         {
             var phoneNumber = GetPhoneNumberFromUser(firebaseUser) ?? string.Empty;

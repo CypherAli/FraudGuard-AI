@@ -102,6 +102,7 @@ public class MonoPackageManager_Resources {
 		"Xamarin.Firebase.Common.Ktx.dll",
 		"Xamarin.Firebase.Components.dll",
 		"Xamarin.Google.Android.Material.dll",
+		"Xamarin.Google.Android.Play.Core.Common.dll",
 		"Xamarin.Google.Android.Play.Integrity.dll",
 		"Xamarin.Google.Android.Recaptcha.dll",
 		"Jsr305Binding.dll",
