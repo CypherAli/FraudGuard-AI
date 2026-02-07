@@ -1,6 +1,5 @@
 using Android.App;
 using Android.Runtime;
-using Plugin.Firebase.Core.Platforms.Android;
 
 namespace FraudGuardAI;
 
@@ -16,8 +15,8 @@ public class MainApplication : MauiApplication
     {
         base.OnCreate();
         
-        // Initialize Firebase with google-services.json
-        CrossFirebase.Initialize(this);
+        // Firebase Auth initialization happens in MainActivity
+        // No need to initialize here as Application context is different from Activity
     }
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();

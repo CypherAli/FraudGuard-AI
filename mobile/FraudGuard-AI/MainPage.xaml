@@ -99,8 +99,9 @@
                         </Border.Shadow>
                         
                         <Grid>
-                            <Label Text="✓" FontSize="32"
-                                   TextColor="{StaticResource TealIcon}"
+                            <Label x:Name="ProtectionIconLabel"
+                                   Text="🛡️" 
+                                   FontSize="32"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"/>
                         </Grid>

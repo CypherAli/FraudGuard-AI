@@ -336,6 +336,7 @@ namespace FraudGuardAI
             {
                 if (connecting)
                 {
+                    ProtectionIconLabel.Text = "⏳";
                     StatusLabel.Text = "Đang kết nối...";
                     ProtectionStatusLabel.Text = "Đang kết nối";
                     ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
@@ -344,6 +345,7 @@ namespace FraudGuardAI
                 }
                 else if (isActive)
                 {
+                    ProtectionIconLabel.Text = "✅";
                     StatusLabel.Text = "Bảo vệ đang hoạt động";
                     ProtectionStatusLabel.Text = "Đang bảo vệ";
                     ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
@@ -353,6 +355,7 @@ namespace FraudGuardAI
                 }
                 else
                 {
+                    ProtectionIconLabel.Text = "🛡️";
                     StatusLabel.Text = "Chưa kích hoạt";
                     ProtectionStatusLabel.Text = "Đã tắt";
                     ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
