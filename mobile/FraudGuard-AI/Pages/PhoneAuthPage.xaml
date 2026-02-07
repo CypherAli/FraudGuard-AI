@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.Pages.PhoneAuthPage"
+             Title="Đăng nhập bằng số điện thoại"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20">
+            
+            <!-- Logo/Header -->
+            <Frame BackgroundColor="White" 
+                   CornerRadius="16" 
+                   Padding="24" 
+                   HasShadow="True"
+                   Margin="0,20,0,0">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="🔐" 
+                           FontSize="60" 
+                           HorizontalOptions="Center"/>
+                    <Label Text="FraudGuard AI" 
+                           FontSize="28" 
+                           FontAttributes="Bold" 
+                           HorizontalTextAlignment="Center"
+                           TextColor="#2196F3"/>
+                    <Label Text="Xác thực bảo mật bằng SMS" 
+                           FontSize="14" 
+                           HorizontalTextAlignment="Center"
+                           TextColor="Gray"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Phone Number Input Section -->
+            <Frame x:Name="PhoneInputFrame" 
+                   BackgroundColor="White" 
+                   CornerRadius="16" 
+                   Padding="20" 
+                   HasShadow="True"
+                   IsVisible="True">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Nhập số điện thoại" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="#333333"/>
+                    
+                    <Label Text="Chúng tôi sẽ gửi mã OTP 6 chữ số đến số điện thoại của bạn"
+                           FontSize="13"
+                           TextColor="Gray"/>
+
+                    <!-- Phone Number Entry -->
+                    <Frame BorderColor="#E0E0E0" 
+                           CornerRadius="8" 
+                           Padding="0" 
+                           HasShadow="False">
+                        <Entry x:Name="PhoneNumberEntry"
+                               Placeholder="+84 xxx xxx xxx"
+                               Keyboard="Telephone"
+                               FontSize="16"
+                               TextColor="#333333"
+                               PlaceholderColor="Gray"
+                               MaxLength="15"/>
+                    </Frame>
+
+                    <!-- Send OTP Button -->
+                    <Button x:Name="SendOtpButton"
+                            Text="Gửi mã OTP"
+                            BackgroundColor="#2196F3"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            CornerRadius="8"
+                            HeightRequest="50"
+                            Clicked="OnSendOtpClicked"/>
+
+                    <!-- Loading Indicator -->
+                    <ActivityIndicator x:Name="SendingIndicator"
+                                     IsRunning="False"
+                                     IsVisible="False"
+                                     Color="#2196F3"
+                                     HeightRequest="40"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- OTP Verification Section -->
+            <Frame x:Name="OtpVerificationFrame" 
+                   BackgroundColor="White" 
+                   CornerRadius="16" 
+                   Padding="20" 
+                   HasShadow="True"
+                   IsVisible="False">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Nhập mã OTP" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="#333333"/>
+                    
+                    <Label x:Name="OtpSentLabel"
+                           Text="Mã đã được gửi đến +84 xxx xxx xxx"
+                           FontSize="13"
+                           TextColor="Gray"/>
+
+                    <!-- OTP Code Entry -->
+                    <Frame BorderColor="#E0E0E0" 
+                           CornerRadius="8" 
+                           Padding="0" 
+                           HasShadow="False">
+                        <Entry x:Name="OtpCodeEntry"
+                               Placeholder="Nhập 6 chữ số"
+                               Keyboard="Numeric"
+                               FontSize="24"
+                               TextColor="#333333"
+                               PlaceholderColor="Gray"
+                               MaxLength="6"
+                               HorizontalTextAlignment="Center"
+                               FontAttributes="Bold"/>
+                    </Frame>
+
+                    <!-- Verify OTP Button -->
+                    <Button x:Name="VerifyOtpButton"
+                            Text="Xác thực"
+                            BackgroundColor="#4CAF50"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            CornerRadius="8"
+                            HeightRequest="50"
+                            Clicked="OnVerifyOtpClicked"/>
+
+                    <!-- Verifying Indicator -->
+                    <ActivityIndicator x:Name="VerifyingIndicator"
+                                     IsRunning="False"
+                                     IsVisible="False"
+                                     Color="#4CAF50"
+                                     HeightRequest="40"/>
+
+                    <!-- Resend OTP -->
+                    <HorizontalStackLayout Spacing="8" 
+                                         HorizontalOptions="Center"
+                                         Margin="0,8,0,0">
+                        <Label Text="Không nhận được mã?" 
+                               FontSize="13"
+                               TextColor="Gray"
+                               VerticalOptions="Center"/>
+                        <Button x:Name="ResendOtpButton"
+                                Text="Gửi lại"
+                                BackgroundColor="Transparent"
+                                TextColor="#2196F3"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                Padding="0"
+                                Clicked="OnResendOtpClicked"/>
+                    </HorizontalStackLayout>
+
+                    <!-- Change Phone Number -->
+                    <Button Text="Đổi số điện thoại"
+                            BackgroundColor="Transparent"
+                            TextColor="Gray"
+                            FontSize="13"
+                            Clicked="OnChangePhoneClicked"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Info Section -->
+            <Frame BackgroundColor="#FFF3E0" 
+                   CornerRadius="12" 
+                   Padding="16" 
+                   HasShadow="False"
+                   BorderColor="#FFB300">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="ℹ️ Lưu ý quan trọng" 
+                           FontSize="14" 
+                           FontAttributes="Bold"
+                           TextColor="#F57C00"/>
+                    <Label FontSize="12" TextColor="#E65100">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• Số điện thoại phải theo định dạng quốc tế (+84)"/>
+                                <Span Text="&#x0a;• Mã OTP có hiệu lực trong 60 giây"/>
+                                <Span Text="&#x0a;• Có thể phát sinh phí tin nhắn SMS"/>
+                                <Span Text="&#x0a;• Thông tin được bảo mật bởi Firebase"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Privacy Notice -->
+            <Label FontSize="11" 
+                   TextColor="Gray" 
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,20">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Bằng cách đăng nhập, bạn đồng ý với "/>
+                        <Span Text="Điều khoản sử dụng" 
+                              TextColor="#2196F3" 
+                              TextDecorations="Underline"/>
+                        <Span Text=" và "/>
+                        <Span Text="Chính sách bảo mật" 
+                              TextColor="#2196F3" 
+                              TextDecorations="Underline"/>
+                        <Span Text=" của chúng tôi"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
