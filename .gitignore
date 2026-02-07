@@ -4,8 +4,11 @@
 
 # Build artifacts
 **/bin/
+**/obj/
 **/*.exe
 **/*.dll
+**/*.apk
+*.apk
 
 # Dependencies
 **/node_modules/

@@ -15,9 +15,25 @@ public class MainApplication : MauiApplication
     {
         base.OnCreate();
         
-        // Firebase Auth initialization happens in MainActivity
-        // No need to initialize here as Application context is different from Activity
+        // Firebase will be initialized in MainActivity
+        // Application context is not suitable for Firebase.Initialize()
+        System.Diagnostics.Debug.WriteLine("[MainApplication] Application created");
     }
 
-    protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+    protected override MauiApp CreateMauiApp()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("[MainApplication] Creating MauiApp...");
+            var app = MauiProgram.CreateMauiApp();
+            System.Diagnostics.Debug.WriteLine("[MainApplication] MauiApp created successfully");
+            return app;
+        }
+        catch (System.Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainApplication] CreateMauiApp error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[MainApplication] Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
 }

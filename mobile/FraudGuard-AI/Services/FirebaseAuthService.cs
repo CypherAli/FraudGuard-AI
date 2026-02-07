@@ -102,7 +102,11 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                await CrossFirebaseAuth.Current.SignOutAsync();
+                var firebaseAuth = CrossFirebaseAuth.Current;
+                if (firebaseAuth != null)
+                {
+                    await firebaseAuth.SignOutAsync();
+                }
                 _secureStorage.ClearAll();
                 _currentState = new AuthenticationState();
                 AuthenticationStateChanged?.Invoke(this, _currentState);
@@ -117,7 +121,8 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                var firebaseUser = CrossFirebaseAuth.Current.CurrentUser;
+                var firebaseAuth = CrossFirebaseAuth.Current;
+                var firebaseUser = firebaseAuth?.CurrentUser;
                 
                 if (firebaseUser != null)
                 {
@@ -163,7 +168,8 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                if (CrossFirebaseAuth.Current.CurrentUser != null)
+                var firebaseAuth = CrossFirebaseAuth.Current;
+                if (firebaseAuth?.CurrentUser != null)
                     return true;
 
                 var hasUserData = await _secureStorage.HasUserDataAsync();
