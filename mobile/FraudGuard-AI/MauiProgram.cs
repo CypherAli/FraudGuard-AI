@@ -30,7 +30,7 @@ public static class MauiProgram
             // Register core services
             System.Diagnostics.Debug.WriteLine("[MauiProgram] Registering services...");
             builder.Services.AddSingleton<SecureStorageService>();
-            builder.Services.AddSingleton<IAuthenticationService, FirebaseAuthService>();
+            builder.Services.AddSingleton<IAuthenticationService, EmailOtpAuthService>();
 
             System.Diagnostics.Debug.WriteLine("[MauiProgram] Building app...");
             var app = builder.Build();
@@ -40,13 +40,30 @@ public static class MauiProgram
         }
         catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[MauiProgram] CRITICAL ERROR: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[MauiProgram] Stack trace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MauiProgram] Inner exception: {ex.InnerException.Message}");
-            }
+            // Log chi tiết toàn bộ exception chain
+            LogExceptionChain(ex);
             throw;
+        }
+    }
+
+    private static void LogExceptionChain(System.Exception ex)
+    {
+        var current = ex;
+        int level = 0;
+        while (current != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MauiProgram] Exception Level {level}: {current.GetType().FullName}");
+            System.Diagnostics.Debug.WriteLine($"[MauiProgram] Message: {current.Message}");
+            System.Diagnostics.Debug.WriteLine($"[MauiProgram] Stack: {current.StackTrace}");
+            
+            // Kiểm tra TypeInitializationException đặc biệt
+            if (current is System.TypeInitializationException tie)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MauiProgram] TypeName: {tie.TypeName}");
+            }
+            
+            current = current.InnerException;
+            level++;
         }
     }
 

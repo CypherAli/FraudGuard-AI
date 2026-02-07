@@ -105,6 +105,16 @@ func main() {
 		r.Get("/history", handlers.GetHistory) // NEW: Call history endpoint
 	})
 
+	// Auth routes (OTP Email authentication)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/send-otp", handlers.SendOTP)
+		r.Post("/verify-otp", handlers.VerifyOTP)
+		r.Get("/check-session", handlers.CheckSession)
+	})
+
+	// Start OTP cleanup goroutine
+	go handlers.CleanupExpiredOTPs(context.Background())
+
 	// Welcome route
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
