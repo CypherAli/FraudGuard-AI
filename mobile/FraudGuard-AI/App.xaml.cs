@@ -12,58 +12,80 @@ namespace FraudGuardAI
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[App] Initializing App...");
+                System.Diagnostics.Debug.WriteLine("=== [App] Constructor START ===");
+                
+                System.Diagnostics.Debug.WriteLine("[App] Calling InitializeComponent...");
                 InitializeComponent();
+                System.Diagnostics.Debug.WriteLine("[App] InitializeComponent completed");
 
-                // Initialize shared audio service (singleton) with error handling
-                try
-                {
-                    _audioService = new AudioStreamingServiceLowLevel();
-                    System.Diagnostics.Debug.WriteLine("[App] Audio service initialized");
-                }
-                catch (System.Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[App] Audio service init error: {ex.Message}");
-                    // Continue without audio service
-                }
-
-                // Set a temporary loading page first
-                // Authentication check will happen in OnStart when services are available
+                // DON'T initialize audio service here - do it later when needed
+                System.Diagnostics.Debug.WriteLine("[App] Creating loading page...");
+                
+                // Simple loading page
                 MainPage = new ContentPage
                 {
                     BackgroundColor = Color.FromArgb("#0D1B2A"),
                     Content = new VerticalStackLayout
                     {
                         VerticalOptions = LayoutOptions.Center,
+                        Spacing = 16,
                         Children = 
                         {
                             new ActivityIndicator 
                             { 
                                 IsRunning = true, 
-                                Color = Color.FromArgb("#14B8A6"),
-                                HeightRequest = 50,
-                                WidthRequest = 50
+                                Color = Color.FromArgb("#14B8A6")
                             },
                             new Label 
                             { 
-                                Text = "Đang tải...",
+                                Text = "FraudGuard AI",
                                 TextColor = Color.FromArgb("#E0E6ED"),
                                 HorizontalOptions = LayoutOptions.Center,
-                                Margin = new Thickness(0, 16, 0, 0)
+                                FontSize = 24,
+                                FontAttributes = FontAttributes.Bold
+                            },
+                            new Label 
+                            { 
+                                Text = "Đang khởi động...",
+                                TextColor = Color.FromArgb("#94A3B8"),
+                                HorizontalOptions = LayoutOptions.Center
                             }
                         }
                     }
                 };
                 
-                System.Diagnostics.Debug.WriteLine("[App] App initialized successfully");
+                System.Diagnostics.Debug.WriteLine("=== [App] Constructor END ===");
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[App] CRITICAL ERROR in constructor: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"=== [App] FATAL Constructor Error ===");
+                System.Diagnostics.Debug.WriteLine($"Message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner: {ex.InnerException.Message}");
+                }
                 
-                // Show error page instead of crashing
-                MainPage = CreateErrorPage("Lỗi khởi tạo", ex.Message);
+                // Fallback simple page
+                try
+                {
+                    MainPage = new ContentPage
+                    {
+                        Content = new Label 
+                        { 
+                            Text = $"Lỗi khởi tạo:\n{ex.Message}",
+                            TextColor = Colors.White,
+                            BackgroundColor = Colors.Red,
+                            Padding = 20
+                        }
+                    };
+                }
+                catch
+                {
+                    // If even simple page fails, let it crash with error details
+                    throw;
+                }
             }
         }
 
@@ -71,16 +93,35 @@ namespace FraudGuardAI
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[App] OnStart called");
+                System.Diagnostics.Debug.WriteLine("=== [App] OnStart START ===");
                 base.OnStart();
+                
+                // Initialize audio service here (after app is fully loaded)
+                if (_audioService == null)
+                {
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine("[App] Initializing audio service...");
+                        _audioService = new AudioStreamingServiceLowLevel();
+                        System.Diagnostics.Debug.WriteLine("[App] Audio service ready");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[App] Audio init failed: {ex.Message}");
+                        // Continue without audio - user can still see UI
+                    }
+                }
+                
                 await CheckAuthenticationAndNavigate();
+                System.Diagnostics.Debug.WriteLine("=== [App] OnStart END ===");
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[App] OnStart error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"=== [App] OnStart Error ===");
+                System.Diagnostics.Debug.WriteLine($"Message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack: {ex.StackTrace}");
                 
-                // Show error page
+                // Show error but don't crash
                 MainPage = CreateErrorPage("Lỗi khởi động", ex.Message);
             }
         }

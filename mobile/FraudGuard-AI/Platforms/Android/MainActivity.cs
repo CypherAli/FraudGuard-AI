@@ -26,20 +26,34 @@ namespace FraudGuardAI
         /// </summary>
         protected override void OnCreate(Bundle? savedInstanceState)
         {
-            base.OnCreate(savedInstanceState);
-            
-            // Initialize Firebase with Activity context
             try
             {
-                System.Diagnostics.Debug.WriteLine("[MainActivity] Initializing Firebase...");
-                CrossFirebase.Initialize(this);
-                System.Diagnostics.Debug.WriteLine("[MainActivity] Firebase initialized successfully");
+                System.Diagnostics.Debug.WriteLine("[MainActivity] OnCreate started");
+                base.OnCreate(savedInstanceState);
+                System.Diagnostics.Debug.WriteLine("[MainActivity] base.OnCreate completed");
+                
+                // Initialize Firebase with Activity context (OPTIONAL)
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainActivity] Initializing Firebase...");
+                    CrossFirebase.Initialize(this);
+                    System.Diagnostics.Debug.WriteLine("[MainActivity] Firebase initialized successfully");
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainActivity] Firebase init failed: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MainActivity] Stack: {ex.StackTrace}");
+                    // App will work without Firebase - just won't have phone auth
+                }
+                
+                System.Diagnostics.Debug.WriteLine("[MainActivity] OnCreate completed");
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainActivity] Firebase init error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[MainActivity] Stack trace: {ex.StackTrace}");
-                // Continue app execution - Firebase might not be configured yet
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] FATAL OnCreate error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] Stack: {ex.StackTrace}");
+                // Re-throw to show Android crash dialog with details
+                throw;
             }
             
             // Plugin.Firebase will automatically handle:

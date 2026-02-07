@@ -26,7 +26,7 @@ namespace FraudGuardAI
 
         private readonly Color SuccessColor = Color.FromArgb("#34D399");
         private readonly Color ErrorColor = Color.FromArgb("#F87171");
-        private readonly IAuthenticationService _authService;
+        private readonly IAuthenticationService? _authService;
 
         #endregion
 
@@ -38,9 +38,13 @@ namespace FraudGuardAI
             {
                 InitializeComponent();
                 
-                // Get authentication service from DI
-                _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                    ?? throw new InvalidOperationException("Authentication service not found");
+                // Get authentication service from DI (null-safe)
+                _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+                
+                if (_authService == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SettingsPage] WARNING: AuthService is null");
+                }
             }
             catch (Exception ex)
             {
@@ -73,6 +77,13 @@ namespace FraudGuardAI
         {
             try
             {
+                // Check if auth service is available
+                if (_authService == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SettingsPage] AuthService is null, skipping user info load");
+                    return;
+                }
+
                 var user = await _authService.GetCurrentUserAsync();
                 if (user != null)
                 {
@@ -427,6 +438,13 @@ namespace FraudGuardAI
                     return;
 
                 System.Diagnostics.Debug.WriteLine("[SettingsPage] Logging out user");
+
+                // Check if auth service is available
+                if (_authService == null)
+                {
+                    await DisplayAlert("Lỗi", "Dịch vụ xác thực không khả dụng", "OK");
+                    return;
+                }
 
                 // Logout
                 await _authService.LogoutAsync();

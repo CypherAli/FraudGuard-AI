@@ -7,9 +7,8 @@ namespace FraudGuardAI.Pages.Auth
     {
         private IAuthenticationService? _authService;
 
-        private IAuthenticationService AuthService => 
-            _authService ??= Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                ?? throw new InvalidOperationException("Authentication service not found");
+        private IAuthenticationService? AuthService => 
+            _authService ??= Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
 
         public RegisterPage()
         {
@@ -20,6 +19,13 @@ namespace FraudGuardAI.Pages.Auth
         {
             try
             {
+                // Check if auth service is available
+                if (AuthService == null)
+                {
+                    ShowError("Dịch vụ xác thực chưa sẵn sàng. Vui lòng khởi động lại ứng dụng.");
+                    return;
+                }
+
                 // Hide error message
                 ErrorLabel.IsVisible = false;
 
