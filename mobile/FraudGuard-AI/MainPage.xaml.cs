@@ -106,47 +106,28 @@ namespace FraudGuardAI
         {
             try
             {
-                // Load real stats from backend API
-                string deviceId = SettingsPage.GetDeviceID();
+                var deviceId = SettingsPage.GetDeviceID();
                 var historyService = new HistoryService();
-                
-                // Get all call history to calculate stats
                 var allCalls = await historyService.GetHistoryAsync(deviceId, limit: 1000);
                 var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
                 
-                // Calculate real stats
                 _stats.BlockedTotal = fraudCalls.Count;
                 _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.Date == DateTime.Today);
-                // Convert HIGH_RISK_THRESHOLD (80.0) to 0-1 scale (0.8) for comparison
                 _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= (AppConstants.HIGH_RISK_THRESHOLD / 100.0));
                 
-                // Calculate efficiency: (fraud detected / total calls) * 100
                 if (allCalls.Count > 0)
-                {
                     _stats.ProtectionEfficiency = (fraudCalls.Count / (double)allCalls.Count) * 100;
-                }
                 else
-                {
                     _stats.ProtectionEfficiency = 0;
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[MainPage] Stats loaded: {_stats.BlockedTotal} blocked, {_stats.ProtectionEfficiency:F1}% efficiency");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainPage] Failed to load stats: {ex.Message}");
-                // Keep zero values if API fails
             }
             finally
             {
                 UpdateStatsDisplay();
             }
-        }
-
-        private async Task LoadDashboardStatsAsync()
-        {
-            LoadDashboardStats();
-            await Task.CompletedTask;
         }
 
         private void UpdateStatsDisplay()
