@@ -1,7 +1,7 @@
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
-using Plugin.Firebase.Auth;
+using Plugin.Firebase.Core.Platforms.Android;
 
 namespace FraudGuardAI
 {
@@ -27,6 +27,20 @@ namespace FraudGuardAI
         protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            
+            // Initialize Firebase with Activity context
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[MainActivity] Initializing Firebase...");
+                CrossFirebase.Initialize(this);
+                System.Diagnostics.Debug.WriteLine("[MainActivity] Firebase initialized successfully");
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] Firebase init error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] Stack trace: {ex.StackTrace}");
+                // Continue app execution - Firebase might not be configured yet
+            }
             
             // Plugin.Firebase will automatically handle:
             // 1. Play Integrity API verification
