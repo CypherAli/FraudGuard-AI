@@ -415,11 +415,42 @@ namespace FraudGuardAI
 
         private async void OnHelpClicked(object sender, EventArgs e)
         {
-            await DisplayAlert(
-                "Trợ giúp & Hỗ trợ",
-                "FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0",
-                "OK"
-            );
+            // Hiển thị crash log nếu có
+            try
+            {
+                var crashLogPath = System.IO.Path.Combine(FileSystem.AppDataDirectory, "crash_log.txt");
+                string crashInfo = "";
+                
+                if (System.IO.File.Exists(crashLogPath))
+                {
+                    var content = await System.IO.File.ReadAllTextAsync(crashLogPath);
+                    if (!string.IsNullOrEmpty(content))
+                    {
+                        crashInfo = $"\n\n📋 Crash Log:\n{content.Substring(0, Math.Min(500, content.Length))}...";
+                    }
+                }
+                
+                bool clearLog = await DisplayAlert(
+                    "Trợ giúp & Hỗ trợ",
+                    $"FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0{crashInfo}",
+                    "Xóa Log",
+                    "Đóng"
+                );
+                
+                if (clearLog && System.IO.File.Exists(crashLogPath))
+                {
+                    System.IO.File.Delete(crashLogPath);
+                    await DisplayAlert("Thành công", "Đã xóa crash log", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Trợ giúp & Hỗ trợ",
+                    $"FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0\n\nLỗi đọc log: {ex.Message}",
+                    "OK"
+                );
+            }
         }
         
         private async void OnLogoutClicked(object sender, EventArgs e)

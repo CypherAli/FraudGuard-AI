@@ -1119,8 +1119,6 @@ E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\src\mono\
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\src\mono\com\google\firebase\FirebaseAppLifecycleListenerImplementor.java
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\src\mono\com\google\firebase\FirebaseApp_BackgroundStateChangeListenerImplementor.java
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\src\mono\MonoPackageManager_Resources.java
-E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\aapt_rules.txt
-E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\manifest\aapt_rules.txt
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\bin\packaged_resources
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\android\src\com\fraudguard\ai\R.java
 E:\FraudGuard-AI\mobile\FraudGuard-AI\obj\Debug\net8.0-android\_CompileJava.FileList.txt

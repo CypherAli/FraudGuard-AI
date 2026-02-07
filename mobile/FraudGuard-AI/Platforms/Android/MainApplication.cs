@@ -9,14 +9,47 @@ public class MainApplication : MauiApplication
     public MainApplication(IntPtr handle, JniHandleOwnership ownership)
         : base(handle, ownership)
     {
+        // Bắt tất cả unhandled exceptions
+        AndroidEnvironment.UnhandledExceptionRaiser += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnDomainException;
+        TaskScheduler.UnobservedTaskException += OnTaskException;
+    }
+
+    private void OnUnhandledException(object? sender, RaiseThrowableEventArgs e)
+    {
+        LogCrash("AndroidEnvironment", e.Exception);
+        e.Handled = true; // Ngăn app crash
+    }
+
+    private void OnDomainException(object sender, UnhandledExceptionEventArgs e)
+    {
+        LogCrash("AppDomain", e.ExceptionObject as Exception);
+    }
+
+    private void OnTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogCrash("TaskScheduler", e.Exception);
+        e.SetObserved(); // Ngăn app crash
+    }
+
+    private void LogCrash(string source, Exception? ex)
+    {
+        try
+        {
+            var msg = $"[CRASH] {source}: {ex?.Message}\n{ex?.StackTrace}";
+            System.Diagnostics.Debug.WriteLine(msg);
+            
+            // Lưu vào file để xem sau
+            var path = System.IO.Path.Combine(FileSystem.AppDataDirectory, "crash_log.txt");
+            var content = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}\n\n";
+            System.IO.File.AppendAllText(path, content);
+        }
+        catch { /* ignore logging errors */ }
     }
 
     public override void OnCreate()
     {
         base.OnCreate();
-        
-        // Firebase will be initialized in MainActivity
-        // Application context is not suitable for Firebase.Initialize()
         System.Diagnostics.Debug.WriteLine("[MainApplication] Application created");
     }
 
@@ -31,8 +64,7 @@ public class MainApplication : MauiApplication
         }
         catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainApplication] CreateMauiApp error: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[MainApplication] Stack trace: {ex.StackTrace}");
+            LogCrash("CreateMauiApp", ex);
             throw;
         }
     }
