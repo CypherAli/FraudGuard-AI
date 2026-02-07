@@ -83,6 +83,10 @@
             "Xamarin.AndroidX.Collection.Ktx": {
               "target": "Package",
               "version": "[1.4.5.1, )"
+            },
+            "Xamarin.Firebase.Auth": {
+              "target": "Package",
+              "version": "[122.3.1, )"
             }
           },
           "imports": [
@@ -171,7 +175,7 @@
         "android-x86": {
           "#import": []
         },
-        "ios-arm64": {
+        "iossimulator-x64": {
           "#import": []
         }
       }

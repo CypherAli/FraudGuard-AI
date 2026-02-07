@@ -4,6 +4,9 @@ fraudguardai.MainActivity;crc642df37a96ad9ab0dc.MainActivity
 FraudGuardAI.MainApplication, FraudGuardAI;crc642df37a96ad9ab0dc.MainApplication
 FraudGuardAI.MainApplication;crc642df37a96ad9ab0dc.MainApplication
 fraudguardai.MainApplication;crc642df37a96ad9ab0dc.MainApplication
+FraudGuardAI.Platforms.Android.PhoneAuthHandler+PhoneAuthCallbacks, FraudGuardAI;crc640d34c760c75b3b82.PhoneAuthHandler_PhoneAuthCallbacks
+FraudGuardAI.Platforms.Android.PhoneAuthHandler.PhoneAuthCallbacks;crc640d34c760c75b3b82.PhoneAuthHandler_PhoneAuthCallbacks
+fraudguardai.platforms.android.PhoneAuthHandler_PhoneAuthCallbacks;crc640d34c760c75b3b82.PhoneAuthHandler_PhoneAuthCallbacks
 FraudGuardAI.Platforms.Android.Services.FraudGuardForegroundService, FraudGuardAI;crc641fb5909a8af14b20.FraudGuardForegroundService
 FraudGuardAI.Platforms.Android.Services.FraudGuardForegroundService;crc641fb5909a8af14b20.FraudGuardForegroundService
 fraudguardai.platforms.android.services.FraudGuardForegroundService;crc641fb5909a8af14b20.FraudGuardForegroundService
@@ -3319,6 +3322,15 @@ com.google.android.material.animation.AnimatableView;com.google.android.material
 Google.Android.Material.Animation.ITransformationCallback, Xamarin.Google.Android.Material;com.google.android.material.animation.TransformationCallback
 Google.Android.Material.Animation.ITransformationCallback;com.google.android.material.animation.TransformationCallback
 com.google.android.material.animation.TransformationCallback;com.google.android.material.animation.TransformationCallback
+Xamarin.Google.Android.Play.Core.Listener.IStateUpdatedListener, Xamarin.Google.Android.Play.Core.Common;com.google.android.play.core.listener.StateUpdatedListener
+Xamarin.Google.Android.Play.Core.Listener.IStateUpdatedListener;com.google.android.play.core.listener.StateUpdatedListener
+com.google.android.play.core.listener.StateUpdatedListener;com.google.android.play.core.listener.StateUpdatedListener
+Xamarin.Google.Android.Play.Core.Listener.IStateUpdatedListenerImplementor, Xamarin.Google.Android.Play.Core.Common;mono.com.google.android.play.core.listener.StateUpdatedListenerImplementor
+Xamarin.Google.Android.Play.Core.Listener.IStateUpdatedListenerImplementor;mono.com.google.android.play.core.listener.StateUpdatedListenerImplementor
+mono.com.google.android.play.core.listener.StateUpdatedListenerImplementor;mono.com.google.android.play.core.listener.StateUpdatedListenerImplementor
+Xamarin.Google.Android.Play.Core.Common.IIntentSenderForResultStarter, Xamarin.Google.Android.Play.Core.Common;com.google.android.play.core.common.IntentSenderForResultStarter
+Xamarin.Google.Android.Play.Core.Common.IIntentSenderForResultStarter;com.google.android.play.core.common.IntentSenderForResultStarter
+com.google.android.play.core.common.IntentSenderForResultStarter;com.google.android.play.core.common.IntentSenderForResultStarter
 Xamarin.Google.Android.Play.Core.Integrity.IIntegrityManager, Xamarin.Google.Android.Play.Integrity;com.google.android.play.core.integrity.IntegrityManager
 Xamarin.Google.Android.Play.Core.Integrity.IIntegrityManager;com.google.android.play.core.integrity.IntegrityManager
 com.google.android.play.core.integrity.IntegrityManager;com.google.android.play.core.integrity.IntegrityManager
@@ -3328,6 +3340,12 @@ com.google.android.play.core.integrity.StandardIntegrityManager$StandardIntegrit
 Xamarin.Google.Android.Play.Core.Integrity.IStandardIntegrityManager, Xamarin.Google.Android.Play.Integrity;com.google.android.play.core.integrity.StandardIntegrityManager
 Xamarin.Google.Android.Play.Core.Integrity.IStandardIntegrityManager;com.google.android.play.core.integrity.StandardIntegrityManager
 com.google.android.play.core.integrity.StandardIntegrityManager;com.google.android.play.core.integrity.StandardIntegrityManager
+Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityDialogResponseCode, Xamarin.Google.Android.Play.Integrity;com.google.android.play.core.integrity.model.IntegrityDialogResponseCode
+Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityDialogResponseCode;com.google.android.play.core.integrity.model.IntegrityDialogResponseCode
+com.google.android.play.core.integrity.model.IntegrityDialogResponseCode;com.google.android.play.core.integrity.model.IntegrityDialogResponseCode
+Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityDialogTypeCode, Xamarin.Google.Android.Play.Integrity;com.google.android.play.core.integrity.model.IntegrityDialogTypeCode
+Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityDialogTypeCode;com.google.android.play.core.integrity.model.IntegrityDialogTypeCode
+com.google.android.play.core.integrity.model.IntegrityDialogTypeCode;com.google.android.play.core.integrity.model.IntegrityDialogTypeCode
 Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityErrorCode, Xamarin.Google.Android.Play.Integrity;com.google.android.play.core.integrity.model.IntegrityErrorCode
 Xamarin.Google.Android.Play.Core.Integrity.Model.IIntegrityErrorCode;com.google.android.play.core.integrity.model.IntegrityErrorCode
 com.google.android.play.core.integrity.model.IntegrityErrorCode;com.google.android.play.core.integrity.model.IntegrityErrorCode
@@ -4270,9 +4288,6 @@ com.google.android.gms.common.util.Predicate;com.google.android.gms.common.util.
 Android.Gms.Common.Util.IRetainForClient, Xamarin.GooglePlayServices.Basement;com.google.android.gms.common.util.RetainForClient
 Android.Gms.Common.Util.IRetainForClient;com.google.android.gms.common.util.RetainForClient
 com.google.android.gms.common.util.RetainForClient;com.google.android.gms.common.util.RetainForClient
-Android.Gms.Common.Util.IVisibleForTesting, Xamarin.GooglePlayServices.Basement;com.google.android.gms.common.util.VisibleForTesting
-Android.Gms.Common.Util.IVisibleForTesting;com.google.android.gms.common.util.VisibleForTesting
-com.google.android.gms.common.util.VisibleForTesting;com.google.android.gms.common.util.VisibleForTesting
 Android.Gms.Common.Stats.StatsEvent+ITypes, Xamarin.GooglePlayServices.Basement;com.google.android.gms.common.stats.StatsEvent$Types
 Android.Gms.Common.Stats.StatsEvent.ITypes;com.google.android.gms.common.stats.StatsEvent$Types
 com.google.android.gms.common.stats.StatsEvent$Types;com.google.android.gms.common.stats.StatsEvent$Types

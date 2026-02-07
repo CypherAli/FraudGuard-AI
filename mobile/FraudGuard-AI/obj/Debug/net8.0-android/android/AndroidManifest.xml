@@ -6,7 +6,7 @@
     the contents are regenerated.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" package="com.fraudguard.ai" android:versionCode="1" android:versionName="1.0">
-  <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" tools:overrideLibrary="com.google.android.recaptcha" />
+  <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" tools:overrideLibrary="com.google.android.recaptcha" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -98,6 +98,8 @@
       <meta-data android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar" android:value="com.google.firebase.components.ComponentRegistrar" />
     </service>
     <provider android:name="com.google.firebase.provider.FirebaseInitProvider" android:authorities="com.fraudguard.ai.firebaseinitprovider" android:directBootAware="true" android:exported="false" android:initOrder="100" />
+    <!-- The activities will be merged into the manifest of the hosting app. -->
+    <activity android:name="com.google.android.play.core.common.PlayCoreDialogWrapperActivity" android:exported="false" android:stateNotNeeded="true" android:theme="@style/Theme.PlayCore.Transparent" />
     <activity android:name="com.google.android.gms.common.api.GoogleApiActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
   </application>

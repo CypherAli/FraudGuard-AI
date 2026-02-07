@@ -102,51 +102,32 @@ namespace FraudGuardAI
             }
         }
 
-        private async void LoadDashboardStats()
+        private async Task LoadDashboardStatsAsync()
         {
             try
             {
-                // Load real stats from backend API
-                string deviceId = SettingsPage.GetDeviceID();
+                var deviceId = SettingsPage.GetDeviceID();
                 var historyService = new HistoryService();
-                
-                // Get all call history to calculate stats
                 var allCalls = await historyService.GetHistoryAsync(deviceId, limit: 1000);
                 var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
                 
-                // Calculate real stats
                 _stats.BlockedTotal = fraudCalls.Count;
                 _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.Date == DateTime.Today);
-                // Convert HIGH_RISK_THRESHOLD (80.0) to 0-1 scale (0.8) for comparison
                 _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= (AppConstants.HIGH_RISK_THRESHOLD / 100.0));
                 
-                // Calculate efficiency: (fraud detected / total calls) * 100
                 if (allCalls.Count > 0)
-                {
                     _stats.ProtectionEfficiency = (fraudCalls.Count / (double)allCalls.Count) * 100;
-                }
                 else
-                {
                     _stats.ProtectionEfficiency = 0;
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[MainPage] Stats loaded: {_stats.BlockedTotal} blocked, {_stats.ProtectionEfficiency:F1}% efficiency");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainPage] Failed to load stats: {ex.Message}");
-                // Keep zero values if API fails
             }
             finally
             {
                 UpdateStatsDisplay();
             }
-        }
-
-        private async Task LoadDashboardStatsAsync()
-        {
-            LoadDashboardStats();
-            await Task.CompletedTask;
         }
 
         private void UpdateStatsDisplay()
@@ -158,36 +139,17 @@ namespace FraudGuardAI
                 ThreatsLabel.Text = _stats.ThreatsDisplay;
                 EfficiencyLabel.Text = _stats.EfficiencyDisplay;
                 
-                // Only show weekly change if we have data
-                if (_stats.WeeklyChange > 0)
-                {
+                WeeklyChangeLabel.IsVisible = _stats.WeeklyChange > 0;
+                if (WeeklyChangeLabel.IsVisible)
                     WeeklyChangeLabel.Text = $"↑ +{_stats.WeeklyChange} tuần này";
-                    WeeklyChangeLabel.IsVisible = true;
-                }
-                else
-                {
-                    WeeklyChangeLabel.IsVisible = false;
-                }
                 
-                if (_stats.EfficiencyChange > 0)
-                {
+                EfficiencyChangeLabel.IsVisible = _stats.EfficiencyChange > 0;
+                if (EfficiencyChangeLabel.IsVisible)
                     EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
-                    EfficiencyChangeLabel.IsVisible = true;
-                }
-                else
-                {
-                    EfficiencyChangeLabel.IsVisible = false;
-                }
                 
-                // Show "Chưa có dữ liệu" if protection is not active OR no calls yet
-                if (!_isProtectionActive || _stats.BlockedTotal == 0)
-                {
-                    BlockRateLabel.Text = "Chưa có dữ liệu";
-                }
-                else
-                {
-                    BlockRateLabel.Text = $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
-                }
+                BlockRateLabel.Text = !_isProtectionActive || _stats.BlockedTotal == 0
+                    ? "Chưa có dữ liệu"
+                    : $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
             });
         }
 
@@ -197,46 +159,29 @@ namespace FraudGuardAI
 
         private async void OnToggleProtectionClicked(object sender, EventArgs e)
         {
-            // Toggle protection on/off
             if (_isProtectionActive)
             {
                 await StopProtectionAsync();
             }
             else
             {
-                // Check permissions first
-                var hasPermissions = await PermissionManager.RequestAllPermissionsAsync();
-                if (!hasPermissions)
+                if (!await PermissionManager.RequestAllPermissionsAsync())
                 {
-                    await DisplayAlert(
-                        "Thiếu quyền",
-                        "Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.",
-                        "OK"
-                    );
+                    await DisplayAlert("Thiếu quyền",
+                        "Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.", "OK");
                     return;
                 }
-                
                 await StartProtectionAsync();
             }
         }
 
         private async void OnReportButtonClicked(object sender, EventArgs e)
         {
-            // Navigate to report page or show dialog
-            string result = await DisplayPromptAsync(
-                "Báo cáo số mới",
-                "Nhập số điện thoại lừa đảo:",
-                "Báo cáo",
-                "Hủy",
-                placeholder: "0912345678",
-                keyboard: Keyboard.Telephone
-            );
+            var result = await DisplayPromptAsync("Báo cáo số mới", "Nhập số điện thoại lừa đảo:",
+                "Báo cáo", "Hủy", placeholder: "0912345678", keyboard: Keyboard.Telephone);
 
             if (!string.IsNullOrEmpty(result))
-            {
                 await DisplayAlert("Thành công", $"Đã báo cáo số {result}", "OK");
-                // TODO: Send report to server
-            }
         }
 
         #endregion
@@ -252,36 +197,26 @@ namespace FraudGuardAI
 
             try
             {
-                // Add timeout for connection attempt
                 var connectionTask = _audioService.StartStreamingAsync();
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
                 var completedTask = await Task.WhenAny(connectionTask, timeoutTask);
                 
-                bool success = false;
-                if (completedTask == connectionTask)
-                {
-                    success = await connectionTask;
-                }
+                bool success = completedTask == connectionTask && await connectionTask;
 
                 if (success)
                 {
                     _isProtectionActive = true;
-                    
-                    // Create new animation token for this session
                     _animationCts?.Cancel();
                     _animationCts = new CancellationTokenSource();
-                    var ct = _animationCts.Token;
 
-                    // Start foreground service (Android)
 #if ANDROID
                     ServiceHelper.StartProtectionService();
 #endif
-
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await AnimateToActiveState();
                         UpdateProtectionUI(true);
-                        _ = PulseAnimation(ct);
+                        _ = PulseAnimation(_animationCts.Token);
                     });
                 }
                 else
@@ -304,30 +239,22 @@ namespace FraudGuardAI
         {
             try
             {
-                // Cancel animations immediately
                 _animationCts?.Cancel();
                 _isProtectionActive = false;
                 
-                // Stop streaming with timeout
                 var stopTask = _audioService.StopStreamingAsync();
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
-                await Task.WhenAny(stopTask, timeoutTask);
+                await Task.WhenAny(stopTask, Task.Delay(TimeSpan.FromSeconds(5)));
 
-                // Stop foreground service (Android)
 #if ANDROID
                 ServiceHelper.StopProtectionService();
 #endif
-
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     UpdateProtectionUI(false);
                     AlertBanner.IsVisible = false;
                 });
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainPage] StopProtectionAsync error: {ex.Message}");
-            }
+            catch { }
         }
 
         private void UpdateProtectionUI(bool isActive, bool connecting = false)
@@ -378,8 +305,7 @@ namespace FraudGuardAI
                     "• Kiểm tra địa chỉ Server trong Cài đặt\n" +
                     "• Đảm bảo server đang chạy\n" +
                     "• Kiểm tra kết nối mạng",
-                    "Thử lại",
-                    "Cài đặt"
+                    "Thử lại", "Cài đặt"
                 );
 
                 if (retry)
@@ -400,51 +326,32 @@ namespace FraudGuardAI
 
         private void OnAlertReceived(object sender, AlertEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Alert received: {e?.Alert?.AlertType}");
-            
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 try
                 {
-                    var alert = e.Alert;
-                    if (alert == null) return;
+                    if (e.Alert == null) return;
                     
-                    double riskScore = alert.Confidence * 100;
+                    double riskScore = e.Alert.Confidence * 100;
                     
-                    // Update stats
                     _stats.BlockedTotal++;
                     _stats.BlockedToday++;
                     if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
-                    {
                         _stats.SeriousThreats++;
-                    }
                     UpdateStatsDisplay();
 
                     if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
-                    {
-                        await HandleHighRiskAlert(alert, riskScore);
-                    }
+                        await HandleHighRiskAlert(e.Alert, riskScore);
                     else
-                    {
-                        await HandleLowRiskAlert(alert, riskScore);
-                    }
+                        await HandleLowRiskAlert(e.Alert, riskScore);
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Alert handling error: {ex.Message}");
-                }
+                catch { }
             });
         }
 
-        private void OnErrorOccurred(object sender, Services.ErrorEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Error: {e.Message}");
-        }
+        private void OnErrorOccurred(object sender, Services.ErrorEventArgs e) { }
 
-        private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.Message}");
-        }
+        private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e) { }
 
         #endregion
 

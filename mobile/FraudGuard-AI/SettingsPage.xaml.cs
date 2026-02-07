@@ -210,16 +210,7 @@ namespace FraudGuardAI
                 UpdateConfigurationDisplay(url);
                 System.Diagnostics.Debug.WriteLine($"[Settings] Configuration saved: {url}");
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Error: {ex.Message}");
-            }
-        }
-
-        private void SaveDeviceID()
-        {
-            // DeviceID is now auto-generated, no longer user-configurable
-            System.Diagnostics.Debug.WriteLine("[Settings] SaveDeviceID called but no longer applicable");
+            catch { }
         }
 
         #endregion
@@ -250,22 +241,12 @@ namespace FraudGuardAI
         {
             try
             {
-                bool isUsbMode = e.Value;
-                Preferences.Set(PREF_USB_MODE, isUsbMode);
-                
-                string displayURL = isUsbMode ? USB_URL : ServerIPEntry?.Text?.Trim() ?? DEFAULT_URL;
+                Preferences.Set(PREF_USB_MODE, e.Value);
+                var displayURL = e.Value ? USB_URL : ServerIPEntry?.Text?.Trim() ?? DEFAULT_URL;
                 UpdateConfigurationDisplay(displayURL);
-                
-                System.Diagnostics.Debug.WriteLine($"[Settings] USB Mode: {isUsbMode}");
-                Console.WriteLine($"[Settings] USB Mode: {isUsbMode}");
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Settings] USB toggle error: {ex.Message}");
-            }
+            catch { }
         }
-
-        // UpdateUIForUsbMode removed - no longer needed with new UI
 
         #endregion
 
@@ -275,30 +256,18 @@ namespace FraudGuardAI
         {
             try
             {
-                // Remove http/https prefix for display if exists
-                string cleanUrl = url.Replace("http://", "").Replace("https://", "");
-                bool isHttps = url.StartsWith("https://");
-                string protocol = isHttps ? "wss" : "ws";
+                var cleanUrl = url.Replace("http://", "").Replace("https://", "");
+                var protocol = url.StartsWith("https://") ? "wss" : "ws";
                 
-                // If URL includes port, use it as is, otherwise add :8080
-                if (cleanUrl.Contains(":"))
+                if (CurrentConfigLabel != null)
                 {
-                    if (CurrentConfigLabel != null)
-                        CurrentConfigLabel.Text = $"{protocol}://{cleanUrl}/ws";
-                }
-                else
-                {
-                    if (CurrentConfigLabel != null)
-                        CurrentConfigLabel.Text = $"{protocol}://{cleanUrl}:8080/ws";
+                    CurrentConfigLabel.Text = cleanUrl.Contains(":")
+                        ? $"{protocol}://{cleanUrl}/ws"
+                        : $"{protocol}://{cleanUrl}:8080/ws";
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Config display error: {ex.Message}");
-            }
+            catch { }
         }
-
-        // ShowStatus removed - using DisplayAlert instead for notifications
 
         #endregion
 
@@ -308,29 +277,20 @@ namespace FraudGuardAI
         {
             try
             {
-                // Get URL based on USB mode
                 bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
                 string serverUrl = isUsbMode ? USB_URL : ServerIPEntry.Text?.Trim();
-                
-                System.Diagnostics.Debug.WriteLine($"[Settings] Testing connection to: {serverUrl} (USB Mode: {isUsbMode})");
-                Console.WriteLine($"[Settings] Testing connection to: {serverUrl} (USB Mode: {isUsbMode})");
 
                 if (string.IsNullOrWhiteSpace(serverUrl))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Settings] Empty URL");
                     await DisplayAlert("Lỗi", "Vui lòng nhập URL server", "OK");
                     return;
                 }
 
-                // Normalize URL
                 string testUrl = serverUrl;
                 if (!testUrl.StartsWith("http://") && !testUrl.StartsWith("https://"))
                 {
-                    // Assume it's an IP, add http:// and port
                     if (IsValidIP(testUrl))
-                    {
                         testUrl = $"http://{testUrl}:8080";
-                    }
                     else
                     {
                         await DisplayAlert("Lỗi", "Định dạng URL không hợp lệ", "OK");
@@ -341,22 +301,12 @@ namespace FraudGuardAI
                 TestButton.IsEnabled = false;
                 TestButton.Text = "Testing...";
 
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(30);  // Increased to 30s for Render cold starts
-
-                // Add /health endpoint
+                using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
                 var healthUrl = testUrl.TrimEnd('/') + "/health";
-                System.Diagnostics.Debug.WriteLine($"[Settings] Requesting: {healthUrl}");
-                Console.WriteLine($"[Settings] Requesting: {healthUrl}");
-                
                 var response = await httpClient.GetAsync(healthUrl);
-                System.Diagnostics.Debug.WriteLine($"[Settings] Response status: {response.StatusCode}");
-                Console.WriteLine($"[Settings] Response status: {response.StatusCode}");
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    System.Diagnostics.Debug.WriteLine($"[Settings] Response: {content}");
                     await DisplayAlert("✅ Thành công", $"Đã kết nối đến server!\n\n{testUrl}", "OK");
                 }
                 else
@@ -366,21 +316,16 @@ namespace FraudGuardAI
             }
             catch (HttpRequestException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] HttpRequestException: {ex.Message}");
                 await DisplayAlert("❌ Kết nối thất bại",
-                    $"Không thể kết nối đến server.\n\nLỗi: {ex.Message}\n\nKiểm tra:\n• URL đúng chưa\n• Server đang chạy\n• Kết nối mạng",
-                    "OK");
+                    $"Không thể kết nối đến server.\n\nLỗi: {ex.Message}\n\nKiểm tra:\n• URL đúng chưa\n• Server đang chạy\n• Kết nối mạng", "OK");
             }
-            catch (TaskCanceledException ex)
+            catch (TaskCanceledException)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Timeout: {ex.Message}");
                 await DisplayAlert("⏱️ Hết thời gian",
-                    "Kết nối đã hết thời gian.\n\nServer có thể:\n• Không chạy\n• Bị firewall chặn\n• URL sai",
-                    "OK");
+                    "Kết nối đã hết thời gian.\n\nServer có thể:\n• Không chạy\n• Bị firewall chặn\n• URL sai", "OK");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] Exception: {ex.Message}");
                 await DisplayAlert("Lỗi", $"Lỗi: {ex.Message}", "OK");
             }
             finally
@@ -507,12 +452,7 @@ namespace FraudGuardAI
         public static string GetServerURL()
         {
             bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            string url = isUsbMode ? USB_URL : Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
-            
-            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetServerURL] USB Mode: {isUsbMode}, Returning: {url}");
-            Console.WriteLine($"[SettingsPage.GetServerURL] USB Mode: {isUsbMode}, Returning: {url}");
-            
-            return url;
+            return isUsbMode ? USB_URL : Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
         }
 
         public static string GetDeviceID() => Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
@@ -521,35 +461,20 @@ namespace FraudGuardAI
 
         public static string GetWebSocketUrl()
         {
-            bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            string baseUrl = isUsbMode ? USB_URL : GetServerURL();
+            var baseUrl = Preferences.Get(PREF_USB_MODE, false) ? USB_URL : GetServerURL();
             
-            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetWebSocketUrl] Base URL: {baseUrl}");
-            Console.WriteLine($"[SettingsPage.GetWebSocketUrl] Base URL: {baseUrl}");
-            
-            // Convert http/https to ws/wss
             if (baseUrl.StartsWith("https://"))
-            {
                 return baseUrl.Replace("https://", "wss://") + "/ws";
-            }
-            else if (baseUrl.StartsWith("http://"))
-            {
+            if (baseUrl.StartsWith("http://"))
                 return baseUrl.Replace("http://", "ws://") + "/ws";
-            }
             
-            // Fallback for malformed URLs
             return $"ws://{baseUrl}:8080/ws";
         }
 
         public static string GetAPIBaseUrl()
         {
             bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            string url = isUsbMode ? USB_URL : GetServerURL();
-            
-            System.Diagnostics.Debug.WriteLine($"[SettingsPage.GetAPIBaseUrl] Returning: {url}");
-            Console.WriteLine($"[SettingsPage.GetAPIBaseUrl] Returning: {url}");
-            
-            return url;
+            return isUsbMode ? USB_URL : GetServerURL();
         }
 
         #endregion
