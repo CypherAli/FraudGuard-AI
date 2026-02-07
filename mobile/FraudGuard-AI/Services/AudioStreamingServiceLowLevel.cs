@@ -52,6 +52,12 @@ namespace FraudGuardAI.Services
 
         public AudioStreamingServiceLowLevel()
         {
+            // Initialize fields to prevent null reference
+            _webSocket = null!;
+            _audioRecord = null!;
+            _cancellationTokenSource = null!;
+            _isStreaming = false;
+            _isConnected = false;
             // URL will be retrieved dynamically from Settings when connecting
         }
 

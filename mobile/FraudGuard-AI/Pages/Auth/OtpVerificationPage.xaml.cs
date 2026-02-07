@@ -5,7 +5,7 @@ namespace FraudGuardAI.Pages.Auth
 {
     public partial class OtpVerificationPage : ContentPage
     {
-        private readonly IAuthenticationService _authService;
+        private readonly IAuthenticationService? _authService;
         private readonly string _verificationId;
         private readonly string _phoneNumber;
         private readonly bool _isRegistration;
@@ -21,9 +21,13 @@ namespace FraudGuardAI.Pages.Auth
             _phoneNumber = phoneNumber;
             _isRegistration = isRegistration;
 
-            // Get authentication service from DI
-            _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                ?? throw new InvalidOperationException("Authentication service not found");
+            // Get authentication service from DI (null-safe)
+            _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+            
+            if (_authService == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[OtpPage] WARNING: AuthService is null");
+            }
 
             // Initialize OTP entries array
             _otpEntries = new[] { Otp1, Otp2, Otp3, Otp4, Otp5, Otp6 };
@@ -88,6 +92,14 @@ namespace FraudGuardAI.Pages.Auth
 
                 Debug.WriteLine($"[OtpVerificationPage] Verifying OTP: {otpCode}");
 
+                // Check if auth service is available
+                if (_authService == null)
+                {
+                    ShowError("Dịch vụ xác thực không khả dụng. Vui lòng khởi động lại ứng dụng.");
+                    SetLoading(false);
+                    return;
+                }
+
                 // Verify OTP
                 var isValid = await _authService.VerifyOtpAsync(_verificationId, otpCode);
 
@@ -135,6 +147,14 @@ namespace FraudGuardAI.Pages.Auth
                 SetLoading(true);
 
                 Debug.WriteLine($"[OtpVerificationPage] Resending OTP to {_phoneNumber}");
+
+                // Check if auth service is available
+                if (_authService == null)
+                {
+                    ShowError("Dịch vụ xác thực không khả dụng. Vui lòng khởi động lại ứng dụng.");
+                    SetLoading(false);
+                    return;
+                }
 
                 // Resend OTP
                 var newVerificationId = await _authService.SendOtpAsync(_phoneNumber);

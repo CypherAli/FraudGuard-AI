@@ -31,8 +31,11 @@ namespace FraudGuardAI.Services
                 _verificationId = null;
 
 #if ANDROID
-                var activity = Platform.CurrentActivity 
-                    ?? throw new InvalidOperationException("Current Activity is null");
+                var activity = Platform.CurrentActivity;
+                if (activity == null)
+                {
+                    throw new InvalidOperationException("Ứng dụng chưa sẵn sàng. Vui lòng thử lại sau vài giây.");
+                }
                 
                 _verificationId = await Platforms.Android.PhoneAuthHandler.SendOtpAsync(phoneNumber, activity);
                 return _verificationId;
