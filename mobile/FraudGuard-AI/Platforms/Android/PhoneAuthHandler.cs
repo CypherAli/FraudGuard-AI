@@ -8,14 +8,12 @@ using Firebase;
 
 namespace FraudGuardAI.Platforms.Android
 {
-    /// <summary>Android Phone Authentication Handler</summary>
     public class PhoneAuthHandler
     {
         private static PhoneAuthProvider.OnVerificationStateChangedCallbacks? _callbacks;
         private static TaskCompletionSource<string>? _verificationTcs;
         private static string? _verificationId;
 
-        /// <summary>Send OTP with Android callbacks</summary>
         public static Task<string> SendOtpAsync(string phoneNumber, AndroidApp.Activity activity)
         {
             _verificationTcs = new TaskCompletionSource<string>();
@@ -24,23 +22,16 @@ namespace FraudGuardAI.Platforms.Android
             _callbacks = new PhoneAuthCallbacks(
                 onCodeSent: (verificationId, token) =>
                 {
-                    Debug.WriteLine($"[PhoneAuth] onCodeSent: {verificationId}");
                     _verificationId = verificationId;
                     _verificationTcs?.TrySetResult(verificationId);
                 },
                 onVerificationCompleted: (credential) =>
                 {
-                    Debug.WriteLine("[PhoneAuth] onVerificationCompleted - Auto-verification");
-                    // Auto-verification happened (SMS auto-retrieval)
-                    var code = credential.SmsCode;
-                    if (!string.IsNullOrEmpty(code))
-                    {
-                        Debug.WriteLine($"[PhoneAuth] Auto-retrieved code: {code}");
-                    }
+                    if (!string.IsNullOrEmpty(credential.SmsCode))
+                        Debug.WriteLine($"[PhoneAuth] Auto-retrieved: {credential.SmsCode}");
                 },
                 onVerificationFailed: (exception) =>
                 {
-                    Debug.WriteLine($"[PhoneAuth] onVerificationFailed: {exception.Message}");
                     _verificationTcs?.TrySetException(exception);
                 }
             );
@@ -57,10 +48,8 @@ namespace FraudGuardAI.Platforms.Android
             return _verificationTcs.Task;
         }
 
-        /// <summary>Get stored verification ID</summary>
         public static string? GetVerificationId() => _verificationId;
 
-        /// <summary>Create credential from verification ID and code</summary>
         public static PhoneAuthCredential GetCredential(string verificationId, string code)
             => PhoneAuthProvider.GetCredential(verificationId, code);
 
