@@ -8,11 +8,11 @@ namespace FraudGuardAI.Services
     public interface IAuthenticationService
     {
         /// <summary>
-        /// Send OTP to phone number
+        /// Send OTP to email
         /// </summary>
-        /// <param name="phoneNumber">Phone number with country code (e.g., +84xxxxxxxxx)</param>
+        /// <param name="email">Email address</param>
         /// <returns>Verification ID for OTP verification</returns>
-        Task<string> SendOtpAsync(string phoneNumber);
+        Task<string> SendOtpAsync(string email);
 
         /// <summary>
         /// Verify OTP code
@@ -23,17 +23,17 @@ namespace FraudGuardAI.Services
         Task<bool> VerifyOtpAsync(string verificationId, string otpCode);
 
         /// <summary>
-        /// Register new user with phone number
+        /// Register new user (not used in email-only flow)
         /// </summary>
-        /// <param name="phoneNumber">Phone number with country code</param>
+        /// <param name="phoneNumber">Legacy parameter</param>
         /// <param name="password">User password (optional, for future use)</param>
         /// <returns>Verification ID for OTP verification</returns>
         Task<string> RegisterAsync(string phoneNumber, string? password = null);
 
         /// <summary>
-        /// Login existing user with phone number
+        /// Login existing user with email
         /// </summary>
-        /// <param name="phoneNumber">Phone number with country code</param>
+        /// <param name="phoneNumber">Email address</param>
         /// <returns>Verification ID for OTP verification</returns>
         Task<string> LoginAsync(string phoneNumber);
 

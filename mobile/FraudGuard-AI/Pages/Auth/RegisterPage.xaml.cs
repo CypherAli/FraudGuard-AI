@@ -76,7 +76,7 @@ namespace FraudGuardAI.Pages.Auth
                 Debug.WriteLine($"[RegisterPage] OTP sent. Verification ID: {verificationId}");
 
                 // Navigate to OTP verification page
-                await Navigation.PushAsync(new OtpVerificationPage(verificationId, phoneNumber, true));
+                await Navigation.PushAsync(new OtpVerificationPage(verificationId, phoneNumber));
             }
             catch (Exception ex)
             {

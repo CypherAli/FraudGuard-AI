@@ -20,9 +20,10 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
 
-        // Register Firebase Authentication Service
+        // Register Email OTP Authentication Service
         builder.Services.AddSingleton<SecureStorageService>();
-        builder.Services.AddSingleton<IAuthenticationService, FirebaseAuthService>();
+        builder.Services.AddSingleton<BrevoEmailService>();
+        builder.Services.AddSingleton<IAuthenticationService, EmailOtpAuthService>();
 
         return builder.Build();
     }

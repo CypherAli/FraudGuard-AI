@@ -5,15 +5,64 @@ namespace FraudGuardAI.Pages.Auth
 {
     public partial class LoginPage : ContentPage
     {
-        private readonly IAuthenticationService _authService;
+        private IAuthenticationService? _authService;
 
         public LoginPage()
         {
             InitializeComponent();
-            
-            // Get authentication service from DI
-            _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>()
-                ?? throw new InvalidOperationException("Authentication service not found");
+
+            // Try resolving auth service. MauiContext may not be ready at this point.
+            _authService = TryResolveAuthService();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Resolve again when the page is on screen.
+            if (_authService == null)
+            {
+                _authService = TryResolveAuthService();
+                if (_authService == null)
+                {
+                    ShowError("Không thể khởi tạo dịch vụ đăng nhập. Vui lòng thử lại sau.");
+                    return;
+                }
+            }
+
+            _ = TryAutoLoginAsync();
+        }
+
+        private async Task TryAutoLoginAsync()
+        {
+            try
+            {
+                if (_authService == null)
+                    return;
+
+                var isAuthenticated = await _authService.IsAuthenticatedAsync();
+                if (isAuthenticated)
+                {
+                    Application.Current!.MainPage = new AppShell();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] Auto-login check failed: {ex.Message}");
+            }
+        }
+
+        private static IAuthenticationService? TryResolveAuthService()
+        {
+            try
+            {
+                return Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] Auth service resolve failed: {ex.Message}");
+                return null;
+            }
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -23,35 +72,40 @@ namespace FraudGuardAI.Pages.Auth
                 // Hide error message
                 ErrorLabel.IsVisible = false;
 
-                // Get phone number
-                var phoneNumber = PhoneEntry.Text?.Trim();
-
-                // Validate input
-                if (string.IsNullOrWhiteSpace(phoneNumber))
+                if (_authService == null)
                 {
-                    ShowError("Vui lòng nhập số điện thoại");
+                    ShowError("Dịch vụ đăng nhập chưa sẵn sàng. Vui lòng thử lại.");
                     return;
                 }
 
-                // Ensure phone number starts with +
-                if (!phoneNumber.StartsWith("+"))
+                // Get email
+                var email = EmailEntry.Text?.Trim();
+
+                // Validate input
+                if (string.IsNullOrWhiteSpace(email))
                 {
-                    // Auto-add +84 for Vietnam if not provided
-                    phoneNumber = "+84" + phoneNumber.TrimStart('0');
+                    ShowError("Vui lòng nhập email");
+                    return;
+                }
+
+                if (!IsValidEmail(email))
+                {
+                    ShowError("Email không hợp lệ");
+                    return;
                 }
 
                 // Show loading
                 SetLoading(true);
 
-                Debug.WriteLine($"[LoginPage] Sending OTP to {phoneNumber}");
+                Debug.WriteLine($"[LoginPage] Sending OTP to {email}");
 
                 // Send OTP
-                var verificationId = await _authService.LoginAsync(phoneNumber);
+                var verificationId = await _authService.LoginAsync(email);
 
                 Debug.WriteLine($"[LoginPage] OTP sent. Verification ID: {verificationId}");
 
                 // Navigate to OTP verification page
-                await Navigation.PushAsync(new OtpVerificationPage(verificationId, phoneNumber, false));
+                await Navigation.PushAsync(new OtpVerificationPage(verificationId, email));
             }
             catch (Exception ex)
             {
@@ -66,8 +120,27 @@ namespace FraudGuardAI.Pages.Auth
 
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
+            if (_authService == null)
+            {
+                ShowError("Dịch vụ đăng nhập chưa sẵn sàng. Vui lòng thử lại.");
+                return;
+            }
+
             // Navigate to register page
             await Navigation.PushAsync(new RegisterPage());
+        }
+
+        private static bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void ShowError(string message)
@@ -81,8 +154,7 @@ namespace FraudGuardAI.Pages.Auth
             LoadingIndicator.IsRunning = isLoading;
             LoadingIndicator.IsVisible = isLoading;
             LoginButton.IsEnabled = !isLoading;
-            RegisterButton.IsEnabled = !isLoading;
-            PhoneEntry.IsEnabled = !isLoading;
+            EmailEntry.IsEnabled = !isLoading;
         }
     }
 }

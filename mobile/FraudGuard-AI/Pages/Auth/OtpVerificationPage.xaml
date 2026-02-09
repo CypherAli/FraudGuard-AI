@@ -31,7 +31,7 @@
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
                 <Label x:Name="PhoneLabel"
-                       Text="Mã OTP đã được gửi đến" 
+                       Text="Mã OTP đã được gửi đến email" 
                        FontSize="14" 
                        TextColor="#8B95A5"
                        HorizontalOptions="Center"/>

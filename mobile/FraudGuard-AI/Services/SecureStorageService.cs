@@ -13,6 +13,9 @@ namespace FraudGuardAI.Services
         private const string KEY_PHONE_NUMBER = "phone_number";
         private const string KEY_DISPLAY_NAME = "display_name";
         private const string KEY_TOKEN_EXPIRY = "token_expiry";
+        private const string KEY_EMAIL = "email";
+        private const string KEY_OTP_CODE = "otp_code";
+        private const string KEY_OTP_EXPIRY = "otp_expiry";
 
         /// <summary>
         /// Save authentication token
@@ -38,6 +41,16 @@ namespace FraudGuardAI.Services
             await SecureStorage.SetAsync(KEY_USER_ID, userId);
             await SecureStorage.SetAsync(KEY_PHONE_NUMBER, phoneNumber);
             await SecureStorage.SetAsync(KEY_DISPLAY_NAME, displayName);
+        }
+
+        public async Task SaveEmailAsync(string email)
+        {
+            await SecureStorage.SetAsync(KEY_EMAIL, email);
+        }
+
+        public async Task<string?> GetEmailAsync()
+        {
+            return await SecureStorage.GetAsync(KEY_EMAIL);
         }
 
         /// <summary>
@@ -109,6 +122,9 @@ namespace FraudGuardAI.Services
             SecureStorage.Remove(KEY_PHONE_NUMBER);
             SecureStorage.Remove(KEY_DISPLAY_NAME);
             SecureStorage.Remove(KEY_TOKEN_EXPIRY);
+            SecureStorage.Remove(KEY_EMAIL);
+            SecureStorage.Remove(KEY_OTP_CODE);
+            SecureStorage.Remove(KEY_OTP_EXPIRY);
         }
 
         /// <summary>
@@ -119,6 +135,29 @@ namespace FraudGuardAI.Services
             var userId = await GetUserIdAsync();
             var token = await GetAuthTokenAsync();
             return !string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(token);
+        }
+
+        public async Task SaveOtpAsync(string otpCode, DateTime expiry)
+        {
+            await SecureStorage.SetAsync(KEY_OTP_CODE, otpCode);
+            await SecureStorage.SetAsync(KEY_OTP_EXPIRY, expiry.ToString("o"));
+        }
+
+        public async Task<string?> GetOtpAsync()
+        {
+            return await SecureStorage.GetAsync(KEY_OTP_CODE);
+        }
+
+        public async Task<DateTime?> GetOtpExpiryAsync()
+        {
+            var expiryStr = await SecureStorage.GetAsync(KEY_OTP_EXPIRY);
+            if (string.IsNullOrEmpty(expiryStr))
+                return null;
+
+            if (DateTime.TryParse(expiryStr, out var expiry))
+                return expiry;
+
+            return null;
         }
     }
 }
