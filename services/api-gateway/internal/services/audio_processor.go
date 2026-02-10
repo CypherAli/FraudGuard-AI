@@ -15,15 +15,9 @@ var (
 	detectorMutex    sync.RWMutex
 )
 
-// Buffer pool to reduce GC pressure from audio chunk allocations
-// Reuse buffers instead of allocating new ones for each chunk
-var audioBufferPool = sync.Pool{
-	New: func() interface{} {
-		// Allocate 8KB buffers (matching BUFFER_SIZE)
-		buf := make([]byte, 8192)
-		return &buf
-	},
-}
+// Note: Buffer pooling for audio chunks should be implemented in the WebSocket handler
+// (hub/client.go) where raw audio data is initially received, not here where we only
+// process the data. This would reduce GC pressure from frequent 8KB allocations.
 
 // GetFraudDetector retrieves or creates a fraud detector for a device
 func GetFraudDetector(deviceID string) *FraudDetector {
