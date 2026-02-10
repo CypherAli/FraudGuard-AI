@@ -1,5 +1,6 @@
 using FraudGuardAI.Services;
 using FraudGuardAI.Pages.Auth;
+using System.Diagnostics;
 
 namespace FraudGuardAI
 {
@@ -9,16 +10,81 @@ namespace FraudGuardAI
         
         public App()
         {
-            InitializeComponent();
-
-            // Initialize shared audio service
-            _audioService = new AudioStreamingServiceLowLevel();
-
-            // Set default page
-            MainPage = new NavigationPage(new LoginPage())
+            try
             {
-                BarBackgroundColor = Color.FromArgb("#0D1B2A"),
-                BarTextColor = Color.FromArgb("#E0E6ED")
+                InitializeComponent();
+
+                // Initialize shared audio service
+                _audioService = new AudioStreamingServiceLowLevel();
+
+                // Set default page with error handling
+                MainPage = new NavigationPage(new LoginPage())
+                {
+                    BarBackgroundColor = Color.FromArgb("#0D1B2A"),
+                    BarTextColor = Color.FromArgb("#E0E6ED")
+                };
+                
+                Debug.WriteLine("[App] ✅ App initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] ❌ CRITICAL ERROR during initialization: {ex.Message}");
+                Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
+                
+                // Show error page instead of black screen
+                MainPage = CreateErrorPage(ex);
+            }
+        }
+        
+        /// <summary>
+        /// Create an error page to show when app fails to initialize
+        /// This prevents the dreaded black screen
+        /// </summary>
+        private static ContentPage CreateErrorPage(Exception ex)
+        {
+            return new ContentPage
+            {
+                BackgroundColor = Color.FromArgb("#0D1B2A"),
+                Content = new VerticalStackLayout
+                {
+                    Padding = 30,
+                    Spacing = 20,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "❌",
+                            FontSize = 64,
+                            HorizontalOptions = LayoutOptions.Center
+                        },
+                        new Label
+                        {
+                            Text = "Lỗi khởi động ứng dụng",
+                            FontSize = 24,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#F87171"),
+                            HorizontalOptions = LayoutOptions.Center
+                        },
+                        new Label
+                        {
+                            Text = ex.Message,
+                            FontSize = 14,
+                            TextColor = Color.FromArgb("#8B9CAF"),
+                            HorizontalOptions = LayoutOptions.Center,
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Button
+                        {
+                            Text = "Khởi động lại",
+                            BackgroundColor = Color.FromArgb("#34D399"),
+                            TextColor = Color.FromArgb("#0D1B2A"),
+                            CornerRadius = 12,
+                            Margin = new Thickness(0, 20, 0, 0),
+                            Command = new Command(() => Application.Current?.Quit())
+                        }
+                    }
+                }
             };
         }
 
