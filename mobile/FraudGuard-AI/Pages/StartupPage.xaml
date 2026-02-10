@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FraudGuardAI.Pages.StartupPage"
+             BackgroundColor="#0D1B2A"
+             Shell.NavBarIsVisible="False">
+
+    <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+        
+        <!-- Logo -->
+        <Label Text="🛡️" 
+               FontSize="80" 
+               HorizontalOptions="Center"/>
+        
+        <Label Text="FraudGuard AI"
+               FontSize="36"
+               FontAttributes="Bold"
+               TextColor="#E0E6ED"
+               HorizontalOptions="Center"/>
+        
+        <Label Text="Đang khởi tạo..."
+               FontSize="16"
+               TextColor="#8B95A5"
+               HorizontalOptions="Center"
+               Margin="0,20,0,0"/>
+        
+        <ActivityIndicator IsRunning="True"
+                          Color="#34D399"
+                          HeightRequest="40"
+                          Margin="0,20,0,0"/>
+        
+        <!-- Status Message -->
+        <Label x:Name="StatusLabel"
+               Text="Đang tải dịch vụ xác thực..."
+               FontSize="14"
+               TextColor="#8B95A5"
+               HorizontalOptions="Center"
+               Margin="0,20,0,0"/>
+        
+        <!-- Error Message -->
+        <Border x:Name="ErrorBorder"
+                IsVisible="False"
+                BackgroundColor="#7F1D1D"
+                Stroke="#F87171"
+                StrokeThickness="1"
+                Padding="16"
+                Margin="0,20,0,0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12"/>
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="8">
+                <Label Text="⚠️ Lỗi khởi động"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="#F87171"
+                       HorizontalOptions="Center"/>
+                <Label x:Name="ErrorLabel"
+                       FontSize="12"
+                       TextColor="#FCA5A5"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Border>
+        
+        <!-- Retry Button -->
+        <Button x:Name="RetryButton"
+                Text="Thử lại"
+                IsVisible="False"
+                BackgroundColor="#34D399"
+                TextColor="#0D1B2A"
+                FontSize="16"
+                FontAttributes="Bold"
+                CornerRadius="12"
+                HeightRequest="50"
+                Margin="0,10,0,0"
+                Clicked="OnRetryClicked"/>
+        
+    </VerticalStackLayout>
+</ContentPage>

@@ -9,25 +9,50 @@ namespace FraudGuardAI.Pages.Auth
 
         public LoginPage()
         {
-            InitializeComponent();
+            try
+            {
+                Debug.WriteLine("[LoginPage] Initializing LoginPage...");
+                InitializeComponent();
+                Debug.WriteLine("[LoginPage] InitializeComponent completed");
 
-            // Try resolving auth service. MauiContext may not be ready at this point.
-            _authService = TryResolveAuthService();
+                // Try resolving auth service. MauiContext may not be ready at this point.
+                _authService = TryResolveAuthService();
+                
+                if (_authService != null)
+                {
+                    Debug.WriteLine("[LoginPage] ✅ Auth service resolved in constructor");
+                }
+                else
+                {
+                    Debug.WriteLine("[LoginPage] ⚠️ Auth service not available yet, will retry in OnAppearing");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] ❌ Error in constructor: {ex.Message}");
+                // Don't throw - let OnAppearing handle the error
+            }
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            Debug.WriteLine("[LoginPage] OnAppearing called");
 
             // Resolve again when the page is on screen.
             if (_authService == null)
             {
+                Debug.WriteLine("[LoginPage] Attempting to resolve auth service in OnAppearing...");
                 _authService = TryResolveAuthService();
+                
                 if (_authService == null)
                 {
-                    ShowError("Không thể khởi tạo dịch vụ đăng nhập. Vui lòng thử lại sau.");
+                    Debug.WriteLine("[LoginPage] ❌ Failed to resolve auth service");
+                    ShowError("Không thể khởi tạo dịch vụ đăng nhập. Vui lòng khởi động lại ứng dụng.");
                     return;
                 }
+                
+                Debug.WriteLine("[LoginPage] ✅ Auth service resolved in OnAppearing");
             }
 
             _ = TryAutoLoginAsync();

@@ -1,4 +1,5 @@
 using FraudGuardAI.Services;
+using FraudGuardAI.Pages;
 using FraudGuardAI.Pages.Auth;
 using System.Diagnostics;
 
@@ -20,14 +21,11 @@ namespace FraudGuardAI
                 // Initializing services in App constructor can cause silent failures
                 // that prevent UI from rendering (black screen)
 
-                // Set default page with error handling
-                MainPage = new NavigationPage(new LoginPage())
-                {
-                    BarBackgroundColor = Color.FromArgb("#0D1B2A"),
-                    BarTextColor = Color.FromArgb("#E0E6ED")
-                };
+                // Use StartupPage to handle initialization with better error handling
+                // This prevents black screen by showing loading state
+                MainPage = new StartupPage();
 
-                Debug.WriteLine("[App] ✅ App initialized successfully with LoginPage");
+                Debug.WriteLine("[App] ✅ App initialized successfully with StartupPage");
             }
             catch (Exception ex)
             {
