@@ -17,7 +17,8 @@ dotnet restore | Out-Null
 
 # Build release APK (single architecture for smaller size)
 Write-Host "[3/4] Building Release APK (ARM64)..." -ForegroundColor Yellow
-dotnet publish -f net8.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
+$androidSdk = "$env:LOCALAPPDATA\Android\Sdk"
+dotnet publish -f net8.0-android -c Release -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64 -p:AndroidSdkDirectory="$androidSdk"
 
 # Find the APK
 Write-Host "[4/4] Packaging..." -ForegroundColor Yellow
@@ -33,22 +34,22 @@ if ($apkPath) {
     Copy-Item $apkPath.FullName -Destination $outputName -Force
     
     Write-Host "`n========================================" -ForegroundColor Green
-    Write-Host "  ✅ BUILD SUCCESSFUL!" -ForegroundColor Green
+    Write-Host "  BUILD SUCCESSFUL!" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host "`nAPK File: $outputName" -ForegroundColor Cyan
     Write-Host "Size: $fileSize MB" -ForegroundColor Yellow
     Write-Host "Location: $(Get-Location)\$outputName" -ForegroundColor White
     
-    Write-Host "`n📱 PHAN PHOI APP:" -ForegroundColor Magenta
+    Write-Host "`nPHAN PHOI APP:" -ForegroundColor Magenta
     Write-Host "1. Upload file APK len Google Drive/Dropbox" -ForegroundColor White
     Write-Host "2. Tao link chia se (Anyone with link)" -ForegroundColor White
     Write-Host "3. Gui link cho nguoi dung" -ForegroundColor White
     Write-Host "4. Nguoi dung download va cai dat" -ForegroundColor White
-    Write-Host "`n⚠️  Luu y: Nguoi dung can bat 'Install from unknown sources'" -ForegroundColor Yellow
+    Write-Host "`nLuu y: Nguoi dung can bat Install from unknown sources" -ForegroundColor Yellow
     
 } else {
     Write-Host "`n========================================" -ForegroundColor Red
-    Write-Host "  ❌ BUILD FAILED!" -ForegroundColor Red
+    Write-Host "  BUILD FAILED!" -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Red
     Write-Host "Khong tim thay APK file. Check errors tren." -ForegroundColor Yellow
 }
