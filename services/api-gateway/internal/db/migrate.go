@@ -20,7 +20,7 @@ func AutoMigrate() error {
 			WHERE tablename = 'blacklists'
 		)
 	`).Scan(&oldTableExists)
-	
+
 	if err == nil && oldTableExists {
 		log.Println("⚠️  Detected old 'blacklists' table (UUID schema)")
 		log.Println("⚠️  Dropping old table to migrate to unified 'blacklist' schema...")
@@ -54,7 +54,7 @@ func AutoMigrate() error {
 	CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status);
 	`
 
-	ctx := context.Background()
+	ctx = context.Background()
 	if _, err := Pool.Exec(ctx, createTableSQL); err != nil {
 		return err
 	}

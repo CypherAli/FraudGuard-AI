@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +55,11 @@ type KeywordMatcher struct {
 	warningKeywords map[string]int
 	// Suspicious phrases (context-based)
 	suspiciousPhrases map[string]int
+	// Negative keywords (reduce score - whitelist for legitimate content)
+	negativeKeywords map[string]int
+	// Negative patterns (regex for detecting obfuscated negative keywords)
+	negativePatterns []*regexp.Regexp
+	negativeScores   []int // Corresponding scores for each pattern
 }
 
 // NewFraudDetector creates a new fraud detector for a session
@@ -94,7 +100,7 @@ func newSessionState(deviceID string) *SessionState {
 
 // initializeKeywordMatcher sets up keyword patterns for fraud detection
 func initializeKeywordMatcher() *KeywordMatcher {
-	return &KeywordMatcher{
+	km := &KeywordMatcher{
 		// Critical keywords - Very high risk (30-50 points each)
 		criticalKeywords: map[string]int{
 			"chuyển tiền":  50,
@@ -171,7 +177,63 @@ func initializeKeywordMatcher() *KeywordMatcher {
 			"thu nhập thêm":          20,
 			"làm việc tại nhà":       15,
 		},
+
+		// Negative keywords - REDUCE score (whitelist for legitimate content)
+		// These indicate the conversation is about entertainment/news, not actual fraud
+		negativeKeywords: map[string]int{
+			"phim":         100, // Movie/film content
+			"phim ảnh":     100,
+			"bộ phim":      100,
+			"rạp chiếu":    90,
+			"truyện":       100, // Story/novel content
+			"tiểu thuyết":  100,
+			"truyện tranh": 100,
+			"truyện ngắn":  90,
+			"tin tức":      80, // News content
+			"bản tin":      80,
+			"thời sự":      80,
+			"báo chí":      70,
+			"sách":         90, // Books
+			"tiểu luận":    70,
+			"giáo dục":     60, // Education
+			"học tập":      50,
+			"giảng dạy":    60,
+			"bài giảng":    60,
+			"thảo luận":    50, // Discussion
+			"phân tích":    40,
+			"nghiên cứu":   50,
+			"diễn viên":    70, // Entertainment industry
+			"đạo diễn":     70,
+			"kịch bản":     70,
+			"câu chuyện":   40,
+			"nội dung":     30,
+			"drama":        60,
+			"series":       60,
+		},
 	}
+
+	// Initialize regex patterns for detecting obfuscated negative keywords
+	// This prevents users from bypassing filters with variations like:
+	// "Ph1m", "P.h.i.m", "P-h-i-m", "PhIm", "ph!m", etc.
+	km.negativePatterns = []*regexp.Regexp{
+		// "Phim" variations
+		regexp.MustCompile(`(?i)p[h\-\. _]*[h1i!][\-\. _]*[i1!][\-\. _]*m`),
+		// "Truyện" variations
+		regexp.MustCompile(`(?i)t[r\-\. _]*[u\-\. _]*[y\-\. _]*[e3ê\-\. _]*[n\-\. _]`),
+		// "Tin tức" variations
+		regexp.MustCompile(`(?i)t[i1!\-\. _]*n[\-\. _]+t[u\-\. _]*[c\-\. _]`),
+		// "Sách" variations
+		regexp.MustCompile(`(?i)s[a@4\-\. _]*[c\-\. _]*h`),
+		// "Diễn viên" variations
+		regexp.MustCompile(`(?i)d[i1!\-\. _]*[e3ê\-\. _]*n[\-\. _]+v[i1!\-\. _]*[e3ê\-\. _]*n`),
+		// "Kịch bản" variations
+		regexp.MustCompile(`(?i)k[i1!\-\. _]*[c\-\. _]*h[\-\. _]+b[a@4\-\. _]*n`),
+	}
+
+	// Corresponding penalty scores for each pattern
+	km.negativeScores = []int{100, 100, 80, 90, 70, 70}
+
+	return km
 }
 
 // AnalyzeText analyzes transcript text for fraud patterns
@@ -196,8 +258,17 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	score, patterns := fd.calculateRiskScore(normalizedText)
 	log.Printf("🔍 [%s] This chunk score: %d, Patterns detected: %v", fd.deviceID, score, patterns)
 
-	// Add to accumulated score
+	// Add to accumulated score (allow negative to reduce total)
 	fd.session.AccumulatedScore += score
+
+	// Clamp accumulated score to minimum 0 (can't go negative)
+	// This is CRITICAL for database constraints and confidence_score calculation
+	if fd.session.AccumulatedScore < 0 {
+		log.Printf("✅ [%s] Accumulated score would be negative (%d), clamping to 0 (legitimate content)",
+			fd.deviceID, fd.session.AccumulatedScore)
+		fd.session.AccumulatedScore = 0
+	}
+
 	fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patterns...)
 
 	// Determine alert level
@@ -314,6 +385,34 @@ func (fd *FraudDetector) calculateRiskScore(text string) (int, []string) {
 		}
 	}
 
+	// Check NEGATIVE keywords (REDUCE score for legitimate content)
+	// This prevents false positives when discussing fraud in movies, books, news, etc.
+	for keyword, penalty := range fd.keywords.negativeKeywords {
+		if strings.Contains(text, keyword) {
+			totalScore -= penalty
+			detectedPatterns = append(detectedPatterns, fmt.Sprintf("WHITELIST: %s (-%d)", keyword, penalty))
+			log.Printf("🟢 [%s] Negative keyword detected (legitimate content): '%s' (-%d points)",
+				fd.deviceID, keyword, penalty)
+		}
+	}
+
+	// Check NEGATIVE patterns (regex-based detection for obfuscated keywords)
+	// This catches variations like "Ph1m", "P.h.i.m", "PhIm", etc.
+	for i, pattern := range fd.keywords.negativePatterns {
+		if pattern.MatchString(text) {
+			penalty := fd.keywords.negativeScores[i]
+			totalScore -= penalty
+			match := pattern.FindString(text)
+			detectedPatterns = append(detectedPatterns, fmt.Sprintf("WHITELIST_REGEX: %s (-%d)", match, penalty))
+			log.Printf("🟢 [%s] Negative pattern matched (obfuscated): '%s' (-%d points)",
+				fd.deviceID, match, penalty)
+		}
+	}
+
+	// NOTE: totalScore can be negative here, which is intentional
+	// The accumulated score will be clamped to 0 in AnalyzeText() after summing
+	// This allows negative keywords to properly reduce the accumulated risk score
+
 	return totalScore, detectedPatterns
 }
 
@@ -354,6 +453,12 @@ func (fd *FraudDetector) ResetSession() {
 func ProcessFraudReport(report models.ReportRequest) {
 	log.Printf("📝 Processing fraud report from device %s: %s (Reason: %s)",
 		report.DeviceID, report.PhoneNumber, report.Reason)
+
+	// Check if DB is available
+	if db.Pool == nil {
+		log.Printf("⚠️  Database not available - cannot process fraud report for %s", report.PhoneNumber)
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -415,6 +520,12 @@ func calculateConfidenceScore(reportCount int) float64 {
 
 // CheckBlacklist checks if a phone number is in the blacklist
 func CheckBlacklist(phoneNumber string) (*models.Blacklist, error) {
+	// Check if DB is available
+	if db.Pool == nil {
+		log.Printf("⚠️  Database not available - cannot check blacklist for %s", phoneNumber)
+		return nil, fmt.Errorf("database not available")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 

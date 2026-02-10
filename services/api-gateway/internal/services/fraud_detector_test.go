@@ -113,9 +113,9 @@ func TestFraudDetector_KeywordMatching(t *testing.T) {
 		{
 			name:          "Critical keyword: mã OTP",
 			text:          "Vui lòng cung cấp mã OTP",
-			expectAlert:   false, // 45 points = below 50 threshold
-			minScore:      40,
-			expectedLevel: "LOW",
+			expectAlert:   true, // 45 points > MEDIUM threshold (40)
+			minScore:      45,
+			expectedLevel: "MEDIUM",
 		},
 		{
 			name:          "Warning keyword: công an",
@@ -222,4 +222,268 @@ func BenchmarkFraudDetector_AnalyzeText(b *testing.B) {
 			detector.ResetSession() // Reset periodically to avoid overflow
 		}
 	}
+}
+
+// TestFraudDetector_NegativeKeywords tests the whitelist/negative keyword functionality
+func TestFraudDetector_NegativeKeywords(t *testing.T) {
+	t.Run("Movie/entertainment content should reduce score", func(t *testing.T) {
+		detector := NewFraudDetector("test-device-negative-001")
+
+		// First add fraud keywords to increase score
+		result1 := detector.AnalyzeText("Cảnh lừa đảo")
+		if result1.RiskScore == 0 {
+			t.Errorf("❌ Error: Score should increase with fraud keyword")
+		}
+		t.Logf("📊 After fraud keyword: Score=%d", result1.RiskScore)
+
+		// Then mention it's from a movie - should reduce score
+		result2 := detector.AnalyzeText("trong phim hành động")
+		t.Logf("📊 After negative keyword: Score=%d (reduced from %d)",
+			result2.RiskScore, result1.RiskScore)
+
+		if result2.RiskScore >= result1.RiskScore {
+			t.Errorf("❌ Error: Score should be reduced after negative keyword. Before: %d, After: %d",
+				result1.RiskScore, result2.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: Negative keyword reduced score by %d points",
+				result1.RiskScore-result2.RiskScore)
+		}
+	})
+
+	t.Run("Story/novel content should reduce score", func(t *testing.T) {
+		detector := NewFraudDetector("test-device-negative-002")
+
+		// Context: discussing fraud in a story
+		result := detector.AnalyzeText("Trong truyện này có cảnh lừa đảo qua điện thoại")
+
+		if result.IsAlert {
+			t.Errorf("❌ Error: Should not trigger alert for story content. Score: %d", result.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: Story content recognized as legitimate (Score: %d)", result.RiskScore)
+		}
+	})
+
+	t.Run("News/journalism content should reduce score", func(t *testing.T) {
+		detector := NewFraudDetector("test-device-negative-003")
+
+		result := detector.AnalyzeText("Tin tức hôm nay: công an bắt đường dây lừa đảo")
+
+		if result.IsAlert {
+			t.Errorf("❌ Error: Should not trigger alert for news content. Score: %d", result.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: News content recognized as legitimate (Score: %d)", result.RiskScore)
+		}
+	})
+
+	t.Run("Score should never go negative", func(t *testing.T) {
+		detector := NewFraudDetector("test-device-negative-004")
+
+		// Only negative keywords, no fraud keywords
+		result := detector.AnalyzeText("Tôi đang xem phim truyện và đọc sách")
+
+		if result.RiskScore < 0 {
+			t.Errorf("❌ Error: Score went negative: %d", result.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: Score clamped to minimum 0 (Score: %d)", result.RiskScore)
+		}
+	})
+}
+
+// TestFraudDetector_ObfuscatedKeywords tests regex-based detection of obfuscated keywords
+func TestFraudDetector_ObfuscatedKeywords(t *testing.T) {
+	testCases := []struct {
+		name        string
+		text        string
+		shouldMatch bool
+		description string
+	}{
+		{
+			name:        "Normal 'phim' keyword",
+			text:        "Đây là một bộ phim hay",
+			shouldMatch: true,
+			description: "Standard keyword should match",
+		},
+		{
+			name:        "Obfuscated 'Ph1m' with number substitution",
+			text:        "Tôi xem Ph1m hành động",
+			shouldMatch: true,
+			description: "Should detect '1' substitution for 'i'",
+		},
+		{
+			name:        "Obfuscated 'P.h.i.m' with dots",
+			text:        "Cảnh trong P.h.i.m này",
+			shouldMatch: true,
+			description: "Should detect dot separation",
+		},
+		{
+			name:        "Obfuscated 'P-h-i-m' with dashes",
+			text:        "Đây là P-h-i-m kinh dị",
+			shouldMatch: true,
+			description: "Should detect dash separation",
+		},
+		{
+			name:        "Obfuscated 'PhIm' with mixed case",
+			text:        "PhIm này rất hay",
+			shouldMatch: true,
+			description: "Should detect case variation",
+		},
+		{
+			name:        "Obfuscated 'ph!m' with symbol",
+			text:        "Xem ph!m này chưa",
+			shouldMatch: true,
+			description: "Should detect symbol substitution",
+		},
+		{
+			name:        "Obfuscated 'truy3n' with number",
+			text:        "Đọc truy3n này hay",
+			shouldMatch: true,
+			description: "Should detect '3' substitution for 'ê'",
+		},
+		{
+			name:        "Obfuscated 't.r.u.y.ê.n' with dots",
+			text:        "Nội dung t.r.u.y.ê.n này",
+			shouldMatch: true,
+			description: "Should detect dot separation in 'truyện'",
+		},
+		{
+			name:        "Normal 'sách' keyword",
+			text:        "Tôi đang đọc sách",
+			shouldMatch: true,
+			description: "Standard keyword should match",
+		},
+		{
+			name:        "Obfuscated 's@ch' with symbol",
+			text:        "Quyển s@ch này hay",
+			shouldMatch: true,
+			description: "Should detect '@' substitution for 'a'",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			detector := NewFraudDetector("test-obfuscation")
+
+			// Test strategy: Add fraud keywords WITHOUT triggering negative patterns
+			// Use keywords that won't accidentally match negative regex
+			detector.AnalyzeText("Ngân hàng yêu cầu xác minh") // +20 points (no negative patterns)
+			scoreBefore := detector.GetCurrentRiskScore()
+
+			if scoreBefore == 0 {
+				t.Errorf("❌ Test setup error: Score should be > 0 after fraud keywords")
+				return
+			}
+
+			// Then add obfuscated negative keyword
+			result := detector.AnalyzeText(tc.text)
+			scoreAfter := result.RiskScore
+
+			if tc.shouldMatch {
+				if scoreAfter < scoreBefore {
+					t.Logf("✅ Test Passed: '%s' - Obfuscated keyword detected (Score: %d -> %d)",
+						tc.description, scoreBefore, scoreAfter)
+				} else {
+					t.Errorf("❌ Error: '%s' - Should detect obfuscated keyword in: '%s' (Score: %d, expected < %d)",
+						tc.description, tc.text, scoreAfter, scoreBefore)
+				}
+			}
+
+			// Reset for next test
+			detector.ResetSession()
+		})
+	}
+}
+
+// TestFraudDetector_RealWorldScenarios tests complete real-world scenarios
+func TestFraudDetector_RealWorldScenarios(t *testing.T) {
+	t.Run("Scenario 1: Movie discussion - should NOT alert", func(t *testing.T) {
+		detector := NewFraudDetector("test-scenario-001")
+
+		transcript := []string{
+			"Mình vừa xem bộ phim về lừa đảo",
+			"Trong phim có cảnh giả danh công an",
+			"Diễn viên đóng vai kẻ lừa đảo rất hay",
+			"Bộ phim cảnh báo về chiêu trò chuyển tiền lừa đảo",
+		}
+
+		var finalResult FraudAnalysisResult
+		for _, text := range transcript {
+			finalResult = detector.AnalyzeText(text)
+		}
+
+		if finalResult.IsAlert {
+			t.Errorf("❌ Error: Movie discussion triggered false alert! Score: %d, Patterns: %v",
+				finalResult.RiskScore, finalResult.Patterns)
+		} else {
+			t.Logf("✅ Test Passed: Movie discussion correctly identified as safe (Score: %d)",
+				finalResult.RiskScore)
+		}
+	})
+
+	t.Run("Scenario 2: News report - should NOT alert", func(t *testing.T) {
+		detector := NewFraudDetector("test-scenario-002")
+
+		// More realistic news report - keep context consistent
+		transcript := []string{
+			"Tin tức mới nhất:",
+			"Theo báo chí, công an vừa triệt phá đường dây lừa đảo",
+			"Thủ đoạn của băng nhóm: giả danh cán bộ ngân hàng",
+			"Báo chí cho biết chúng yêu cầu nạn nhân chuyển tiền và mã OTP",
+		}
+
+		var finalResult FraudAnalysisResult
+		for _, text := range transcript {
+			finalResult = detector.AnalyzeText(text)
+		}
+
+		// With consistent "báo chí" / "tin tức" context, should NOT alert
+		// Negative keywords throughout conversation keep score low
+		if finalResult.IsAlert {
+			t.Errorf("❌ Error: News report with consistent context triggered false alert! Score: %d",
+				finalResult.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: News report correctly identified as safe (Score: %d)",
+				finalResult.RiskScore)
+		}
+	})
+
+	t.Run("Scenario 3: Actual fraud call - SHOULD alert", func(t *testing.T) {
+		detector := NewFraudDetector("test-scenario-003")
+
+		transcript := []string{
+			"Tôi là công an điều tra",
+			"Anh bị tố cáo liên quan đến vụ án rửa tiền",
+			"Cần xác minh ngay, chuyển khoản vào tài khoản này",
+			"Cung cấp mã OTP để hoàn tất thủ tục",
+		}
+
+		var finalResult FraudAnalysisResult
+		for _, text := range transcript {
+			finalResult = detector.AnalyzeText(text)
+		}
+
+		if !finalResult.IsAlert {
+			t.Errorf("❌ Error: Actual fraud call NOT detected! Score: %d",
+				finalResult.RiskScore)
+		} else if finalResult.Action != "CRITICAL" {
+			t.Errorf("❌ Error: Fraud severity incorrect. Expected: CRITICAL, Got: %s (Score: %d)",
+				finalResult.Action, finalResult.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: Actual fraud correctly identified as CRITICAL (Score: %d)",
+				finalResult.RiskScore)
+		}
+	})
+
+	t.Run("Scenario 4: Obfuscated movie discussion - should NOT alert", func(t *testing.T) {
+		detector := NewFraudDetector("test-scenario-004")
+
+		result := detector.AnalyzeText("Trong Ph1m này có cảnh l.ừ.a đ.ả.o qua điện thoại")
+
+		if result.IsAlert {
+			t.Errorf("❌ Error: Obfuscated movie discussion triggered false alert! Score: %d",
+				result.RiskScore)
+		} else {
+			t.Logf("✅ Test Passed: Obfuscated movie discussion correctly handled (Score: %d)",
+				result.RiskScore)
+		}
+	})
 }
