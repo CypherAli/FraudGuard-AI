@@ -16,7 +16,7 @@ import (
 func GetBlacklist(w http.ResponseWriter, r *http.Request) {
 	// Check if DB is available
 	if db.Pool == nil {
-		log.Printf("⚠️  Database not available - cannot fetch blacklist")
+		log.Printf("  Database not available - cannot fetch blacklist")
 		http.Error(w, "Database not available", http.StatusServiceUnavailable)
 		return
 	}

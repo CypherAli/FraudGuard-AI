@@ -20,7 +20,7 @@ func AutoMigrate() error {
 			WHERE tablename = 'blacklists'
 		)
 	`).Scan(&oldTableExists)
-	
+
 	if err == nil && oldTableExists {
 		log.Println("⚠️  Detected old 'blacklists' table (UUID schema)")
 		log.Println("⚠️  Dropping old table to migrate to unified 'blacklist' schema...")
