@@ -67,7 +67,7 @@ func (h *Hub) Run() {
 			// ✅ FIX: Collect failed clients first, then delete under write lock
 			// This prevents data race from delete() under RLock()
 			var failedClients []*Client
-			
+
 			h.mu.RLock()
 			for client := range h.clients {
 				select {

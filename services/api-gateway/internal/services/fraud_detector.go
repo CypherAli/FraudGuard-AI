@@ -359,56 +359,57 @@ func ProcessFraudReport(report models.ReportRequest) {
 	defer cancel()
 
 	// Check if number already exists in blacklist
-	var existingID uuid.UUID
-	var reportCount int
+	var existingID int
+	var reportedCount int
 	err := db.Pool.QueryRow(ctx,
-		"SELECT id, report_count FROM blacklists WHERE phone_number = $1",
+		"SELECT id, reported_count FROM blacklist WHERE phone_number = $1",
 		report.PhoneNumber,
-	).Scan(&existingID, &reportCount)
+	).Scan(&existingID, &reportedCount)
 
 	if err != nil {
 		// Number not in blacklist, insert new entry
+		// IMPORTANT: Don't specify 'id' - SERIAL auto-generates it
 		_, err = db.Pool.Exec(ctx,
-			`INSERT INTO blacklists (phone_number, report_count, risk_level) 
-			 VALUES ($1, 1, 'LOW')`,
-			report.PhoneNumber,
+			`INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) 
+			 VALUES ($1, $2, 0.50, 1, 'active')`,
+			report.PhoneNumber, report.Reason,
 		)
 		if err != nil {
 			log.Printf("❌ Error inserting blacklist entry: %v", err)
 			return
 		}
-		log.Printf("✅ Added %s to blacklist (Risk: LOW)", report.PhoneNumber)
+		log.Printf("✅ Added %s to blacklist (Reason: %s)", report.PhoneNumber, report.Reason)
 	} else {
-		// Number exists, increment report count and update risk level
-		newCount := reportCount + 1
-		newRiskLevel := calculateRiskLevel(newCount)
+		// Number exists, increment report count and update confidence
+		newCount := reportedCount + 1
+		newConfidence := calculateConfidenceScore(newCount)
 
 		_, err = db.Pool.Exec(ctx,
-			`UPDATE blacklists 
-			 SET report_count = $1, risk_level = $2, updated_at = CURRENT_TIMESTAMP 
+			`UPDATE blacklist 
+			 SET reported_count = $1, confidence_score = $2, last_reported_at = NOW(), updated_at = NOW() 
 			 WHERE id = $3`,
-			newCount, newRiskLevel, existingID,
+			newCount, newConfidence, existingID,
 		)
 		if err != nil {
 			log.Printf("❌ Error updating blacklist entry: %v", err)
 			return
 		}
-		log.Printf("✅ Updated %s in blacklist (Reports: %d, Risk: %s)",
-			report.PhoneNumber, newCount, newRiskLevel)
+		log.Printf("✅ Updated %s in blacklist (Reports: %d, Confidence: %.2f)",
+			report.PhoneNumber, newCount, newConfidence)
 	}
 }
 
-// calculateRiskLevel determines risk level based on report count
-func calculateRiskLevel(reportCount int) string {
+// calculateConfidenceScore determines confidence based on report count
+func calculateConfidenceScore(reportCount int) float64 {
 	switch {
 	case reportCount >= 10:
-		return "CRITICAL"
+		return 0.95 // CRITICAL
 	case reportCount >= 5:
-		return "HIGH"
+		return 0.85 // HIGH
 	case reportCount >= 2:
-		return "MEDIUM"
+		return 0.70 // MEDIUM
 	default:
-		return "LOW"
+		return 0.50 // LOW
 	}
 }
 
