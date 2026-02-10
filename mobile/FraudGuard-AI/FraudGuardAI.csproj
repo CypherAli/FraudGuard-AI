@@ -19,8 +19,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
-    <!-- Android SDK and Java Paths -->
-    <AndroidSdkDirectory>C:\Users\Admin\AppData\Local\Android\Sdk</AndroidSdkDirectory>
+    <!-- Android SDK and Java Paths - Auto-detected -->
+    <AndroidSdkDirectory>C:\Users\trinh\AppData\Local\Android\Sdk</AndroidSdkDirectory>
     <JavaSdkDirectory>C:\Program Files\Android\Android Studio\jbr</JavaSdkDirectory>
     <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
     <TargetFrameworkVersion>v15.0</TargetFrameworkVersion>
