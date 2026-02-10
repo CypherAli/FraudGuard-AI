@@ -54,7 +54,7 @@ func AutoMigrate() error {
 	CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status);
 	`
 
-	ctx := context.Background()
+	ctx = context.Background()
 	if _, err := Pool.Exec(ctx, createTableSQL); err != nil {
 		return err
 	}

@@ -355,6 +355,12 @@ func ProcessFraudReport(report models.ReportRequest) {
 	log.Printf("📝 Processing fraud report from device %s: %s (Reason: %s)",
 		report.DeviceID, report.PhoneNumber, report.Reason)
 
+	// Check if DB is available
+	if db.Pool == nil {
+		log.Printf("⚠️  Database not available - cannot process fraud report for %s", report.PhoneNumber)
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -415,6 +421,12 @@ func calculateConfidenceScore(reportCount int) float64 {
 
 // CheckBlacklist checks if a phone number is in the blacklist
 func CheckBlacklist(phoneNumber string) (*models.Blacklist, error) {
+	// Check if DB is available
+	if db.Pool == nil {
+		log.Printf("⚠️  Database not available - cannot check blacklist for %s", phoneNumber)
+		return nil, fmt.Errorf("database not available")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 

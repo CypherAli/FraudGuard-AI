@@ -14,6 +14,13 @@ import (
 
 // GetBlacklist returns the list of blacklisted phone numbers
 func GetBlacklist(w http.ResponseWriter, r *http.Request) {
+	// Check if DB is available
+	if db.Pool == nil {
+		log.Printf("⚠️  Database not available - cannot fetch blacklist")
+		http.Error(w, "Database not available", http.StatusServiceUnavailable)
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
@@ -100,7 +107,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	if err := db.HealthCheck(r.Context()); err != nil {
 		dbStatus = "disconnected"
 		dbError = err.Error()
-		log.Printf("⚠️ [HealthCheck] Database unhealthy: %v", err)
+		log.Printf(" [HealthCheck] Database unhealthy: %v", err)
 
 		// Return 200 OK even if DB is down (service is running)
 		w.Header().Set("Content-Type", "application/json")
