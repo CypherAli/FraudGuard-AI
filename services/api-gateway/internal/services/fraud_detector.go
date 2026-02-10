@@ -620,6 +620,11 @@ func (fd *FraudDetector) EndSession() {
 
 	// Save to database asynchronously to avoid blocking
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("🔥 [%s] Recovered panic in SaveCallLog: %v", fd.deviceID, r)
+			}
+		}()
 		if err := repository.SaveCallLog(callLog); err != nil {
 			log.Printf("❌ [%s] Failed to save call log: %v", fd.deviceID, err)
 		} else {

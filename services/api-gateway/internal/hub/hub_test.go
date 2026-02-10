@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 // TestHubConcurrency tests the Hub's concurrency safety
 func TestHubConcurrency(t *testing.T) {
 	hub := NewHub()
-	go hub.Run()
+	go hub.Run(context.Background())
 
 	// Simulate 100 concurrent client registrations
 	var wg sync.WaitGroup
@@ -42,7 +43,7 @@ func TestHubConcurrency(t *testing.T) {
 // TestHubBroadcast tests the broadcast functionality
 func TestHubBroadcast(t *testing.T) {
 	hub := NewHub()
-	go hub.Run()
+	go hub.Run(context.Background())
 
 	// Create test client
 	client := &Client{

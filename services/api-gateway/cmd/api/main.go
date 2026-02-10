@@ -68,9 +68,11 @@ func main() {
 		log.Println("ℹ Gemini API key configured (not yet integrated)")
 	}
 
-	// Create WebSocket hub
+	// Create WebSocket hub with cancellable context
 	wsHub := hub.NewHub()
-	go wsHub.Run()
+	hubCtx, hubCancel := context.WithCancel(context.Background())
+	defer hubCancel()
+	go wsHub.Run(hubCtx)
 	log.Println(" WebSocket hub started")
 
 	// Setup HTTP router
@@ -117,8 +119,10 @@ func main() {
 		r.Get("/check-session", handlers.CheckSession)
 	})
 
-	// Start OTP cleanup goroutine
-	go handlers.CleanupExpiredOTPs(context.Background())
+	// Start OTP cleanup goroutine with cancellable context
+	otpCtx, otpCancel := context.WithCancel(context.Background())
+	defer otpCancel()
+	go handlers.CleanupExpiredOTPs(otpCtx)
 
 	// Welcome route
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -147,18 +151,23 @@ func main() {
 	}
 
 	// Start server in a goroutine
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Printf(" Server listening on %s", serverAddr)
 		log.Printf(" WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf(" Server failed to start: %v", err)
+			serverErr <- err
 		}
 	}()
 
-	// Graceful shutdown
+	// Wait for shutdown signal or server error
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case <-quit:
+	case err := <-serverErr:
+		log.Printf("Server failed to start: %v", err)
+	}
 
 	log.Println("🛑 Shutting down server...")
 

@@ -18,7 +18,10 @@ public class MainApplication : MauiApplication
     private void OnUnhandledException(object? sender, RaiseThrowableEventArgs e)
     {
         LogCrash("AndroidEnvironment", e.Exception);
-        e.Handled = true; // Ngăn app crash
+        // DO NOT set e.Handled = true here!
+        // Swallowing all exceptions causes black screen because UI rendering exceptions
+        // get silently ignored, preventing MAUI from displaying any content.
+        // Let non-recoverable exceptions crash the app so we can see the real error.
     }
 
     private void OnDomainException(object sender, UnhandledExceptionEventArgs e)
@@ -38,7 +41,18 @@ public class MainApplication : MauiApplication
         {
             var msg = $"[CRASH] {source}: {ex?.Message}\n{ex?.StackTrace}";
             System.Diagnostics.Debug.WriteLine(msg);
-            
+
+            // Log all inner exceptions to find root cause
+            var inner = ex?.InnerException;
+            int depth = 0;
+            while (inner != null && depth < 10)
+            {
+                depth++;
+                System.Diagnostics.Debug.WriteLine($"[CRASH] InnerException[{depth}]: {inner.GetType().FullName}: {inner.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CRASH] InnerStack[{depth}]: {inner.StackTrace}");
+                inner = inner.InnerException;
+            }
+
             // Lưu vào file để xem sau
             var path = System.IO.Path.Combine(FileSystem.AppDataDirectory, "crash_log.txt");
             var content = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}\n\n";

@@ -19,26 +19,17 @@ var (
 // (hub/client.go) where raw audio data is initially received, not here where we only
 // process the data. This would reduce GC pressure from frequent 8KB allocations.
 
-// GetFraudDetector retrieves or creates a fraud detector for a device
+// GetFraudDetector retrieves or creates a fraud detector for a device.
+// Uses write lock throughout to prevent race between read-unlock and use.
 func GetFraudDetector(deviceID string) *FraudDetector {
-	detectorMutex.RLock()
-	detector, exists := detectorRegistry[deviceID]
-	detectorMutex.RUnlock()
-
-	if exists {
-		return detector
-	}
-
-	// Create new detector if doesn't exist
 	detectorMutex.Lock()
 	defer detectorMutex.Unlock()
 
-	// Double-check after acquiring write lock
 	if detector, exists := detectorRegistry[deviceID]; exists {
 		return detector
 	}
 
-	detector = NewFraudDetector(deviceID)
+	detector := NewFraudDetector(deviceID)
 	detectorRegistry[deviceID] = detector
 	log.Printf("🆕 [%s] Created new fraud detector", deviceID)
 	return detector
@@ -90,6 +81,11 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 	// Process asynchronously to not block WebSocket
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("🔥 [%s] Recovered panic in audio processing: %v", deviceID, r)
+			}
+		}()
 		log.Printf("🔄 [%s] Starting async transcription...", deviceID)
 
 		// Step 1: Transcribe audio using Deepgram
