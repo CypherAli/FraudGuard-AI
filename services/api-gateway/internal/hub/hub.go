@@ -64,21 +64,34 @@ func (h *Hub) Run() {
 			h.mu.Unlock()
 
 		case message := <-h.Broadcast:
-			// READ OPERATION: Use RLock() to iterate over the map
-			// This allows multiple concurrent reads while preventing writes
+			// ✅ FIX: Collect failed clients first, then delete under write lock
+			// This prevents data race from delete() under RLock()
+			var failedClients []*Client
+
 			h.mu.RLock()
 			for client := range h.clients {
 				select {
 				case client.send <- message:
 					// Message sent successfully
 				default:
-					// Client's send buffer is full, close the connection
-					close(client.send)
-					delete(h.clients, client)
-					log.Printf(" Client send buffer full, closing: %s", client.deviceID)
+					// Client's send buffer is full, mark for removal
+					failedClients = append(failedClients, client)
 				}
 			}
 			h.mu.RUnlock()
+
+			// Clean up failed clients under write lock
+			if len(failedClients) > 0 {
+				h.mu.Lock()
+				for _, client := range failedClients {
+					if _, ok := h.clients[client]; ok {
+						close(client.send)
+						delete(h.clients, client)
+						log.Printf(" Client send buffer full, closing: %s", client.deviceID)
+					}
+				}
+				h.mu.Unlock()
+			}
 		}
 	}
 }

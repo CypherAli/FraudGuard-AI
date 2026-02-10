@@ -12,12 +12,17 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Blacklists table: Store reported fraudulent phone numbers
-CREATE TABLE IF NOT EXISTS blacklists (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    phone_number VARCHAR(20) UNIQUE NOT NULL,
-    report_count INTEGER DEFAULT 1,
-    risk_level VARCHAR(20) CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')) DEFAULT 'MEDIUM',
+-- Blacklist table: Store reported fraudulent phone numbers (unified schema)
+-- SERIAL = auto-incrementing integer (never manually insert ID values)
+CREATE TABLE IF NOT EXISTS blacklist (
+    id SERIAL PRIMARY KEY,
+    phone_number VARCHAR(20) UNIQUE NOT NULL CHECK (phone_number ~ '^[+0-9]+$'),
+    reason TEXT NOT NULL,
+    confidence_score DECIMAL(3,2) DEFAULT 0.50 CHECK (confidence_score BETWEEN 0 AND 1),
+    reported_count INTEGER DEFAULT 1 CHECK (reported_count >= 0),
+    first_reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -38,8 +43,9 @@ CREATE TABLE IF NOT EXISTS call_logs (
 
 -- Indexes for better query performance
 CREATE INDEX idx_users_device_id ON users(device_id);
-CREATE INDEX idx_blacklists_phone_number ON blacklists(phone_number);
-CREATE INDEX idx_blacklists_risk_level ON blacklists(risk_level);
+CREATE INDEX idx_blacklist_phone_number ON blacklist(phone_number);
+CREATE INDEX idx_blacklist_confidence ON blacklist(confidence_score);
+CREATE INDEX idx_blacklist_status ON blacklist(status);
 CREATE INDEX idx_call_logs_user_id ON call_logs(user_id);
 CREATE INDEX idx_call_logs_phone_number ON call_logs(phone_number);
 CREATE INDEX idx_call_logs_created_at ON call_logs(created_at DESC);
@@ -60,7 +66,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_blacklists_updated_at BEFORE UPDATE ON blacklists
+CREATE TRIGGER update_blacklist_updated_at BEFORE UPDATE ON blacklist
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert sample data for testing
@@ -69,9 +75,9 @@ INSERT INTO users (device_id) VALUES
     ('test-device-002')
 ON CONFLICT (device_id) DO NOTHING;
 
-INSERT INTO blacklists (phone_number, report_count, risk_level) VALUES
-    ('+84123456789', 15, 'HIGH'),
-    ('+84987654321', 3, 'MEDIUM')
+INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status) VALUES
+    ('+84123456789', 'Reported scam caller', 0.95, 15, 'active'),
+    ('+84987654321', 'Suspicious activity', 0.70, 3, 'active')
 ON CONFLICT (phone_number) DO NOTHING;
 
 -- Success message
