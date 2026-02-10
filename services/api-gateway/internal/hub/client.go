@@ -156,21 +156,26 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
+			// ✅ FIX: Send each alert as a SEPARATE WebSocket message
+			// This prevents invalid JSON like {"alert1"}\n{"alert2"}
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-			w.Write(message)
 
-			// Add queued messages to the current websocket message
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
+			// Send any additional queued messages as SEPARATE frames
+			// Mobile app can now parse each message individually
+		drainLoop:
+			for {
+				select {
+				case queuedMsg := <-c.send:
+					c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+					if err := c.conn.WriteMessage(websocket.TextMessage, queuedMsg); err != nil {
+						return
+					}
+				default:
+					// No more queued messages
+					break drainLoop
+				}
 			}
 
 		case <-ticker.C:
