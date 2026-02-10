@@ -7,167 +7,61 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            
+
             <!-- Logo and Title -->
-            <VerticalStackLayout Spacing="10" Margin="0,40,0,30">
+            <VerticalStackLayout Spacing="10" Margin="0,40,0,24">
                 <Label Text="🛡️" FontSize="64" HorizontalOptions="Center"/>
-                <Label Text="FraudGuard AI" 
-                       FontSize="32" 
+                <Label Text="FraudGuard AI"
+                       FontSize="32"
                        FontAttributes="Bold"
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
-                <Label Text="Bảo vệ cuộc gọi của bạn" 
-                       FontSize="16" 
+                <Label Text="Bảo vệ cuộc gọi của bạn"
+                       FontSize="16"
                        TextColor="#8B95A5"
                        HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- Step 1: Email Input -->
-            <VerticalStackLayout x:Name="EmailSection" Spacing="15">
-                
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="20"
-                       HasShadow="False">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="📧 Đăng nhập bằng Email" 
-                               TextColor="#34D399"
+            <!-- Email Login Card -->
+            <Frame BackgroundColor="#152234"
+                   BorderColor="#1E2B3B"
+                   CornerRadius="16"
+                   Padding="16"
+                   HasShadow="False">
+                <VerticalStackLayout Spacing="6">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="✉️" FontSize="18" VerticalOptions="Center"/>
+                        <Label Text="Đăng nhập bằng Email"
                                FontSize="16"
                                FontAttributes="Bold"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Nhập email, chúng tôi sẽ gửi mã OTP 6 số để xác thực" 
-                               TextColor="#8B95A5"
-                               FontSize="14"
-                               HorizontalTextAlignment="Center"/>
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- Email Input -->
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Email của bạn" 
-                           TextColor="#E0E6ED" 
-                           FontSize="14"
-                           FontAttributes="Bold"/>
-                    <Frame BackgroundColor="#1B2838" 
-                           BorderColor="#2D3E50" 
-                           CornerRadius="12" 
-                           Padding="0"
-                           HasShadow="False">
-                        <Entry x:Name="EmailEntry"
-                               Placeholder="example@gmail.com"
-                               PlaceholderColor="#5C6B7A"
-                               TextColor="#E0E6ED"
-                               Keyboard="Email"
-                               FontSize="16"
-                               Margin="15,10"/>
-                    </Frame>
+                               TextColor="#34D399"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                    <Label Text="Nhập email, chúng tôi sẽ gửi mã OTP 6 số để xác thực"
+                           FontSize="12"
+                           TextColor="#8B95A5"/>
                 </VerticalStackLayout>
+            </Frame>
 
-                <!-- Send OTP Button -->
-                <Button x:Name="SendOtpButton"
-                        Text="📨 Gửi mã OTP"
-                        BackgroundColor="#34D399"
-                        TextColor="#0D1B2A"
-                        FontSize="16"
-                        FontAttributes="Bold"
-                        CornerRadius="12"
-                        HeightRequest="56"
-                        Margin="0,10,0,0"
-                        Clicked="OnSendOtpClicked">
-                    <Button.Shadow>
-                        <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
-                    </Button.Shadow>
-                </Button>
-            </VerticalStackLayout>
-
-            <!-- Step 2: OTP Input (hidden initially) -->
-            <VerticalStackLayout x:Name="OtpSection" Spacing="15" IsVisible="False">
-                
-                <Frame BackgroundColor="#065F46" 
-                       BorderColor="#34D399" 
-                       CornerRadius="12" 
-                       Padding="15"
+            <!-- Email Input -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Email của bạn"
+                       TextColor="#E0E6ED"
+                       FontSize="14"
+                       FontAttributes="Bold"/>
+                <Frame BackgroundColor="#1B2838"
+                       BorderColor="#2D3E50"
+                       CornerRadius="12"
+                       Padding="0"
                        HasShadow="False">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="✅ Mã OTP đã được gửi!" 
-                               TextColor="#34D399"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               HorizontalOptions="Center"/>
-                        <Label x:Name="OtpSentToLabel"
-                               Text="Kiểm tra email example@gmail.com" 
-                               TextColor="#A7F3D0"
-                               FontSize="14"
-                               HorizontalTextAlignment="Center"/>
-                    </VerticalStackLayout>
+                    <Entry x:Name="EmailEntry"
+                           Placeholder="example@gmail.com"
+                           PlaceholderColor="#5C6B7A"
+                           TextColor="#E0E6ED"
+                           Keyboard="Email"
+                           FontSize="16"
+                           Margin="15,10"/>
                 </Frame>
-
-                <!-- OTP Input -->
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Nhập mã OTP 6 số" 
-                           TextColor="#E0E6ED" 
-                           FontSize="14"
-                           FontAttributes="Bold"/>
-                    <Frame BackgroundColor="#1B2838" 
-                           BorderColor="#34D399" 
-                           CornerRadius="12" 
-                           Padding="0"
-                           HasShadow="False">
-                        <Entry x:Name="OtpEntry"
-                               Placeholder="000000"
-                               PlaceholderColor="#5C6B7A"
-                               TextColor="#34D399"
-                               Keyboard="Numeric"
-                               FontSize="28"
-                               FontAttributes="Bold"
-                               MaxLength="6"
-                               HorizontalTextAlignment="Center"
-                               Margin="15,15"/>
-                    </Frame>
-                </VerticalStackLayout>
-
-                <!-- Verify OTP Button -->
-                <Button x:Name="VerifyOtpButton"
-                        Text="✓ Xác nhận đăng nhập"
-                        BackgroundColor="#34D399"
-                        TextColor="#0D1B2A"
-                        FontSize="16"
-                        FontAttributes="Bold"
-                        CornerRadius="12"
-                        HeightRequest="56"
-                        Clicked="OnVerifyOtpClicked">
-                    <Button.Shadow>
-                        <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
-                    </Button.Shadow>
-                </Button>
-
-                <!-- Resend & Change Email -->
-                <HorizontalStackLayout HorizontalOptions="Center" Spacing="20">
-                    <Label x:Name="ResendLabel"
-                           Text="🔄 Gửi lại mã"
-                           TextColor="#34D399"
-                           FontSize="14">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnResendOtpClicked"/>
-                        </Label.GestureRecognizers>
-                    </Label>
-                    <Label Text="|" TextColor="#5C6B7A"/>
-                    <Label Text="✏️ Đổi email"
-                           TextColor="#8B95A5"
-                           FontSize="14">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnChangeEmailClicked"/>
-                        </Label.GestureRecognizers>
-                    </Label>
-                </HorizontalStackLayout>
-
-                <!-- Countdown Timer -->
-                <Label x:Name="CountdownLabel"
-                       Text="Mã hết hạn sau: 5:00"
-                       TextColor="#8B95A5"
-                       FontSize="12"
-                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
             <!-- Error Message -->
@@ -177,6 +71,22 @@
                    IsVisible="False"
                    HorizontalOptions="Center"/>
 
+            <!-- Login Button -->
+            <Button x:Name="LoginButton"
+                    Text="Gửi mã OTP"
+                    BackgroundColor="#34D399"
+                    TextColor="#0D1B2A"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    Margin="0,10,0,0"
+                    Clicked="OnLoginClicked">
+                <Button.Shadow>
+                    <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
+                </Button.Shadow>
+            </Button>
+
             <!-- Loading Indicator -->
             <ActivityIndicator x:Name="LoadingIndicator"
                              IsRunning="False"
@@ -185,18 +95,17 @@
                              HeightRequest="40"/>
 
             <!-- Info Text -->
-            <VerticalStackLayout Spacing="10" Margin="0,20,0,0">
-                <Label Text="🔒 Không cần mật khẩu" 
-                       TextColor="#8B95A5" 
+            <VerticalStackLayout Spacing="6" Margin="0,10,0,0">
+                <Label Text="🔒 Không cần mật khẩu"
+                       TextColor="#8B95A5"
                        FontSize="12"
-                       HorizontalTextAlignment="Center"/>
-                <Label Text="📱 Đăng nhập 1 lần, dùng mãi mãi" 
-                       TextColor="#8B95A5" 
+                       HorizontalOptions="Center"/>
+                <Label Text="📱 Đăng nhập 1 lần, dùng mãi mãi"
+                       TextColor="#8B95A5"
                        FontSize="12"
-                       HorizontalTextAlignment="Center"/>
+                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
         </VerticalStackLayout>
     </ScrollView>
-
 </ContentPage>

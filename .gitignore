@@ -22,6 +22,10 @@
 
 # Logs
 *.log
+**/log.txt
 
 # Database
 **/postgres_data/
+
+# Secrets (local only)
+mobile/FraudGuard-AI/Resources/Raw/appsettings.json

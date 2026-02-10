@@ -2,6 +2,10 @@ using System.Text.Json;
 
 namespace FraudGuardAI.Services
 {
+    /// <summary>
+    /// Service for secure storage of authentication tokens and sensitive data
+    /// Uses .NET MAUI SecureStorage API
+    /// </summary>
     public class SecureStorageService
     {
         private const string KEY_AUTH_TOKEN = "auth_token";
@@ -9,13 +13,29 @@ namespace FraudGuardAI.Services
         private const string KEY_PHONE_NUMBER = "phone_number";
         private const string KEY_DISPLAY_NAME = "display_name";
         private const string KEY_TOKEN_EXPIRY = "token_expiry";
+        private const string KEY_EMAIL = "email";
+        private const string KEY_OTP_CODE = "otp_code";
+        private const string KEY_OTP_EXPIRY = "otp_expiry";
 
+        /// <summary>
+        /// Save authentication token
+        /// </summary>
         public async Task SaveAuthTokenAsync(string token)
-            => await SecureStorage.SetAsync(KEY_AUTH_TOKEN, token);
+        {
+            await SecureStorage.SetAsync(KEY_AUTH_TOKEN, token);
+        }
 
+        /// <summary>
+        /// Get authentication token
+        /// </summary>
         public async Task<string?> GetAuthTokenAsync()
-            => await SecureStorage.GetAsync(KEY_AUTH_TOKEN);
+        {
+            return await SecureStorage.GetAsync(KEY_AUTH_TOKEN);
+        }
 
+        /// <summary>
+        /// Save user data
+        /// </summary>
         public async Task SaveUserDataAsync(string userId, string phoneNumber, string displayName)
         {
             await SecureStorage.SetAsync(KEY_USER_ID, userId);
@@ -23,31 +43,78 @@ namespace FraudGuardAI.Services
             await SecureStorage.SetAsync(KEY_DISPLAY_NAME, displayName);
         }
 
+        public async Task SaveEmailAsync(string email)
+        {
+            await SecureStorage.SetAsync(KEY_EMAIL, email);
+        }
+
+        public async Task<string?> GetEmailAsync()
+        {
+            return await SecureStorage.GetAsync(KEY_EMAIL);
+        }
+
+        /// <summary>
+        /// Get user ID
+        /// </summary>
         public async Task<string?> GetUserIdAsync()
-            => await SecureStorage.GetAsync(KEY_USER_ID);
+        {
+            return await SecureStorage.GetAsync(KEY_USER_ID);
+        }
 
+        /// <summary>
+        /// Get phone number
+        /// </summary>
         public async Task<string?> GetPhoneNumberAsync()
-            => await SecureStorage.GetAsync(KEY_PHONE_NUMBER);
+        {
+            return await SecureStorage.GetAsync(KEY_PHONE_NUMBER);
+        }
 
+        /// <summary>
+        /// Get display name
+        /// </summary>
         public async Task<string?> GetDisplayNameAsync()
-            => await SecureStorage.GetAsync(KEY_DISPLAY_NAME);
+        {
+            return await SecureStorage.GetAsync(KEY_DISPLAY_NAME);
+        }
 
+        /// <summary>
+        /// Save token expiry
+        /// </summary>
         public async Task SaveTokenExpiryAsync(DateTime expiry)
-            => await SecureStorage.SetAsync(KEY_TOKEN_EXPIRY, expiry.ToString("o"));
+        {
+            await SecureStorage.SetAsync(KEY_TOKEN_EXPIRY, expiry.ToString("o")); // ISO 8601 format
+        }
 
+        /// <summary>
+        /// Get token expiry
+        /// </summary>
         public async Task<DateTime?> GetTokenExpiryAsync()
         {
             var expiryStr = await SecureStorage.GetAsync(KEY_TOKEN_EXPIRY);
-            return string.IsNullOrEmpty(expiryStr) ? null
-                : DateTime.TryParse(expiryStr, out var expiry) ? expiry : null;
+            if (string.IsNullOrEmpty(expiryStr))
+                return null;
+
+            if (DateTime.TryParse(expiryStr, out var expiry))
+                return expiry;
+
+            return null;
         }
 
+        /// <summary>
+        /// Check if token is valid (not expired)
+        /// </summary>
         public async Task<bool> IsTokenValidAsync()
         {
             var expiry = await GetTokenExpiryAsync();
-            return expiry.HasValue && DateTime.UtcNow < expiry.Value;
+            if (expiry == null)
+                return false;
+
+            return DateTime.UtcNow < expiry.Value;
         }
 
+        /// <summary>
+        /// Clear all stored data (logout)
+        /// </summary>
         public void ClearAll()
         {
             SecureStorage.Remove(KEY_AUTH_TOKEN);
@@ -55,13 +122,42 @@ namespace FraudGuardAI.Services
             SecureStorage.Remove(KEY_PHONE_NUMBER);
             SecureStorage.Remove(KEY_DISPLAY_NAME);
             SecureStorage.Remove(KEY_TOKEN_EXPIRY);
+            SecureStorage.Remove(KEY_EMAIL);
+            SecureStorage.Remove(KEY_OTP_CODE);
+            SecureStorage.Remove(KEY_OTP_EXPIRY);
         }
 
+        /// <summary>
+        /// Check if user data exists (for auto-login)
+        /// </summary>
         public async Task<bool> HasUserDataAsync()
         {
             var userId = await GetUserIdAsync();
             var token = await GetAuthTokenAsync();
             return !string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(token);
+        }
+
+        public async Task SaveOtpAsync(string otpCode, DateTime expiry)
+        {
+            await SecureStorage.SetAsync(KEY_OTP_CODE, otpCode);
+            await SecureStorage.SetAsync(KEY_OTP_EXPIRY, expiry.ToString("o"));
+        }
+
+        public async Task<string?> GetOtpAsync()
+        {
+            return await SecureStorage.GetAsync(KEY_OTP_CODE);
+        }
+
+        public async Task<DateTime?> GetOtpExpiryAsync()
+        {
+            var expiryStr = await SecureStorage.GetAsync(KEY_OTP_EXPIRY);
+            if (string.IsNullOrEmpty(expiryStr))
+                return null;
+
+            if (DateTime.TryParse(expiryStr, out var expiry))
+                return expiry;
+
+            return null;
         }
     }
 }

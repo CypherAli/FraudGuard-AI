@@ -5,41 +5,60 @@ namespace FraudGuardAI.Pages.Auth
 {
     public partial class OtpVerificationPage : ContentPage
     {
-        private readonly IAuthenticationService? _authService;
-        private readonly string _verificationId;
-        private readonly string _phoneNumber;
-        private readonly bool _isRegistration;
+        private IAuthenticationService? _authService;
+        private string _verificationId;
+        private readonly string _email;
         private System.Timers.Timer? _resendTimer;
         private int _resendCountdown = 60;
         private Entry[] _otpEntries;
 
-        public OtpVerificationPage(string verificationId, string phoneNumber, bool isRegistration)
+        public OtpVerificationPage(string verificationId, string email)
         {
             InitializeComponent();
             
             _verificationId = verificationId;
-            _phoneNumber = phoneNumber;
-            _isRegistration = isRegistration;
+            _email = email;
 
-            // Get authentication service from DI (null-safe)
-            _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
-            
-            if (_authService == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[OtpPage] WARNING: AuthService is null");
-            }
+            _authService = TryResolveAuthService();
 
             // Initialize OTP entries array
             _otpEntries = new[] { Otp1, Otp2, Otp3, Otp4, Otp5, Otp6 };
 
             // Set phone number label
-            PhoneNumberLabel.Text = _phoneNumber;
+            PhoneNumberLabel.Text = _email;
 
             // Start resend countdown
             StartResendCountdown();
 
             // Auto-focus first entry
             Otp1.Focus();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            if (_authService == null)
+            {
+                _authService = TryResolveAuthService();
+                if (_authService == null)
+                {
+                    ShowError("Không thể khởi tạo dịch vụ xác thực. Vui lòng thử lại sau.");
+                }
+            }
+        }
+
+        private static IAuthenticationService? TryResolveAuthService()
+        {
+            try
+            {
+                return Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[OtpVerificationPage] Auth service resolve failed: {ex.Message}");
+                return null;
+            }
         }
 
         private void OnOtpDigitChanged(object sender, TextChangedEventArgs e)
@@ -77,6 +96,12 @@ namespace FraudGuardAI.Pages.Auth
                 // Hide error message
                 ErrorLabel.IsVisible = false;
 
+                if (_authService == null)
+                {
+                    ShowError("Dịch vụ xác thực chưa sẵn sàng. Vui lòng thử lại.");
+                    return;
+                }
+
                 // Get OTP code
                 var otpCode = string.Concat(_otpEntries.Select(entry => entry.Text ?? ""));
 
@@ -92,25 +117,12 @@ namespace FraudGuardAI.Pages.Auth
 
                 Debug.WriteLine($"[OtpVerificationPage] Verifying OTP: {otpCode}");
 
-                // Check if auth service is available
-                if (_authService == null)
-                {
-                    ShowError("Dịch vụ xác thực không khả dụng. Vui lòng khởi động lại ứng dụng.");
-                    SetLoading(false);
-                    return;
-                }
-
                 // Verify OTP
                 var isValid = await _authService.VerifyOtpAsync(_verificationId, otpCode);
 
                 if (isValid)
                 {
                     Debug.WriteLine("[OtpVerificationPage] OTP verified successfully");
-
-                    // Show success message
-                    await DisplayAlert("Thành công", 
-                        _isRegistration ? "Đăng ký thành công!" : "Đăng nhập thành công!", 
-                        "OK");
 
                     // Navigate to main app
                     Application.Current!.MainPage = new AppShell();
@@ -146,25 +158,21 @@ namespace FraudGuardAI.Pages.Auth
                 // Show loading
                 SetLoading(true);
 
-                Debug.WriteLine($"[OtpVerificationPage] Resending OTP to {_phoneNumber}");
+                Debug.WriteLine($"[OtpVerificationPage] Resending OTP to {_email}");
 
-                // Check if auth service is available
+                // Resend OTP
                 if (_authService == null)
                 {
-                    ShowError("Dịch vụ xác thực không khả dụng. Vui lòng khởi động lại ứng dụng.");
-                    SetLoading(false);
+                    ShowError("Dịch vụ xác thực chưa sẵn sàng. Vui lòng thử lại.");
                     return;
                 }
 
-                // Resend OTP
-                var newVerificationId = await _authService.SendOtpAsync(_phoneNumber);
+                var newVerificationId = await _authService.SendOtpAsync(_email);
 
                 Debug.WriteLine($"[OtpVerificationPage] OTP resent. New Verification ID: {newVerificationId}");
 
                 // Update verification ID
-                typeof(OtpVerificationPage)
-                    .GetField("_verificationId", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.SetValue(this, newVerificationId);
+                _verificationId = newVerificationId;
 
                 // Clear OTP entries
                 foreach (var entry in _otpEntries)
