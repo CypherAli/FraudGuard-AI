@@ -12,10 +12,13 @@ namespace FraudGuardAI
         {
             try
             {
+                Debug.WriteLine("[App] Initializing App...");
                 InitializeComponent();
+                Debug.WriteLine("[App] InitializeComponent() completed");
 
-                // Initialize shared audio service
-                _audioService = new AudioStreamingServiceLowLevel();
+                // DO NOT initialize AudioService here - defer to when it's actually needed
+                // Initializing services in App constructor can cause silent failures
+                // that prevent UI from rendering (black screen)
 
                 // Set default page with error handling
                 MainPage = new NavigationPage(new LoginPage())
@@ -23,14 +26,14 @@ namespace FraudGuardAI
                     BarBackgroundColor = Color.FromArgb("#0D1B2A"),
                     BarTextColor = Color.FromArgb("#E0E6ED")
                 };
-                
-                Debug.WriteLine("[App] ✅ App initialized successfully");
+
+                Debug.WriteLine("[App] ✅ App initialized successfully with LoginPage");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[App] ❌ CRITICAL ERROR during initialization: {ex.Message}");
                 Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
-                
+
                 // Show error page instead of black screen
                 MainPage = CreateErrorPage(ex);
             }
@@ -89,13 +92,15 @@ namespace FraudGuardAI
         }
 
         /// <summary>
-        /// Get shared audio service instance (singleton pattern)
+        /// Get shared audio service instance (lazy singleton pattern)
         /// This ensures connection persists across tab navigation
+        /// Audio service is only created when first needed, not at app startup
         /// </summary>
         public static AudioStreamingServiceLowLevel GetAudioService()
         {
             if (_audioService == null)
             {
+                Debug.WriteLine("[App] Creating AudioStreamingServiceLowLevel (lazy init)");
                 _audioService = new AudioStreamingServiceLowLevel();
             }
             return _audioService;
