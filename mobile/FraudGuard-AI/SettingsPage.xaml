@@ -200,9 +200,9 @@
                         
                         <!-- Language Selector -->
                         <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                            <Border.GestureRecognizers>
+                            <Grid.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnLanguageClicked"/>
-                            </Border.GestureRecognizers>
+                            </Grid.GestureRecognizers>
                             
                             <Border WidthRequest="36" HeightRequest="36"
                                    BackgroundColor="#FBBF2420"

@@ -14,6 +14,7 @@ namespace FraudGuardAI
         private HistoryService _historyService;
         private ObservableCollection<CallLog> _callLogs;
         private bool _isRefreshing;
+        private Command? _refreshCommand;
 
         #endregion
 
@@ -36,6 +37,15 @@ namespace FraudGuardAI
             {
                 _isRefreshing = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public Command RefreshCommand
+        {
+            get
+            {
+                _refreshCommand ??= new Command(async () => await RefreshAsync());
+                return _refreshCommand;
             }
         }
 
@@ -174,7 +184,7 @@ namespace FraudGuardAI
             await LoadHistoryAsync();
         }
 
-        public async Task RefreshCommand()
+        private async Task RefreshAsync()
         {
             IsRefreshing = true;
             await LoadHistoryAsync();

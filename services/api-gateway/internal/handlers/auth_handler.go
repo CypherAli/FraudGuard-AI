@@ -261,15 +261,17 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func generateSessionToken(email string) string {
+func generateSessionToken(_ string) string {
 	// Simple token generation (use JWT in production)
+	// Note: email parameter reserved for future JWT implementation
 	b := make([]byte, 32)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }
 
-func generateUserID(email string) string {
+func generateUserID(_ string) string {
 	// Simple user ID from email hash
+	// Note: email parameter reserved for future hash-based ID generation
 	b := make([]byte, 8)
 	rand.Read(b)
 	return fmt.Sprintf("user_%x", b)

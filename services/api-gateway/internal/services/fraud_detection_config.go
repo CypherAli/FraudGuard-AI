@@ -108,3 +108,35 @@ func (c *FraudDetectionConfig) Validate() error {
 
 	return nil
 }
+
+// ConservativeConfig returns a conservative configuration with higher thresholds
+// Less sensitive - requires stronger fraud signals before alerting
+func ConservativeConfig() *FraudDetectionConfig {
+	return &FraudDetectionConfig{
+		LowThreshold:        30,
+		MediumThreshold:     65,
+		HighThreshold:       85,
+		CriticalThreshold:   100,
+		MaxAlertsPerSession: 10,
+		AlertCooldownMs:     2000,
+		MaxAudioAgeSeconds:  5,
+		MaxBufferSize:       32768,
+		ProcessIntervalMs:   2000,
+	}
+}
+
+// AggressiveConfig returns an aggressive configuration with lower thresholds
+// More sensitive - alerts on weaker fraud signals
+func AggressiveConfig() *FraudDetectionConfig {
+	return &FraudDetectionConfig{
+		LowThreshold:        15,
+		MediumThreshold:     35,
+		HighThreshold:       60,
+		CriticalThreshold:   80,
+		MaxAlertsPerSession: 10,
+		AlertCooldownMs:     2000,
+		MaxAudioAgeSeconds:  5,
+		MaxBufferSize:       32768,
+		ProcessIntervalMs:   2000,
+	}
+}
