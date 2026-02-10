@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.StartupPage"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              BackgroundColor="#0D1B2A"
              Shell.NavBarIsVisible="False">
 
@@ -12,17 +13,17 @@
                FontSize="80" 
                HorizontalOptions="Center"/>
         
-        <Label Text="FraudGuard AI"
+       <Label Text="{loc:Translate Key=Login_Title}"
                FontSize="36"
                FontAttributes="Bold"
                TextColor="#E0E6ED"
                HorizontalOptions="Center"/>
         
-        <Label Text="Đang khởi tạo..."
-               FontSize="16"
+        <Label FontSize="16"
                TextColor="#8B95A5"
                HorizontalOptions="Center"
-               Margin="0,20,0,0"/>
+               Margin="0,20,0,0"
+               Text="{loc:Translate Key=Startup_Initializing}"/>
         
         <ActivityIndicator IsRunning="True"
                           Color="#34D399"
@@ -31,7 +32,7 @@
         
         <!-- Status Message -->
         <Label x:Name="StatusLabel"
-               Text="Đang tải dịch vụ xác thực..."
+               Text="{loc:Translate Key=Startup_LoadingAuth}"
                FontSize="14"
                TextColor="#8B95A5"
                HorizontalOptions="Center"
@@ -49,7 +50,7 @@
                 <RoundRectangle CornerRadius="12"/>
             </Border.StrokeShape>
             <VerticalStackLayout Spacing="8">
-                <Label Text="⚠️ Lỗi khởi động"
+                <Label Text="{loc:Translate Key=Startup_ErrorTitle}"
                        FontSize="16"
                        FontAttributes="Bold"
                        TextColor="#F87171"
@@ -63,7 +64,7 @@
         
         <!-- Retry Button -->
         <Button x:Name="RetryButton"
-                Text="Thử lại"
+              Text="{loc:Translate Key=Startup_Retry}"
                 IsVisible="False"
                 BackgroundColor="#34D399"
                 TextColor="#0D1B2A"
@@ -76,3 +77,4 @@
         
     </VerticalStackLayout>
 </ContentPage>
+

@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.MainPage"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
@@ -20,10 +21,10 @@
                                HorizontalOptions="Center" 
                                VerticalOptions="Center"/>
                     </Border>
-                    <Label Text="CallGuard" 
+                          <Label Text="FraudGuard AI" 
                            FontSize="20" 
                            FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
+                           TextColor="{DynamicResource TextPrimary}"
                            VerticalOptions="Center"/>
                 </HorizontalStackLayout>
                 
@@ -38,25 +39,24 @@
                     </Border.StrokeShape>
                 </Border>
                 
-                <Label Grid.Column="2" Text="☰" FontSize="24" 
-                       TextColor="{StaticResource TextSecondary}"
-                       VerticalOptions="Center"/>
+                  <Label Grid.Column="2"
+                      IsVisible="False"/>
             </Grid>
             
             <!-- Title Section -->
             <VerticalStackLayout Grid.Row="1" Spacing="4" Margin="0,16,0,16">
-                <Label Text="Bảng điều khiển"
-                       FontSize="28"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"/>
+                  <Label FontSize="28"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextPrimary}"
+                      Text="{loc:Translate Key=Main_Dashboard}"/>
                 
-                <Label Text="Theo dõi và quản lý các cuộc gọi lừa đảo"
-                       FontSize="14"
-                       TextColor="{StaticResource TextSecondary}"/>
+                  <Label FontSize="14"
+                      TextColor="{DynamicResource TextSecondary}"
+                      Text="{loc:Translate Key=Main_DashboardSubtitle}"/>
                 
                 <!-- Report Button -->
                 <Button x:Name="ReportButton"
-                        Text="+ Báo cáo số mới"
+                    Text="{loc:Translate Key=Main_ReportNumber}"
                         FontSize="14"
                         FontAttributes="Bold"
                         BackgroundColor="{StaticResource OrangeIcon}"
@@ -71,7 +71,7 @@
             
             <!-- Protection Status Card -->
             <Border Grid.Row="2" 
-                    BackgroundColor="{StaticResource CardBg}"
+                    BackgroundColor="{DynamicResource CardBg}"
                     StrokeThickness="0"
                     Padding="24"
                     Margin="0,8,0,16">
@@ -100,35 +100,37 @@
                         
                         <Grid>
                             <Label x:Name="ProtectionIconLabel"
-                                   Text="🛡️" 
+                                   Text="✓"
                                    FontSize="32"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"/>
                         </Grid>
                     </Border>
                     
                     <Label x:Name="ProtectionStatusLabel"
-                           Text="Đã tắt"
+                              Text="{loc:Translate Key=Main_ProtectionOff}"
                            FontSize="12"
-                           TextColor="{StaticResource TextSecondary}"
+                           TextColor="{DynamicResource TextSecondary}"
                            HorizontalOptions="Center"/>
                     
                     <Label x:Name="StatusLabel"
-                           Text="Chưa kích hoạt"
+                              Text="{loc:Translate Key=Main_ProtectionInactive}"
                            FontSize="18"
                            FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
+                           TextColor="{DynamicResource TextPrimary}"
                            HorizontalOptions="Center"/>
                     
                     <Label x:Name="BlockRateLabel"
-                           Text="Chưa có dữ liệu"
+                              Text="{loc:Translate Key=Main_NoData}"
                            FontSize="14"
-                           TextColor="{StaticResource TextSecondary}"
+                           TextColor="{DynamicResource TextSecondary}"
                            HorizontalOptions="Center"/>
                     
                     <!-- Toggle Protection Button -->
                     <Button x:Name="ToggleProtectionButton"
-                            Text="Kích hoạt bảo vệ"
+                            Text="{loc:Translate Key=Main_EnableProtection}"
                             FontSize="14"
                             FontAttributes="Bold"
                             BackgroundColor="{StaticResource CyanAccent}"
@@ -152,7 +154,7 @@
                 
                 <!-- Card 1: Số đã chặn -->
                 <Border Grid.Row="0" Grid.Column="0"
-                        BackgroundColor="{StaticResource StatCardBg}"
+                        BackgroundColor="{DynamicResource StatCardBg}"
                         StrokeThickness="0"
                         Padding="16">
                     <Border.StrokeShape>
@@ -161,28 +163,17 @@
                     
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                         <HorizontalStackLayout Spacing="8">
-                            <Label Text="SỐ ĐÃ CHẶN"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"/>
-                            <Border WidthRequest="28" HeightRequest="28"
-                                    BackgroundColor="{StaticResource OrangeIcon}"
-                                    StrokeThickness="0"
-                                    HorizontalOptions="End">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8"/>
-                                </Border.StrokeShape>
-                                <Label Text="🚫" FontSize="14"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
+                            <Label FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="{DynamicResource TextSecondary}"
+                                Text="{loc:Translate Key=Main_BlockedCount}"/>
                         </HorizontalStackLayout>
                         
                         <Label Grid.Row="1" x:Name="BlockedTotalLabel"
                                Text="0"
                                FontSize="36"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"/>
+                               TextColor="{DynamicResource TextPrimary}"/>
                         
                         <Label Grid.Row="2" x:Name="WeeklyChangeLabel"
                                Text=""
@@ -194,7 +185,7 @@
                 
                 <!-- Card 2: Chặn hôm nay -->
                 <Border Grid.Row="0" Grid.Column="1"
-                        BackgroundColor="{StaticResource StatCardBg}"
+                        BackgroundColor="{DynamicResource StatCardBg}"
                         StrokeThickness="0"
                         Padding="16">
                     <Border.StrokeShape>
@@ -203,34 +194,23 @@
                     
                     <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                         <HorizontalStackLayout Spacing="8">
-                            <Label Text="CHẶN HÔM NAY"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"/>
-                            <Border WidthRequest="28" HeightRequest="28"
-                                    BackgroundColor="{StaticResource BlueIcon}"
-                                    StrokeThickness="0"
-                                    HorizontalOptions="End">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8"/>
-                                </Border.StrokeShape>
-                                <Label Text="📞" FontSize="14"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
+                            <Label FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="{DynamicResource TextSecondary}"
+                                Text="{loc:Translate Key=Main_BlockedToday}"/>
                         </HorizontalStackLayout>
                         
                         <Label Grid.Row="1" x:Name="BlockedTodayLabel"
                                Text="0"
                                FontSize="36"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"/>
+                               TextColor="{DynamicResource TextPrimary}"/>
                     </Grid>
                 </Border>
                 
                 <!-- Card 3: Mối đe dọa nghiêm trọng -->
                 <Border Grid.Row="1" Grid.Column="0"
-                        BackgroundColor="{StaticResource StatCardBg}"
+                        BackgroundColor="{DynamicResource StatCardBg}"
                         StrokeThickness="0"
                         Padding="16">
                     <Border.StrokeShape>
@@ -239,35 +219,24 @@
                     
                     <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                         <HorizontalStackLayout Spacing="8">
-                            <Label Text="MỐI ĐE DỌA NGHIÊM TRỌNG"
-                                   FontSize="10"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"
-                                   LineBreakMode="TailTruncation"/>
-                            <Border WidthRequest="28" HeightRequest="28"
-                                    BackgroundColor="{StaticResource RedIcon}"
-                                    StrokeThickness="0"
-                                    HorizontalOptions="End">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8"/>
-                                </Border.StrokeShape>
-                                <Label Text="⚠" FontSize="14"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
+                            <Label FontSize="10"
+                                FontAttributes="Bold"
+                                TextColor="{DynamicResource TextSecondary}"
+                                LineBreakMode="TailTruncation"
+                                Text="{loc:Translate Key=Main_SevereThreats}"/>
                         </HorizontalStackLayout>
                         
                         <Label Grid.Row="1" x:Name="ThreatsLabel"
                                Text="0"
                                FontSize="36"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"/>
+                               TextColor="{DynamicResource TextPrimary}"/>
                     </Grid>
                 </Border>
                 
                 <!-- Card 4: Hiệu quả bảo vệ -->
                 <Border Grid.Row="1" Grid.Column="1"
-                        BackgroundColor="{StaticResource StatCardBg}"
+                        BackgroundColor="{DynamicResource StatCardBg}"
                         StrokeThickness="0"
                         Padding="16">
                     <Border.StrokeShape>
@@ -276,28 +245,17 @@
                     
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                         <HorizontalStackLayout Spacing="8">
-                            <Label Text="HIỆU QUẢ BẢO VỆ"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"/>
-                            <Border WidthRequest="28" HeightRequest="28"
-                                    BackgroundColor="{StaticResource BlueIcon}"
-                                    StrokeThickness="0"
-                                    HorizontalOptions="End">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8"/>
-                                </Border.StrokeShape>
-                                <Label Text="📈" FontSize="14"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
+                            <Label FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="{DynamicResource TextSecondary}"
+                                Text="{loc:Translate Key=Main_Effectiveness}"/>
                         </HorizontalStackLayout>
                         
                         <Label Grid.Row="1" x:Name="EfficiencyLabel"
                                Text="0%"
                                FontSize="32"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"/>
+                               TextColor="{DynamicResource TextPrimary}"/>
                         
                         <Label Grid.Row="2" x:Name="EfficiencyChangeLabel"
                                Text=""
@@ -310,24 +268,24 @@
             
             <!-- Recent Calls Section -->
             <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,8,0,12">
-                <Label Text="Cuộc gọi gần đây"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       VerticalOptions="Center"/>
+                  <Label FontSize="16"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextPrimary}"
+                      VerticalOptions="Center"
+                      Text="{loc:Translate Key=Main_RecentCalls}"/>
                 
                 <HorizontalStackLayout Grid.Column="1" Spacing="4">
                     <Label Text="🕐" FontSize="12" VerticalOptions="Center"/>
-                    <Label Text="Hôm nay"
-                           FontSize="13"
-                           TextColor="{StaticResource TextSecondary}"
-                           VerticalOptions="Center"/>
+                          <Label FontSize="13"
+                              TextColor="{DynamicResource TextSecondary}"
+                              VerticalOptions="Center"
+                              Text="{loc:Translate Key=Main_Today}"/>
                 </HorizontalStackLayout>
             </Grid>
             
             <!-- Recent Calls List (Placeholder) -->
             <VerticalStackLayout Grid.Row="5" x:Name="RecentCallsContainer">
-                <Border BackgroundColor="{StaticResource StatCardBg}"
+                <Border BackgroundColor="{DynamicResource StatCardBg}"
                         StrokeThickness="0"
                         Padding="16">
                     <Border.StrokeShape>
@@ -335,11 +293,10 @@
                     </Border.StrokeShape>
                     
                     <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                        <Label Text="📱" FontSize="32" HorizontalOptions="Center"/>
-                        <Label Text="Chưa có cuộc gọi nào"
-                               FontSize="14"
-                               TextColor="{StaticResource TextSecondary}"
-                               HorizontalOptions="Center"/>
+                        <Label FontSize="14"
+                               TextColor="{DynamicResource TextSecondary}"
+                               HorizontalOptions="Center"
+                               Text="{loc:Translate Key=Main_NoCalls}"/>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
@@ -394,3 +351,4 @@
         </Grid>
     </ScrollView>
 </ContentPage>
+

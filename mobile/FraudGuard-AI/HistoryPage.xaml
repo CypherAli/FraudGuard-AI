@@ -2,24 +2,25 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:FraudGuardAI.Models"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              x:Class="FraudGuardAI.HistoryPage"
-             Title="History"
+             Title="{loc:Translate Key=Tab_History}"
              Shell.NavBarIsVisible="False">
 
     <Grid RowDefinitions="Auto,*" Padding="20,48,20,20">
         
         <!-- Header -->
         <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,24">
-            <Label Text="Lịch sử cuộc gọi"
-                   FontSize="26"
-                   FontAttributes="Bold"
-                   TextColor="{StaticResource TextPrimary}"
-                   HorizontalOptions="Start"/>
+                 <Label FontSize="26"
+                     FontAttributes="Bold"
+                     TextColor="{DynamicResource TextPrimary}"
+                     HorizontalOptions="Start"
+                     Text="{loc:Translate Key=History_Title}"/>
             
             <Label x:Name="SubtitleLabel"
-                   Text="Cuộc gọi đã được phân tích"
+                     Text="{loc:Translate Key=History_Subtitle}"
                    FontSize="14"
-                   TextColor="{StaticResource TextSecondary}"/>
+                   TextColor="{DynamicResource TextSecondary}"/>
         </VerticalStackLayout>
 
         <!-- Content -->
@@ -49,7 +50,7 @@
                     
                     <Border WidthRequest="80"
                            HeightRequest="80"
-                           BackgroundColor="{StaticResource CardBackground}"
+                           BackgroundColor="{DynamicResource CardBackground}"
                            StrokeThickness="0"
                            HorizontalOptions="Center">
                         <Border.StrokeShape>
@@ -61,16 +62,16 @@
                                VerticalOptions="Center"/>
                     </Border>
                     
-                    <Label Text="Chưa có lịch sử"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalOptions="Center"/>
+                          <Label FontSize="18"
+                              FontAttributes="Bold"
+                              TextColor="{DynamicResource TextPrimary}"
+                              HorizontalOptions="Center"
+                              Text="{loc:Translate Key=History_EmptyTitle}"/>
                     
-                    <Label Text="Cuộc gọi được phân tích sẽ hiển thị ở đây"
-                           FontSize="14"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center"/>
+                          <Label FontSize="14"
+                              TextColor="{DynamicResource TextSecondary}"
+                              HorizontalOptions="Center"
+                              Text="{loc:Translate Key=History_EmptySubtitle}"/>
                 </VerticalStackLayout>
 
                 <!-- Call List -->
@@ -83,7 +84,7 @@
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CallLog">
-                            <Border BackgroundColor="{StaticResource CardBg}"
+                            <Border BackgroundColor="{DynamicResource CardBg}"
                                    StrokeThickness="0"
                                    Padding="16">
                                 <Border.StrokeShape>
@@ -137,24 +138,24 @@
                                             <Label Text="🕐" FontSize="12"/>
                                             <Label Text="{Binding TimeDisplay}"
                                                   FontSize="13"
-                                                  TextColor="{StaticResource TextSecondary}"/>
+                                                  TextColor="{DynamicResource TextSecondary}"/>
                                         </HorizontalStackLayout>
-                                        <Label Text="•" TextColor="{StaticResource TextSecondary}" FontSize="13"/>
+                                        <Label Text="•" TextColor="{DynamicResource TextSecondary}" FontSize="13"/>
                                         <Label Text="{Binding DurationDisplay}"
                                               FontSize="13"
-                                              TextColor="{StaticResource TextSecondary}"/>
+                                              TextColor="{DynamicResource TextSecondary}"/>
                                     </HorizontalStackLayout>
 
                                     <!-- Evidence -->
                                     <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="4">
-                                        <Label Text="Bằng chứng"
-                                              FontSize="11"
-                                              FontAttributes="Bold"
-                                              TextColor="{StaticResource TextSecondary}"
-                                              Opacity="0.8"/>
+                                            <Label FontSize="11"
+                                                FontAttributes="Bold"
+                                                TextColor="{DynamicResource TextSecondary}"
+                                                Opacity="0.8"
+                                                Text="{loc:Translate Key=History_Evidence}"/>
                                         <Label Text="{Binding Evidence}"
                                               FontSize="13"
-                                              TextColor="{StaticResource TextPrimary}"
+                                              TextColor="{DynamicResource TextPrimary}"
                                               LineBreakMode="TailTruncation"
                                               MaxLines="2"/>
                                     </VerticalStackLayout>
@@ -187,13 +188,13 @@
                     </Border>
                     
                     <Label x:Name="ErrorMessageLabel"
-                           Text="Không thể tải lịch sử"
+                              Text="{loc:Translate Key=History_Error}"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="{StaticResource DangerRed}"
                            HorizontalOptions="Center"/>
                     
-                    <Button Text="Thử lại"
+                          <Button Text="{loc:Translate Key=History_Retry}"
                            FontSize="15"
                            BackgroundColor="{StaticResource AccentBlue}"
                            TextColor="White"
@@ -205,3 +206,4 @@
         </RefreshView>
     </Grid>
 </ContentPage>
+

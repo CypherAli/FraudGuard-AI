@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.Auth.LoginPage"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              BackgroundColor="#0D1B2A"
              Shell.NavBarIsVisible="False">
 
@@ -11,15 +12,15 @@
             <!-- Logo and Title -->
             <VerticalStackLayout Spacing="10" Margin="0,40,0,24">
                 <Label Text="🛡️" FontSize="64" HorizontalOptions="Center"/>
-                <Label Text="FraudGuard AI"
+                  <Label Text="{loc:Translate Key=Login_Title}"
                        FontSize="32"
                        FontAttributes="Bold"
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
-                <Label Text="Bảo vệ cuộc gọi của bạn"
-                       FontSize="16"
-                       TextColor="#8B95A5"
-                       HorizontalOptions="Center"/>
+                  <Label FontSize="16"
+                      TextColor="#8B95A5"
+                      HorizontalOptions="Center"
+                      Text="{loc:Translate Key=Login_Subtitle}"/>
             </VerticalStackLayout>
 
             <!-- Email Login Card -->
@@ -31,24 +32,24 @@
                 <VerticalStackLayout Spacing="6">
                     <HorizontalStackLayout Spacing="8">
                         <Label Text="✉️" FontSize="18" VerticalOptions="Center"/>
-                        <Label Text="Đăng nhập bằng Email"
-                               FontSize="16"
+                           <Label FontSize="16"
                                FontAttributes="Bold"
                                TextColor="#34D399"
-                               VerticalOptions="Center"/>
+                               VerticalOptions="Center"
+                               Text="{loc:Translate Key=Login_EmailLogin}"/>
                     </HorizontalStackLayout>
-                    <Label Text="Nhập email, chúng tôi sẽ gửi mã OTP 6 số để xác thực"
-                           FontSize="12"
-                           TextColor="#8B95A5"/>
+                          <Label FontSize="12"
+                              TextColor="#8B95A5"
+                              Text="{loc:Translate Key=Login_EmailDesc}"/>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Email Input -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="Email của bạn"
-                       TextColor="#E0E6ED"
-                       FontSize="14"
-                       FontAttributes="Bold"/>
+                  <Label TextColor="#E0E6ED"
+                      FontSize="14"
+                      FontAttributes="Bold"
+                      Text="{loc:Translate Key=Login_YourEmail}"/>
                 <Frame BackgroundColor="#1B2838"
                        BorderColor="#2D3E50"
                        CornerRadius="12"
@@ -72,8 +73,8 @@
                    HorizontalOptions="Center"/>
 
             <!-- Login Button -->
-            <Button x:Name="LoginButton"
-                    Text="Gửi mã OTP"
+                <Button x:Name="LoginButton"
+                    Text="{loc:Translate Key=Login_SendOtp}"
                     BackgroundColor="#34D399"
                     TextColor="#0D1B2A"
                     FontSize="16"
@@ -96,16 +97,17 @@
 
             <!-- Info Text -->
             <VerticalStackLayout Spacing="6" Margin="0,10,0,0">
-                <Label Text="🔒 Không cần mật khẩu"
-                       TextColor="#8B95A5"
-                       FontSize="12"
-                       HorizontalOptions="Center"/>
-                <Label Text="📱 Đăng nhập 1 lần, dùng mãi mãi"
-                       TextColor="#8B95A5"
-                       FontSize="12"
-                       HorizontalOptions="Center"/>
+                  <Label TextColor="#8B95A5"
+                      FontSize="12"
+                      HorizontalOptions="Center"
+                      Text="{loc:Translate Key=Login_InfoNoPassword}"/>
+                  <Label TextColor="#8B95A5"
+                      FontSize="12"
+                      HorizontalOptions="Center"
+                      Text="{loc:Translate Key=Login_InfoSingleLogin}"/>
             </VerticalStackLayout>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+

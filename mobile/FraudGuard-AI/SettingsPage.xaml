@@ -2,7 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.SettingsPage"
-             Title="Settings"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
+             Title="{loc:Translate Key=Settings_Title}"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
@@ -10,18 +11,18 @@
             
             <!-- Header -->
             <VerticalStackLayout Spacing="4" Margin="0,0,0,8">
-                <Label Text="Cài đặt"
-                       FontSize="28"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"/>
+                  <Label FontSize="28"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextPrimary}"
+                      Text="{loc:Translate Key=Settings_Title}"/>
                 
-                <Label Text="Quản lý tài khoản và tùy chọn"
-                       FontSize="14"
-                       TextColor="{StaticResource TextSecondary}"/>
+                  <Label FontSize="14"
+                      TextColor="{DynamicResource TextSecondary}"
+                      Text="{loc:Translate Key=Settings_Subtitle}"/>
             </VerticalStackLayout>
 
             <!-- Profile Section -->
-            <Border BackgroundColor="{StaticResource CardBg}"
+            <Border BackgroundColor="{DynamicResource CardBg}"
                    StrokeThickness="0"
                    Padding="20">
                 <Border.StrokeShape>
@@ -34,33 +35,43 @@
                 <VerticalStackLayout Spacing="16">
                     <!-- Avatar -->
                     <Grid HorizontalOptions="Center">
-                        <Border WidthRequest="80"
+                           <Border WidthRequest="80"
                                HeightRequest="80"
                                BackgroundColor="{StaticResource TealIcon}"
                                StrokeThickness="0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="40"/>
                             </Border.StrokeShape>
-                            <Label x:Name="AvatarInitials"
-                                   Text="ND"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   TextColor="White"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
+                            <Grid>
+                                <Image x:Name="AvatarImage"
+                                    Aspect="AspectFill"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    IsVisible="False"/>
+                                <Label x:Name="AvatarInitials"
+                                    Text="ND"
+                                    FontSize="28"
+                                    FontAttributes="Bold"
+                                    TextColor="White"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"/>
+                            </Grid>
                         </Border>
                         <!-- Camera Icon -->
                         <Border WidthRequest="28"
                                HeightRequest="28"
                                BackgroundColor="{StaticResource TealIcon}"
                                StrokeThickness="2"
-                               Stroke="{StaticResource BackgroundDark}"
+                               Stroke="{DynamicResource BackgroundColor}"
                                HorizontalOptions="End"
                                VerticalOptions="End"
                                Margin="0,0,-4,-4">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14"/>
                             </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnChangeAvatarClicked"/>
+                            </Border.GestureRecognizers>
                             <Label Text="📷" FontSize="12"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"/>
@@ -69,35 +80,35 @@
                     
                     <!-- Name & Email -->
                     <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                        <Label x:Name="UserNameLabel"
-                               Text="Người dùng"
+                           <Label x:Name="UserNameLabel"
+                               Text="{loc:Translate Key=Settings_DefaultUserName}"
                                FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"
+                               TextColor="{DynamicResource TextPrimary}"
                                HorizontalOptions="Center"/>
                         <Label x:Name="UserEmailLabel"
                                Text="user@example.com"
                                FontSize="14"
-                               TextColor="{StaticResource TextSecondary}"
+                               TextColor="{DynamicResource TextSecondary}"
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                     
                     <!-- Phone Number Row -->
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Số điện thoại"
-                               FontSize="14"
-                               TextColor="{StaticResource TextSecondary}"
-                               VerticalOptions="Center"/>
+                           <Label FontSize="14"
+                               TextColor="{DynamicResource TextSecondary}"
+                               VerticalOptions="Center"
+                               Text="{loc:Translate Key=Settings_PhoneLabel}"/>
                         <Label x:Name="PhoneNumberLabel"
                                Grid.Column="1"
-                               Text="Chưa cập nhật"
+                               Text="{loc:Translate Key=Settings_NotUpdated}"
                                FontSize="14"
-                               TextColor="{StaticResource TextPrimary}"
+                               TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center"/>
                     </Grid>
                     
                     <!-- Edit Profile Button -->
-                    <Border BackgroundColor="{StaticResource StatCardBg}"
+                    <Border BackgroundColor="{DynamicResource StatCardBg}"
                            StrokeThickness="0"
                            Padding="16,12"
                            HorizontalOptions="Center">
@@ -110,10 +121,10 @@
                         
                         <HorizontalStackLayout Spacing="8">
                             <Label Text="✏️" FontSize="14" VerticalOptions="Center"/>
-                            <Label Text="Chỉnh sửa hồ sơ"
-                                   FontSize="14"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   VerticalOptions="Center"/>
+                            <Label FontSize="14"
+                                TextColor="{DynamicResource TextPrimary}"
+                                VerticalOptions="Center"
+                                Text="{loc:Translate Key=Settings_EditProfile}"/>
                         </HorizontalStackLayout>
                     </Border>
                 </VerticalStackLayout>
@@ -121,13 +132,13 @@
 
             <!-- GIAO DIỆN Section -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="GIAO DIỆN"
-                       FontSize="12"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextSecondary}"
-                       Margin="4,8,0,0"/>
+                  <Label FontSize="12"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextSecondary}"
+                      Margin="4,8,0,0"
+                      Text="{loc:Translate Key=Settings_UISection}"/>
                 
-                <Border BackgroundColor="{StaticResource CardBg}"
+                <Border BackgroundColor="{DynamicResource CardBg}"
                        StrokeThickness="0"
                        Padding="16">
                     <Border.StrokeShape>
@@ -149,12 +160,12 @@
                             </Border>
                             
                             <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                <Label Text="Bảo vệ tự động"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"/>
-                                <Label Text="Tự động kích hoạt khi khởi động app"
-                                       FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                    <Label FontSize="15"
+                                        TextColor="{DynamicResource TextPrimary}"
+                                        Text="{loc:Translate Key=Settings_AutoProtection}"/>
+                                    <Label FontSize="12"
+                                        TextColor="{DynamicResource TextSecondary}"
+                                        Text="{loc:Translate Key=Settings_AutoProtectionDesc}"/>
                             </VerticalStackLayout>
                             
                             <Switch x:Name="AutoProtectionSwitch"
@@ -164,7 +175,7 @@
                                    ThumbColor="White"/>
                         </Grid>
                         
-                        <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="48,8,0,8"/>
+                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="48,8,0,8"/>
                         
                         <!-- Dark Mode Toggle -->
                         <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
@@ -174,29 +185,29 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10"/>
                                 </Border.StrokeShape>
-                                <Label Text="🌙" FontSize="16"
+                                    <Label Text="☀️" FontSize="16"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center"/>
                             </Border>
                             
                             <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                <Label Text="Chế độ tối"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"/>
-                                <Label Text="Giao diện tối cho mắt"
-                                       FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                                <Label FontSize="15"
+                                                    TextColor="{DynamicResource TextPrimary}"
+                                                    Text="{loc:Translate Key=Settings_LightMode}"/>
+                                                <Label FontSize="12"
+                                                    TextColor="{DynamicResource TextSecondary}"
+                                                    Text="{loc:Translate Key=Settings_LightModeDesc}"/>
                             </VerticalStackLayout>
                             
                             <Switch x:Name="DarkModeSwitch"
                                    Grid.Column="2"
-                                   IsToggled="True"
+                                IsToggled="False"
                                    OnColor="{StaticResource TealIcon}"
                                    ThumbColor="White"
                                    Toggled="OnDarkModeToggled"/>
                         </Grid>
                         
-                        <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="48,8,0,8"/>
+                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="48,8,0,8"/>
                         
                         <!-- Language Selector -->
                         <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
@@ -216,18 +227,18 @@
                             </Border>
                             
                             <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                <Label Text="Ngôn ngữ"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"/>
+                                    <Label FontSize="15"
+                                        TextColor="{DynamicResource TextPrimary}"
+                                        Text="{loc:Translate Key=Settings_Language}"/>
                                 <Label x:Name="LanguageLabel"
-                                       Text="Tiếng Việt"
+                                        Text="{loc:Translate Key=Language_Current}"
                                        FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                       TextColor="{DynamicResource TextSecondary}"/>
                             </VerticalStackLayout>
                             
                             <Label Grid.Column="2" Text="›"
                                    FontSize="20"
-                                   TextColor="{StaticResource TextSecondary}"
+                                   TextColor="{DynamicResource TextSecondary}"
                                    VerticalOptions="Center"/>
                         </Grid>
                     </VerticalStackLayout>
@@ -236,13 +247,13 @@
 
             <!-- BẢO MẬT Section -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="BẢO MẬT"
-                       FontSize="12"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextSecondary}"
-                       Margin="4,8,0,0"/>
+                  <Label FontSize="12"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextSecondary}"
+                      Margin="4,8,0,0"
+                      Text="{loc:Translate Key=Settings_SecuritySection}"/>
                 
-                <Border BackgroundColor="{StaticResource CardBg}"
+                <Border BackgroundColor="{DynamicResource CardBg}"
                        StrokeThickness="0"
                        Padding="16">
                     <Border.StrokeShape>
@@ -265,17 +276,17 @@
                         </Border>
                         
                         <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                            <Label Text="Bảo mật tài khoản"
-                                   FontSize="15"
-                                   TextColor="#F87171"/>
-                            <Label Text="Mật khẩu &amp; xác thực 2 bước"
-                                   FontSize="12"
-                                   TextColor="{StaticResource TextSecondary}"/>
+                            <Label FontSize="15"
+                                TextColor="#F87171"
+                                Text="{loc:Translate Key=Settings_AccountSecurity}"/>
+                            <Label FontSize="12"
+                                TextColor="{DynamicResource TextSecondary}"
+                                Text="{loc:Translate Key=Settings_AccountSecurityDesc}"/>
                         </VerticalStackLayout>
                         
                         <Label Grid.Column="2" Text="›"
                                FontSize="20"
-                               TextColor="{StaticResource TextSecondary}"
+                               TextColor="{DynamicResource TextSecondary}"
                                VerticalOptions="Center"/>
                     </Grid>
                 </Border>
@@ -283,13 +294,13 @@
 
             <!-- KẾT NỐI Section -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="KẾT NỐI"
-                       FontSize="12"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextSecondary}"
-                       Margin="4,8,0,0"/>
+                  <Label FontSize="12"
+                      FontAttributes="Bold"
+                      TextColor="{DynamicResource TextSecondary}"
+                      Margin="4,8,0,0"
+                      Text="{loc:Translate Key=Settings_ConnectionSection}"/>
                 
-                <Border BackgroundColor="{StaticResource CardBg}"
+                <Border BackgroundColor="{DynamicResource CardBg}"
                        StrokeThickness="0"
                        Padding="16">
                     <Border.StrokeShape>
@@ -311,9 +322,9 @@
                             </Border>
                             
                             <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                <Label Text="Kết nối Server"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"/>
+                                    <Label FontSize="15"
+                                        TextColor="{DynamicResource TextPrimary}"
+                                        Text="{loc:Translate Key=Settings_ServerConnection}"/>
                                 <HorizontalStackLayout Spacing="6">
                                     <Border x:Name="ServerStatusDot"
                                            WidthRequest="8" HeightRequest="8"
@@ -331,7 +342,7 @@
                             </VerticalStackLayout>
                         </Grid>
                         
-                        <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="0,4"/>
+                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="0,4"/>
                         
                         <!-- USB Mode Toggle -->
                         <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
@@ -347,12 +358,12 @@
                             </Border>
                             
                             <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                <Label Text="Chế độ USB"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"/>
-                                <Label Text="Tự động kết nối khi cắm USB"
-                                       FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                    <Label FontSize="15"
+                                        TextColor="{DynamicResource TextPrimary}"
+                                        Text="{loc:Translate Key=Settings_USBMode}"/>
+                                    <Label FontSize="12"
+                                        TextColor="{DynamicResource TextSecondary}"
+                                        Text="{loc:Translate Key=Settings_USBModeDesc}"/>
                             </VerticalStackLayout>
                             
                             <Switch x:Name="UsbModeSwitch"
@@ -362,7 +373,7 @@
                                    Toggled="OnUsbModeToggled"/>
                         </Grid>
                         
-                        <BoxView HeightRequest="1" BackgroundColor="{StaticResource BorderColor}" Margin="0,4"/>
+                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="0,4"/>
                         
                         <!-- Server Address -->
                         <VerticalStackLayout Spacing="8">
@@ -377,16 +388,16 @@
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center"/>
                                 </Border>
-                                <Label Text="Địa chỉ Server"
-                                       FontSize="15"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       VerticalOptions="Center"/>
+                                    <Label FontSize="15"
+                                        TextColor="{DynamicResource TextPrimary}"
+                                        VerticalOptions="Center"
+                                        Text="{loc:Translate Key=Settings_ServerAddress}"/>
                             </HorizontalStackLayout>
                             
                             <!-- Server URL Input -->
-                            <Border BackgroundColor="{StaticResource InputBg}"
+                            <Border BackgroundColor="{DynamicResource InputBg}"
                                    StrokeThickness="1"
-                                   Stroke="{StaticResource BorderColor}"
+                                   Stroke="{DynamicResource BorderColor}"
                                    Padding="4">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12"/>
@@ -395,7 +406,7 @@
                                 <Entry x:Name="ServerIPEntry"
                                        Placeholder="https://xxxx.ngrok-free.app"
                                        PlaceholderColor="#5C6B7A"
-                                       TextColor="{StaticResource TextPrimary}"
+                                       TextColor="{DynamicResource TextPrimary}"
                                        BackgroundColor="Transparent"
                                        FontSize="14"
                                        Keyboard="Url"
@@ -403,7 +414,7 @@
                             </Border>
                             
                             <!-- Hints -->
-                            <Border BackgroundColor="{StaticResource InputBg}"
+                            <Border BackgroundColor="{DynamicResource InputBg}"
                                    StrokeThickness="0"
                                    Padding="12">
                                 <Border.StrokeShape>
@@ -411,18 +422,18 @@
                                 </Border.StrokeShape>
                                 
                                 <VerticalStackLayout Spacing="4">
-                                    <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
+                                    <Label FontSize="12" TextColor="{DynamicResource TextSecondary}">
                                         <Label.FormattedText>
                                             <FormattedString>
-                                                <Span Text="• Ngrok: "/>
+                                                <Span Text="{loc:Translate Key=Settings_NgrokLabel}"/>
                                                 <Span Text="https://xxxx.ngrok-free.app" TextColor="{StaticResource SafeGreen}"/>
                                             </FormattedString>
                                         </Label.FormattedText>
                                     </Label>
-                                    <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
+                                    <Label FontSize="12" TextColor="{DynamicResource TextSecondary}">
                                         <Label.FormattedText>
                                             <FormattedString>
-                                                <Span Text="• LAN: "/>
+                                                <Span Text="{loc:Translate Key=Settings_LanLabel}"/>
                                                 <Span Text="http://192.168.1.12:8080" TextColor="{StaticResource AccentBlue}"/>
                                             </FormattedString>
                                         </Label.FormattedText>
@@ -432,9 +443,9 @@
                             
                             <!-- Current Config -->
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Cấu hình hiện tại"
-                                       FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"/>
+                                    <Label FontSize="12"
+                                        TextColor="{DynamicResource TextSecondary}"
+                                        Text="{loc:Translate Key=Settings_CurrentConfig}"/>
                                 <Label x:Name="CurrentConfigLabel"
                                        Text=""
                                        FontSize="12"
@@ -445,7 +456,7 @@
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
                                 <Button x:Name="SaveButton"
                                        Grid.Column="0"
-                                       Text="💾 Lưu"
+                                        Text="{loc:Translate Key=Settings_Save}"
                                        FontSize="14"
                                        FontAttributes="Bold"
                                        BackgroundColor="{StaticResource TealIcon}"
@@ -456,11 +467,11 @@
                                 
                                 <Button x:Name="TestButton"
                                        Grid.Column="1"
-                                       Text="🔍 Test"
+                                        Text="{loc:Translate Key=Settings_Test}"
                                        FontSize="14"
                                        FontAttributes="Bold"
-                                       BackgroundColor="{StaticResource StatCardBg}"
-                                       TextColor="{StaticResource TextPrimary}"
+                                       BackgroundColor="{DynamicResource StatCardBg}"
+                                       TextColor="{DynamicResource TextPrimary}"
                                        CornerRadius="12"
                                        HeightRequest="44"
                                        Clicked="OnTestConnectionClicked"/>
@@ -471,7 +482,7 @@
             </VerticalStackLayout>
 
             <!-- TRỢ GIÚP Section -->
-            <Border BackgroundColor="{StaticResource CardBg}"
+            <Border BackgroundColor="{DynamicResource CardBg}"
                    StrokeThickness="0"
                    Padding="16">
                 <Border.StrokeShape>
@@ -494,17 +505,17 @@
                     </Border>
                     
                     <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                        <Label Text="Trợ giúp &amp; Hỗ trợ"
-                               FontSize="15"
-                               TextColor="{StaticResource TextPrimary}"/>
-                        <Label Text="Nhận trợ giúp với FraudGuard"
-                               FontSize="12"
-                               TextColor="{StaticResource TextSecondary}"/>
+                           <Label FontSize="15"
+                               TextColor="{DynamicResource TextPrimary}"
+                               Text="{loc:Translate Key=Settings_HelpTitle}"/>
+                           <Label FontSize="12"
+                               TextColor="{DynamicResource TextSecondary}"
+                               Text="{loc:Translate Key=Settings_HelpDesc}"/>
                     </VerticalStackLayout>
                     
                     <Label Grid.Column="2" Text="›"
                            FontSize="20"
-                           TextColor="{StaticResource TextSecondary}"
+                           TextColor="{DynamicResource TextSecondary}"
                            VerticalOptions="Center"/>
                 </Grid>
             </Border>
@@ -524,21 +535,22 @@
                 
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
                     <Label Text="🚪" FontSize="16" VerticalOptions="Center"/>
-                    <Label Text="Đăng xuất"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource DangerRed}"
-                           VerticalOptions="Center"/>
+                          <Label FontSize="15"
+                              FontAttributes="Bold"
+                              TextColor="{StaticResource DangerRed}"
+                              VerticalOptions="Center"
+                              Text="{loc:Translate Key=Settings_Logout}"/>
                 </HorizontalStackLayout>
             </Border>
 
             <!-- Version Info -->
-            <Label Text="FraudGuard v1.0"
-                   FontSize="12"
-                   TextColor="{StaticResource TextSecondary}"
-                   HorizontalOptions="Center"
-                   Margin="0,16,0,0"/>
+                 <Label FontSize="12"
+                     TextColor="{DynamicResource TextSecondary}"
+                     HorizontalOptions="Center"
+                     Margin="0,16,0,0"
+                     Text="{loc:Translate Key=Settings_Version}"/>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+

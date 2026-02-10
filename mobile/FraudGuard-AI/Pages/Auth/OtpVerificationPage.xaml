@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.Auth.OtpVerificationPage"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              BackgroundColor="#0D1B2A"
              Shell.NavBarIsVisible="False">
 
@@ -9,7 +10,7 @@
         <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
             
             <!-- Back Button -->
-            <Button Text="← Quay lại"
+           <Button Text="{loc:Translate Key=Otp_Back}"
                     BackgroundColor="Transparent"
                     TextColor="#34D399"
                     FontSize="16"
@@ -18,20 +19,29 @@
                     Margin="0,20,0,0"/>
 
             <!-- Icon -->
-            <Label Text="📱" 
-                   FontSize="64" 
-                   HorizontalOptions="Center"
-                   Margin="0,20,0,0"/>
+            <Grid HorizontalOptions="Center" Margin="0,20,0,0">
+                <Label Text="🛡️"
+                       FontSize="64"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+                <Label Text="✓"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="End"
+                       VerticalOptions="End"
+                       Margin="0,0,4,6"/>
+            </Grid>
 
             <!-- Title -->
             <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
-                <Label Text="Xác minh OTP" 
+                <Label Text="{loc:Translate Key=Otp_Title}" 
                        FontSize="28" 
                        FontAttributes="Bold"
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
                 <Label x:Name="PhoneLabel"
-                       Text="Mã OTP đã được gửi đến email" 
+                       Text="{loc:Translate Key=Otp_SentToEmail}" 
                        FontSize="14" 
                        TextColor="#8B95A5"
                        HorizontalOptions="Center"/>
@@ -43,17 +53,17 @@
             </VerticalStackLayout>
 
             <!-- OTP Input Boxes -->
-            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,20,0,20">
+                     <HorizontalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,20">
                 <Frame BackgroundColor="#1B2838" 
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                                      WidthRequest="44"
+                                      HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp1"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                                             FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -65,12 +75,12 @@
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                       WidthRequest="44"
+                       HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp2"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                           FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -82,12 +92,12 @@
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                       WidthRequest="44"
+                       HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp3"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                           FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -99,12 +109,12 @@
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                       WidthRequest="44"
+                       HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp4"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                           FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -116,12 +126,12 @@
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                       WidthRequest="44"
+                       HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp5"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                           FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -133,12 +143,12 @@
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
                        Padding="0"
-                       WidthRequest="50"
-                       HeightRequest="60"
+                       WidthRequest="44"
+                       HeightRequest="56"
                        HasShadow="False">
                     <Entry x:Name="Otp6"
                            TextColor="#E0E6ED"
-                           FontSize="24"
+                           FontSize="22"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center"
@@ -156,8 +166,8 @@
                    HorizontalOptions="Center"/>
 
             <!-- Verify Button -->
-            <Button x:Name="VerifyButton"
-                    Text="Xác minh"
+           <Button x:Name="VerifyButton"
+                  Text="{loc:Translate Key=Otp_Verify}"
                     BackgroundColor="#34D399"
                     TextColor="#0D1B2A"
                     FontSize="16"
@@ -180,11 +190,11 @@
 
             <!-- Resend OTP -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,20,0,0">
-                <Label Text="Không nhận được mã?" 
-                       TextColor="#8B95A5" 
-                       FontSize="14"/>
+                <Label TextColor="#8B95A5" 
+                       FontSize="14"
+                       Text="{loc:Translate Key=Otp_NoCode}"/>
                 <Label x:Name="ResendLabel"
-                       Text="Gửi lại"
+                       Text="{loc:Translate Key=Otp_Resend}"
                        TextColor="#34D399"
                        FontSize="14"
                        FontAttributes="Bold">
@@ -204,3 +214,4 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+
