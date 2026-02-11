@@ -62,10 +62,17 @@ func main() {
 		log.Println(" Deepgram API key not configured")
 	}
 
-	// TODO: Initialize Gemini client for advanced AI fraud detection
-	// For now, using keyword-based detection (hard rules)
+	// Initialize Gemini client for context-aware AI fraud detection
 	if cfg.AI.GeminiAPIKey != "" {
-		log.Println("ℹ Gemini API key configured (not yet integrated)")
+		geminiClient, err := services.NewGeminiClient(cfg.AI.GeminiAPIKey)
+		if err != nil {
+			log.Printf("⚠️ Failed to initialize Gemini client: %v", err)
+		} else {
+			services.GlobalGeminiClient = geminiClient
+			log.Println("✅ Gemini AI client initialized (context-aware fraud detection enabled)")
+		}
+	} else {
+		log.Println("ℹ️ Gemini API key not configured - using keyword-only detection")
 	}
 
 	// Create WebSocket hub with cancellable context
@@ -85,10 +92,14 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	// CORS middleware (allow all origins for development)
+	// CORS middleware
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "*" // Default to * for development
+	}
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			if r.Method == "OPTIONS" {

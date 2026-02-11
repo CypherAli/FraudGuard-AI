@@ -12,13 +12,10 @@ namespace FraudGuardAI.Services
     /// </summary>
     public class HistoryService
     {
-        private readonly HttpClient _httpClient;
-
-        public HistoryService()
+        private static readonly HttpClient _httpClient = new HttpClient
         {
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
-        }
+            Timeout = TimeSpan.FromSeconds(30)
+        };
 
         /// <summary>
         /// Get call history for a specific device

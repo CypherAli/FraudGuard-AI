@@ -176,8 +176,7 @@ namespace FraudGuardAI.Services
 
         private static string GenerateOtp()
         {
-            var rng = new Random();
-            return rng.Next(100000, 999999).ToString();
+            return System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 999999).ToString();
         }
 
         private static bool IsValidEmail(string email)

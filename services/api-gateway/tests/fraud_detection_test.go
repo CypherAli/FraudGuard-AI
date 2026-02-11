@@ -8,7 +8,7 @@ import (
 
 // TestFraudDetector demonstrates the fraud detection logic
 func main() {
-	fmt.Println("=== FraudGuard AI - Fraud Detection Test ===\n")
+	fmt.Println("=== FraudGuard AI - Fraud Detection Test ===")
 
 	// Create a fraud detector for testing
 	detector := services.NewFraudDetector("test-device-001")
