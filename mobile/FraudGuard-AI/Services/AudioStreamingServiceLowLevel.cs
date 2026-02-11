@@ -22,8 +22,9 @@ namespace FraudGuardAI.Services
         private ClientWebSocket _webSocket;
         private AudioRecord _audioRecord;
         private CancellationTokenSource _cancellationTokenSource;
-        private bool _isStreaming;
-        private bool _isConnected;
+        private volatile bool _isStreaming;
+        private volatile bool _isConnected;
+        private readonly SemaphoreSlim _startStopLock = new SemaphoreSlim(1, 1);
 
         // Cấu hình Audio (khớp với backend Deepgram)
         private const int SAMPLE_RATE = 16000;
@@ -178,7 +179,13 @@ namespace FraudGuardAI.Services
         public async Task StopStreamingAsync()
         {
             System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync called");
-            
+
+            if (!await _startStopLock.WaitAsync(TimeSpan.FromSeconds(5)))
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync: lock timeout, already stopping");
+                return;
+            }
+
             try
             {
                 // 1. Set flags FIRST to stop loops immediately
@@ -271,6 +278,10 @@ namespace FraudGuardAI.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[AudioService] StopStreamingAsync error: {ex.Message}");
                 OnError($"Error stopping: {ex.Message}", ex);
+            }
+            finally
+            {
+                _startStopLock.Release();
             }
         }
 

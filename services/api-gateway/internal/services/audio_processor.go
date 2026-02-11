@@ -13,6 +13,8 @@ import (
 var (
 	detectorRegistry = make(map[string]*FraudDetector)
 	detectorMutex    sync.RWMutex
+	// Semaphore to limit concurrent audio processing goroutines
+	audioProcessingSemaphore = make(chan struct{}, 50) // Max 50 concurrent
 )
 
 // Note: Buffer pooling for audio chunks should be implemented in the WebSocket handler
@@ -79,9 +81,19 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		return
 	}
 
+	// Acquire semaphore slot (limit concurrent goroutines)
+	select {
+	case audioProcessingSemaphore <- struct{}{}:
+		// Got a slot, proceed
+	default:
+		log.Printf("⚠️ [%s] Audio processing pool full (50 goroutines), dropping chunk", deviceID)
+		return
+	}
+
 	// Process asynchronously to not block WebSocket
 	go func() {
 		defer func() {
+			<-audioProcessingSemaphore // Release semaphore slot
 			if r := recover(); r != nil {
 				log.Printf("🔥 [%s] Recovered panic in audio processing: %v", deviceID, r)
 			}

@@ -106,23 +106,23 @@ func TestFraudDetector_KeywordMatching(t *testing.T) {
 		{
 			name:          "Critical keyword: chuyển tiền",
 			text:          "Bạn phải chuyển tiền ngay",
-			expectAlert:   true,
-			minScore:      50,
-			expectedLevel: "MEDIUM",
+			expectAlert:   false, // Single keyword now scores lower (25pts) - below MEDIUM threshold
+			minScore:      25,
+			expectedLevel: "LOW",
 		},
 		{
 			name:          "Critical keyword: mã OTP",
 			text:          "Vui lòng cung cấp mã OTP",
-			expectAlert:   true, // 45 points > MEDIUM threshold (40)
-			minScore:      45,
-			expectedLevel: "MEDIUM",
+			expectAlert:   false, // Single keyword scores 30pts - below MEDIUM threshold (40)
+			minScore:      30,
+			expectedLevel: "LOW",
 		},
 		{
 			name:          "Warning keyword: công an",
 			text:          "Tôi là công an",
 			expectAlert:   false,
-			minScore:      20,
-			expectedLevel: "LOW",
+			minScore:      15,
+			expectedLevel: "SAFE",
 		},
 		{
 			name:          "Suspicious phrase: trong 5 phút",

@@ -69,6 +69,8 @@ func (c *Client) ReadPump() {
 		if detector := services.GetFraudDetector(c.deviceID); detector != nil {
 			detector.EndSession()
 		}
+		// Clean up detector from registry to prevent memory leak
+		services.RemoveFraudDetector(c.deviceID)
 
 		c.hub.Unregister <- c
 		c.conn.Close()
