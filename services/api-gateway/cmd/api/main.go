@@ -62,10 +62,17 @@ func main() {
 		log.Println(" Deepgram API key not configured")
 	}
 
-	// TODO: Initialize Gemini client for advanced AI fraud detection
-	// For now, using keyword-based detection (hard rules)
+	// Initialize Gemini client for context-aware AI fraud detection
 	if cfg.AI.GeminiAPIKey != "" {
-		log.Println("ℹ Gemini API key configured (not yet integrated)")
+		geminiClient, err := services.NewGeminiClient(cfg.AI.GeminiAPIKey)
+		if err != nil {
+			log.Printf("⚠️ Failed to initialize Gemini client: %v", err)
+		} else {
+			services.GlobalGeminiClient = geminiClient
+			log.Println("✅ Gemini AI client initialized (context-aware fraud detection enabled)")
+		}
+	} else {
+		log.Println("ℹ️ Gemini API key not configured - using keyword-only detection")
 	}
 
 	// Create WebSocket hub with cancellable context
