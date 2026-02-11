@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.Auth.RegisterPage"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              BackgroundColor="#0D1B2A"
              Shell.NavBarIsVisible="False">
 
@@ -9,7 +10,7 @@
         <VerticalStackLayout Padding="30" Spacing="20">
             
             <!-- Back Button -->
-            <Button Text="← Quay lại"
+                <Button Text="{loc:Translate Key=Register_Back}"
                     BackgroundColor="Transparent"
                     TextColor="#34D399"
                     FontSize="16"
@@ -19,23 +20,23 @@
 
             <!-- Title -->
             <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
-                <Label Text="Tạo tài khoản" 
+                  <Label Text="{loc:Translate Key=Register_Title}" 
                        FontSize="32" 
                        FontAttributes="Bold"
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
-                <Label Text="Đăng ký để bắt đầu bảo vệ cuộc gọi" 
-                       FontSize="16" 
-                       TextColor="#8B95A5"
-                       HorizontalOptions="Center"/>
+                  <Label FontSize="16" 
+                      TextColor="#8B95A5"
+                      HorizontalOptions="Center"
+                      Text="{loc:Translate Key=Register_Subtitle}"/>
             </VerticalStackLayout>
 
             <!-- Phone Number Input -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="Số điện thoại" 
-                       TextColor="#E0E6ED" 
-                       FontSize="14"
-                       FontAttributes="Bold"/>
+                  <Label TextColor="#E0E6ED" 
+                      FontSize="14"
+                      FontAttributes="Bold"
+                      Text="{loc:Translate Key=Register_Phone}"/>
                 <Frame BackgroundColor="#1B2838" 
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
@@ -53,10 +54,10 @@
 
             <!-- Password Input -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="Mật khẩu (tùy chọn)" 
-                       TextColor="#E0E6ED" 
-                       FontSize="14"
-                       FontAttributes="Bold"/>
+                  <Label TextColor="#E0E6ED" 
+                      FontSize="14"
+                      FontAttributes="Bold"
+                      Text="{loc:Translate Key=Register_PasswordOptional}"/>
                 <Frame BackgroundColor="#1B2838" 
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
@@ -79,10 +80,10 @@
 
             <!-- Confirm Password Input -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="Xác nhận mật khẩu" 
-                       TextColor="#E0E6ED" 
-                       FontSize="14"
-                       FontAttributes="Bold"/>
+                  <Label TextColor="#E0E6ED" 
+                      FontSize="14"
+                      FontAttributes="Bold"
+                      Text="{loc:Translate Key=Register_ConfirmPassword}"/>
                 <Frame BackgroundColor="#1B2838" 
                        BorderColor="#2D3E50" 
                        CornerRadius="12" 
@@ -105,10 +106,10 @@
                 <Label TextColor="#8B95A5" FontSize="12" VerticalOptions="Center">
                     <Label.FormattedText>
                         <FormattedString>
-                            <Span Text="Tôi đồng ý với "/>
-                            <Span Text="Điều khoản sử dụng" TextColor="#34D399" TextDecorations="Underline"/>
-                            <Span Text=" và "/>
-                            <Span Text="Chính sách bảo mật" TextColor="#34D399" TextDecorations="Underline"/>
+                            <Span Text="{loc:Translate Key=Register_TermsPrefix}"/>
+                            <Span Text="{loc:Translate Key=Register_Terms}" TextColor="#34D399" TextDecorations="Underline"/>
+                            <Span Text="{loc:Translate Key=Register_And}"/>
+                            <Span Text="{loc:Translate Key=Register_Privacy}" TextColor="#34D399" TextDecorations="Underline"/>
                         </FormattedString>
                     </Label.FormattedText>
                 </Label>
@@ -122,8 +123,8 @@
                    HorizontalOptions="Center"/>
 
             <!-- Register Button -->
-            <Button x:Name="RegisterButton"
-                    Text="Đăng ký"
+                <Button x:Name="RegisterButton"
+                    Text="{loc:Translate Key=Register_Button}"
                     BackgroundColor="#34D399"
                     TextColor="#0D1B2A"
                     FontSize="16"
@@ -146,10 +147,10 @@
 
             <!-- Login Link -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,20,0,20">
-                <Label Text="Đã có tài khoản?" 
-                       TextColor="#8B95A5" 
-                       FontSize="14"/>
-                <Label Text="Đăng nhập"
+                  <Label TextColor="#8B95A5" 
+                      FontSize="14"
+                      Text="{loc:Translate Key=Register_HaveAccount}"/>
+                  <Label Text="{loc:Translate Key=Register_Login}"
                        TextColor="#34D399"
                        FontSize="14"
                        FontAttributes="Bold">
@@ -162,3 +163,4 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+

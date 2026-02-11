@@ -6,13 +6,13 @@
         <ResourceDictionary>
             <!-- Core Brand Colors -->
             <Color x:Key="BackgroundDark">#0D1B2A</Color>
-            <Color x:Key="CardBackground">#1B2838</Color>
-            <Color x:Key="InputBackground">#0F1923</Color>
-            <Color x:Key="BorderColor">#2A3F54</Color>
-            
-            <!-- Text Colors -->
-            <Color x:Key="TextPrimary">#E0E6ED</Color>
-            <Color x:Key="TextSecondary">#8B9CAF</Color>
+            <Color x:Key="BackgroundLight">#F5F7FB</Color>
+            <Color x:Key="CardBackgroundDark">#1B2838</Color>
+            <Color x:Key="CardBackgroundLight">#FFFFFF</Color>
+            <Color x:Key="InputBackgroundDark">#0F1923</Color>
+            <Color x:Key="InputBackgroundLight">#EEF2F6</Color>
+            <Color x:Key="BorderColorDark">#2A3F54</Color>
+            <Color x:Key="BorderColorLight">#D6E0EA</Color>
             
             <!-- Status Colors -->
             <Color x:Key="SafeColor">#34D399</Color>
@@ -32,15 +32,12 @@
             <Color x:Key="AccentYellow20">#FBBF2420</Color>
             
             <!-- Additional Colors (Aliases) -->
-            <Color x:Key="CardBg">#1B2838</Color>
-            <Color x:Key="InputBg">#0F1923</Color>
             <Color x:Key="SafeGreen">#34D399</Color>
             <Color x:Key="DangerRed">#F87171</Color>
             <Color x:Key="AccentBlue">#60A5FA</Color>
             <Color x:Key="WarningYellow">#FBBF24</Color>
             
             <!-- CallGuard Theme Colors -->
-            <Color x:Key="StatCardBg">#1E2A3A</Color>
             <Color x:Key="OrangeIcon">#F97316</Color>
             <Color x:Key="BlueIcon">#3B82F6</Color>
             <Color x:Key="RedIcon">#EF4444</Color>
@@ -48,18 +45,28 @@
             <Color x:Key="CyanAccent">#22D3EE</Color>
             <Color x:Key="ProgressBarBg">#0EA5E9</Color>
 
+            <Color x:Key="TextPrimary">#E0E6ED</Color>
+            <Color x:Key="TextSecondary">#8B9CAF</Color>
+            <Color x:Key="CardBg">#1B2838</Color>
+            <Color x:Key="InputBg">#0F1923</Color>
+            <Color x:Key="StatCardBg">#1E2A3A</Color>
+            <Color x:Key="BackgroundColor">#0D1B2A</Color>
+            <Color x:Key="CardBackground">#1B2838</Color>
+            <Color x:Key="InputBackground">#0F1923</Color>
+            <Color x:Key="BorderColor">#2A3F54</Color>
+
             <!-- Global Styles -->
             <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
-                <Setter Property="BackgroundColor" Value="{StaticResource BackgroundDark}" />
+                <Setter Property="BackgroundColor" Value="{DynamicResource BackgroundColor}" />
             </Style>
 
             <Style TargetType="Label" ApplyToDerivedTypes="True">
-                <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                <Setter Property="TextColor" Value="{DynamicResource TextPrimary}" />
             </Style>
             
             <!-- Card Style -->
             <Style x:Key="CardBorder" TargetType="Border">
-                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                <Setter Property="BackgroundColor" Value="{DynamicResource CardBackground}" />
                 <Setter Property="StrokeThickness" Value="0" />
                 <Setter Property="Padding" Value="20" />
                 <Setter Property="StrokeShape">
@@ -72,9 +79,9 @@
             
             <!-- Input Style -->
             <Style x:Key="InputBorder" TargetType="Border">
-                <Setter Property="BackgroundColor" Value="{StaticResource InputBackground}" />
+                <Setter Property="BackgroundColor" Value="{DynamicResource InputBackground}" />
                 <Setter Property="StrokeThickness" Value="1" />
-                <Setter Property="Stroke" Value="{StaticResource BorderColor}" />
+                <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
                 <Setter Property="Padding" Value="4" />
                 <Setter Property="StrokeShape">
                     <RoundRectangle CornerRadius="12"/>
@@ -83,3 +90,4 @@
         </ResourceDictionary>
     </Application.Resources>
 </Application>
+

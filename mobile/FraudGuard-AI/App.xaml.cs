@@ -1,13 +1,19 @@
 using FraudGuardAI.Services;
 using FraudGuardAI.Pages;
 using FraudGuardAI.Pages.Auth;
+using FraudGuardAI.Localization;
 using System.Diagnostics;
+using Microsoft.Maui.Storage;
+using System.Globalization;
 
 namespace FraudGuardAI
 {
     public partial class App : Application
     {
         private static AudioStreamingServiceLowLevel _audioService;
+        private const string PREF_LIGHT_THEME = "LightThemeEnabled";
+        private const string PREF_LIGHT_THEME_USER_SET = "LightThemeUserSet";
+        private const string PREF_APP_LANGUAGE = "AppLanguage";
         
         public App()
         {
@@ -16,6 +22,18 @@ namespace FraudGuardAI
                 Debug.WriteLine("[App] Initializing App...");
                 InitializeComponent();
                 Debug.WriteLine("[App] InitializeComponent() completed");
+
+                string languageCode = Preferences.Get(PREF_APP_LANGUAGE, "en");
+                LocalizationResourceManager.Instance.SetCulture(new CultureInfo(languageCode));
+
+                bool lightThemeUserSet = Preferences.Get(PREF_LIGHT_THEME_USER_SET, false);
+                bool lightThemeEnabled = lightThemeUserSet && Preferences.Get(PREF_LIGHT_THEME, false);
+                if (!lightThemeUserSet)
+                {
+                    Preferences.Set(PREF_LIGHT_THEME, false);
+                }
+                UserAppTheme = lightThemeEnabled ? AppTheme.Light : AppTheme.Dark;
+                ApplyThemeResources(lightThemeEnabled);
 
                 // DO NOT initialize AudioService here - defer to when it's actually needed
                 // Initializing services in App constructor can cause silent failures
@@ -102,6 +120,38 @@ namespace FraudGuardAI
                 _audioService = new AudioStreamingServiceLowLevel();
             }
             return _audioService;
+        }
+
+        public static void ApplyThemeResources(bool useLightTheme)
+        {
+            if (Application.Current == null)
+                return;
+
+            var resources = Application.Current.Resources;
+            if (useLightTheme)
+            {
+                resources["TextPrimary"] = Color.FromArgb("#1B2530");
+                resources["TextSecondary"] = Color.FromArgb("#5A6B7A");
+                resources["CardBg"] = Color.FromArgb("#FFFFFF");
+                resources["InputBg"] = Color.FromArgb("#EEF2F6");
+                resources["StatCardBg"] = Color.FromArgb("#F1F5F9");
+                resources["BackgroundColor"] = Color.FromArgb("#F5F7FB");
+                resources["CardBackground"] = Color.FromArgb("#FFFFFF");
+                resources["InputBackground"] = Color.FromArgb("#EEF2F6");
+                resources["BorderColor"] = Color.FromArgb("#D6E0EA");
+            }
+            else
+            {
+                resources["TextPrimary"] = Color.FromArgb("#E0E6ED");
+                resources["TextSecondary"] = Color.FromArgb("#8B9CAF");
+                resources["CardBg"] = Color.FromArgb("#1B2838");
+                resources["InputBg"] = Color.FromArgb("#0F1923");
+                resources["StatCardBg"] = Color.FromArgb("#1E2A3A");
+                resources["BackgroundColor"] = Color.FromArgb("#0D1B2A");
+                resources["CardBackground"] = Color.FromArgb("#1B2838");
+                resources["InputBackground"] = Color.FromArgb("#0F1923");
+                resources["BorderColor"] = Color.FromArgb("#2A3F54");
+            }
         }
         
         /// <summary>

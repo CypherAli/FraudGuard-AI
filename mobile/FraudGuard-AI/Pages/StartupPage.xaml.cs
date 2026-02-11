@@ -1,3 +1,4 @@
+using FraudGuardAI.Localization;
 using FraudGuardAI.Services;
 using FraudGuardAI.Pages.Auth;
 using System.Diagnostics;
@@ -25,22 +26,22 @@ namespace FraudGuardAI.Pages
             try
             {
                 Debug.WriteLine("[StartupPage] Starting app initialization...");
-                StatusLabel.Text = "Đang khởi tạo ứng dụng...";
+                StatusLabel.Text = T("Startup_Status_InitializingApp");
                 await Task.Delay(500); // Give UI time to render
 
                 // Step 1: Check MauiContext
                 Debug.WriteLine("[StartupPage] Checking MauiContext...");
-                StatusLabel.Text = "Kiểm tra môi trường...";
+                StatusLabel.Text = T("Startup_Status_CheckingEnvironment");
                 await Task.Delay(300);
 
                 if (Application.Current?.Handler?.MauiContext == null)
                 {
-                    throw new Exception("MauiContext chưa sẵn sàng");
+                    throw new Exception(T("Startup_Error_MauiContextNotReady"));
                 }
 
                 // Step 2: Resolve authentication service
                 Debug.WriteLine("[StartupPage] Resolving authentication service...");
-                StatusLabel.Text = "Đang tải dịch vụ xác thực...";
+                StatusLabel.Text = T("Startup_LoadingAuth");
                 await Task.Delay(300);
 
                 var authService = Application.Current.Handler.MauiContext.Services
@@ -48,14 +49,14 @@ namespace FraudGuardAI.Pages
 
                 if (authService == null)
                 {
-                    throw new Exception("Không thể tải dịch vụ xác thực");
+                    throw new Exception(T("Startup_Error_AuthServiceLoadFailed"));
                 }
 
                 Debug.WriteLine("[StartupPage] ✅ Authentication service loaded");
 
                 // Step 3: Check if already authenticated
                 Debug.WriteLine("[StartupPage] Checking authentication status...");
-                StatusLabel.Text = "Kiểm tra trạng thái đăng nhập...";
+                StatusLabel.Text = T("Startup_Status_CheckingAuthStatus");
                 await Task.Delay(300);
 
                 var isAuthenticated = await authService.IsAuthenticatedAsync();
@@ -63,14 +64,14 @@ namespace FraudGuardAI.Pages
                 if (isAuthenticated)
                 {
                     Debug.WriteLine("[StartupPage] Already authenticated, navigating to AppShell");
-                    StatusLabel.Text = "Đã đăng nhập, đang chuyển trang...";
+                    StatusLabel.Text = T("Startup_Status_Authenticated");
                     await Task.Delay(500);
                     Application.Current.MainPage = new AppShell();
                 }
                 else
                 {
                     Debug.WriteLine("[StartupPage] Not authenticated, navigating to LoginPage");
-                    StatusLabel.Text = "Chuyển đến trang đăng nhập...";
+                    StatusLabel.Text = T("Startup_Status_NavigateLogin");
                     await Task.Delay(500);
                     Application.Current.MainPage = new NavigationPage(new LoginPage())
                     {
@@ -89,7 +90,12 @@ namespace FraudGuardAI.Pages
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     ErrorBorder.IsVisible = true;
-                    ErrorLabel.Text = $"{ex.Message}\n\nLần thử: {_retryCount + 1}/{MAX_RETRIES}";
+                    ErrorLabel.Text = string.Format(
+                        T("Startup_Error_RetryFormat"),
+                        ex.Message,
+                        _retryCount + 1,
+                        MAX_RETRIES
+                    );
                     
                     if (_retryCount < MAX_RETRIES)
                     {
@@ -97,7 +103,7 @@ namespace FraudGuardAI.Pages
                     }
                     else
                     {
-                        ErrorLabel.Text += "\n\nVui lòng khởi động lại ứng dụng";
+                        ErrorLabel.Text += $"\n\n{T("Startup_Error_RestartMessage")}";
                     }
                 });
             }
@@ -110,5 +116,8 @@ namespace FraudGuardAI.Pages
             RetryButton.IsVisible = false;
             await InitializeAppAsync();
         }
+
+        private static string T(string key)
+            => LocalizationResourceManager.Instance[key];
     }
 }

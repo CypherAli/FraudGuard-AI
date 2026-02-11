@@ -6,6 +6,8 @@ using FraudGuardAI.Constants;
 using FraudGuardAI.Helpers;
 using FraudGuardAI.Services;
 using FraudGuardAI.Models;
+using FraudGuardAI.Localization;
+using System.Globalization;
 #if ANDROID
 using FraudGuardAI.Platforms.Android.Services;
 #endif
@@ -31,6 +33,12 @@ namespace FraudGuardAI
         {
             InitializeComponent();
             InitializeAudioService();
+
+            LocalizationResourceManager.Instance.PropertyChanged += (_, __) =>
+            {
+                UpdateProtectionUI(_isProtectionActive, _isConnecting);
+                UpdateStatsDisplay();
+            };
             
             // Load dashboard stats asynchronously
             _ = LoadDashboardStatsAsync();
@@ -141,15 +149,27 @@ namespace FraudGuardAI
                 
                 WeeklyChangeLabel.IsVisible = _stats.WeeklyChange > 0;
                 if (WeeklyChangeLabel.IsVisible)
-                    WeeklyChangeLabel.Text = $"↑ +{_stats.WeeklyChange} tuần này";
+                    WeeklyChangeLabel.Text = string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_WeeklyChangeFormat"),
+                        _stats.WeeklyChange
+                    );
                 
                 EfficiencyChangeLabel.IsVisible = _stats.EfficiencyChange > 0;
                 if (EfficiencyChangeLabel.IsVisible)
-                    EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
+                    EfficiencyChangeLabel.Text = string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_EfficiencyChangeFormat"),
+                        _stats.EfficiencyChangeDisplay
+                    );
                 
                 BlockRateLabel.Text = !_isProtectionActive || _stats.BlockedTotal == 0
-                    ? "Chưa có dữ liệu"
-                    : $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
+                    ? T("Main_NoData")
+                    : string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_BlockRateFormat"),
+                        _stats.EfficiencyDisplay
+                    );
             });
         }
 
@@ -167,8 +187,11 @@ namespace FraudGuardAI
             {
                 if (!await PermissionManager.RequestAllPermissionsAsync())
                 {
-                    await DisplayAlert("Thiếu quyền",
-                        "Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.", "OK");
+                    await DisplayAlert(
+                        T("Main_PermissionTitle"),
+                        T("Main_PermissionMessage"),
+                        T("Common_OK")
+                    );
                     return;
                 }
                 await StartProtectionAsync();
@@ -177,11 +200,25 @@ namespace FraudGuardAI
 
         private async void OnReportButtonClicked(object sender, EventArgs e)
         {
-            var result = await DisplayPromptAsync("Báo cáo số mới", "Nhập số điện thoại lừa đảo:",
-                "Báo cáo", "Hủy", placeholder: "0912345678", keyboard: Keyboard.Telephone);
+            var result = await DisplayPromptAsync(
+                T("Main_ReportTitle"),
+                T("Main_ReportPrompt"),
+                T("Main_ReportConfirm"),
+                T("Main_ReportCancel"),
+                placeholder: "0912345678",
+                keyboard: Keyboard.Telephone
+            );
 
             if (!string.IsNullOrEmpty(result))
-                await DisplayAlert("Thành công", $"Đã báo cáo số {result}", "OK");
+                await DisplayAlert(
+                    T("Main_ReportSuccessTitle"),
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_ReportSuccessMessage"),
+                        result
+                    ),
+                    T("Common_OK")
+                );
         }
 
         #endregion
@@ -264,30 +301,30 @@ namespace FraudGuardAI
                 if (connecting)
                 {
                     ProtectionIconLabel.Text = "⏳";
-                    StatusLabel.Text = "Đang kết nối...";
-                    ProtectionStatusLabel.Text = "Đang kết nối";
+                    StatusLabel.Text = T("Main_ProtectionConnecting");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionConnectingShort");
                     ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
                     ToggleProtectionButton.IsEnabled = false;
-                    ToggleProtectionButton.Text = "Đang kết nối...";
+                    ToggleProtectionButton.Text = T("Main_ButtonConnecting");
                 }
                 else if (isActive)
                 {
-                    ProtectionIconLabel.Text = "✅";
-                    StatusLabel.Text = "Bảo vệ đang hoạt động";
-                    ProtectionStatusLabel.Text = "Đang bảo vệ";
+                    ProtectionIconLabel.Text = "✓";
+                    StatusLabel.Text = T("Main_ProtectionActive");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionProtecting");
                     ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
                     ToggleProtectionButton.IsEnabled = true;
-                    ToggleProtectionButton.Text = "Tắt bảo vệ";
+                    ToggleProtectionButton.Text = T("Main_DisableProtection");
                     ToggleProtectionButton.BackgroundColor = Color.FromArgb("#EF4444");
                 }
                 else
                 {
                     ProtectionIconLabel.Text = "🛡️";
-                    StatusLabel.Text = "Chưa kích hoạt";
-                    ProtectionStatusLabel.Text = "Đã tắt";
+                    StatusLabel.Text = T("Main_ProtectionInactive");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionOff");
                     ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
                     ToggleProtectionButton.IsEnabled = true;
-                    ToggleProtectionButton.Text = "Kích hoạt bảo vệ";
+                    ToggleProtectionButton.Text = T("Main_EnableProtection");
                     ToggleProtectionButton.BackgroundColor = Color.FromArgb("#14B8A6");
                 }
             });
@@ -300,12 +337,10 @@ namespace FraudGuardAI
                 UpdateProtectionUI(false);
                 
                 bool retry = await Application.Current.MainPage.DisplayAlert(
-                    "Kết nối thất bại",
-                    "Không thể kết nối đến máy chủ bảo vệ.\n\n" +
-                    "• Kiểm tra địa chỉ Server trong Cài đặt\n" +
-                    "• Đảm bảo server đang chạy\n" +
-                    "• Kiểm tra kết nối mạng",
-                    "Thử lại", "Cài đặt"
+                    T("Main_ConnectionFailedTitle"),
+                    T("Main_ConnectionFailedMessage"),
+                    T("Main_Retry"),
+                    T("Main_Settings")
                 );
 
                 if (retry)
@@ -369,13 +404,15 @@ namespace FraudGuardAI
 #endif
 
             await DisplayAlert(
-                "⚠️ NGUY HIỂM CAO",
-                $"Phát hiện dấu hiệu lừa đảo!\n\n" +
-                $"Loại: {alert.AlertType}\n" +
-                $"Mức độ rủi ro: {riskScore:F0}%\n" +
-                $"Nội dung: {alert.Transcript}\n\n" +
-                $"Hãy cân nhắc kết thúc cuộc gọi ngay.",
-                "Đã hiểu"
+                T("Main_HighRiskTitle"),
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    T("Main_HighRiskMessage"),
+                    alert.AlertType,
+                    riskScore.ToString("F0", CultureInfo.CurrentCulture),
+                    alert.Transcript
+                ),
+                T("Main_HighRiskAcknowledge")
             );
         }
 
@@ -396,11 +433,15 @@ namespace FraudGuardAI
                 ? AppConstants.DangerBackground 
                 : AppConstants.WarningBackground;
 
-            AlertTypeLabel.Text = isHighRisk ? "Phát hiện rủi ro cao" : alert.AlertType;
+            AlertTypeLabel.Text = isHighRisk ? T("Main_HighRiskDetected") : alert.AlertType;
             AlertMessageLabel.Text = string.IsNullOrEmpty(alert.Transcript)
-                ? "Phát hiện hoạt động đáng ngờ"
+                ? T("Main_SuspiciousActivity")
                 : alert.Transcript;
-            AlertConfidenceLabel.Text = $"Mức độ rủi ro: {riskScore:F0}%";
+            AlertConfidenceLabel.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                T("Main_RiskLevelFormat"),
+                riskScore.ToString("F0", CultureInfo.CurrentCulture)
+            );
         }
 
         #endregion
@@ -423,7 +464,7 @@ namespace FraudGuardAI
             await ShieldBorder.ScaleTo(0.95, 100);
             
             ShieldBorder.Stroke = AppConstants.DangerColor;
-            StatusLabel.Text = "⚠️ PHÁT HIỆN MỐI ĐE DỌA";
+            StatusLabel.Text = T("Main_ThreatDetected");
             StatusLabel.TextColor = Color.FromArgb("#FCA5A5");
 
             await ShieldBorder.ScaleTo(1.05, 150, Easing.SpringOut);
@@ -517,10 +558,13 @@ namespace FraudGuardAI
                     });
                 }
             }
-            
+
             // Refresh stats
             UpdateStatsDisplay();
         }
+
+        private static string T(string key)
+            => LocalizationResourceManager.Instance[key];
 
         protected override void OnDisappearing()
         {

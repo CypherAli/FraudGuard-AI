@@ -2,7 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.PhoneAuthPage"
-             Title="Đăng nhập bằng số điện thoại"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
+             Title="{loc:Translate Key=PhoneAuth_Title}"
              BackgroundColor="#F5F5F5">
 
     <ScrollView>
@@ -18,15 +19,15 @@
                     <Label Text="🔐" 
                            FontSize="60" 
                            HorizontalOptions="Center"/>
-                    <Label Text="FraudGuard AI" 
+                    <Label Text="{loc:Translate Key=PhoneAuth_HeaderTitle}" 
                            FontSize="28" 
                            FontAttributes="Bold" 
                            HorizontalTextAlignment="Center"
                            TextColor="#2196F3"/>
-                    <Label Text="Xác thực bảo mật bằng SMS" 
-                           FontSize="14" 
+                    <Label FontSize="14" 
                            HorizontalTextAlignment="Center"
-                           TextColor="Gray"/>
+                           TextColor="Gray"
+                           Text="{loc:Translate Key=PhoneAuth_HeaderSubtitle}"/>
                 </VerticalStackLayout>
             </Frame>
 
@@ -38,14 +39,14 @@
                    HasShadow="True"
                    IsVisible="True">
                 <VerticalStackLayout Spacing="16">
-                    <Label Text="Nhập số điện thoại" 
-                           FontSize="18" 
+                    <Label FontSize="18" 
                            FontAttributes="Bold"
-                           TextColor="#333333"/>
+                           TextColor="#333333"
+                           Text="{loc:Translate Key=PhoneAuth_EnterPhoneTitle}"/>
                     
-                    <Label Text="Chúng tôi sẽ gửi mã OTP 6 chữ số đến số điện thoại của bạn"
-                           FontSize="13"
-                           TextColor="Gray"/>
+                    <Label FontSize="13"
+                           TextColor="Gray"
+                           Text="{loc:Translate Key=PhoneAuth_EnterPhoneDesc}"/>
 
                     <!-- Phone Number Entry -->
                     <Frame BorderColor="#E0E0E0" 
@@ -62,8 +63,8 @@
                     </Frame>
 
                     <!-- Send OTP Button -->
-                    <Button x:Name="SendOtpButton"
-                            Text="Gửi mã OTP"
+                  <Button x:Name="SendOtpButton"
+                         Text="{loc:Translate Key=PhoneAuth_SendOtp}"
                             BackgroundColor="#2196F3"
                             TextColor="White"
                             FontSize="16"
@@ -89,13 +90,13 @@
                    HasShadow="True"
                    IsVisible="False">
                 <VerticalStackLayout Spacing="16">
-                    <Label Text="Nhập mã OTP" 
-                           FontSize="18" 
+                    <Label FontSize="18" 
                            FontAttributes="Bold"
-                           TextColor="#333333"/>
+                           TextColor="#333333"
+                           Text="{loc:Translate Key=PhoneAuth_EnterOtpTitle}"/>
                     
                     <Label x:Name="OtpSentLabel"
-                           Text="Mã đã được gửi đến +84 xxx xxx xxx"
+                           Text="{loc:Translate Key=PhoneAuth_OtpSent}"
                            FontSize="13"
                            TextColor="Gray"/>
 
@@ -116,8 +117,8 @@
                     </Frame>
 
                     <!-- Verify OTP Button -->
-                    <Button x:Name="VerifyOtpButton"
-                            Text="Xác thực"
+                  <Button x:Name="VerifyOtpButton"
+                         Text="{loc:Translate Key=PhoneAuth_Verify}"
                             BackgroundColor="#4CAF50"
                             TextColor="White"
                             FontSize="16"
@@ -137,12 +138,12 @@
                     <HorizontalStackLayout Spacing="8" 
                                          HorizontalOptions="Center"
                                          Margin="0,8,0,0">
-                        <Label Text="Không nhận được mã?" 
-                               FontSize="13"
+                        <Label FontSize="13"
                                TextColor="Gray"
-                               VerticalOptions="Center"/>
+                               VerticalOptions="Center"
+                               Text="{loc:Translate Key=PhoneAuth_ResendQuestion}"/>
                         <Button x:Name="ResendOtpButton"
-                                Text="Gửi lại"
+                                Text="{loc:Translate Key=PhoneAuth_Resend}"
                                 BackgroundColor="Transparent"
                                 TextColor="#2196F3"
                                 FontSize="13"
@@ -152,7 +153,7 @@
                     </HorizontalStackLayout>
 
                     <!-- Change Phone Number -->
-                    <Button Text="Đổi số điện thoại"
+                  <Button Text="{loc:Translate Key=PhoneAuth_ChangePhone}"
                             BackgroundColor="Transparent"
                             TextColor="Gray"
                             FontSize="13"
@@ -167,17 +168,20 @@
                    HasShadow="False"
                    BorderColor="#FFB300">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ℹ️ Lưu ý quan trọng" 
-                           FontSize="14" 
-                           FontAttributes="Bold"
-                           TextColor="#F57C00"/>
+                                   <Label FontSize="14" 
+                                             FontAttributes="Bold"
+                                             TextColor="#F57C00"
+                                             Text="{loc:Translate Key=PhoneAuth_InfoTitle}"/>
                     <Label FontSize="12" TextColor="#E65100">
                         <Label.FormattedText>
                             <FormattedString>
-                                <Span Text="• Số điện thoại phải theo định dạng quốc tế (+84)"/>
-                                <Span Text="&#x0a;• Mã OTP có hiệu lực trong 60 giây"/>
-                                <Span Text="&#x0a;• Có thể phát sinh phí tin nhắn SMS"/>
-                                <Span Text="&#x0a;• Thông tin được bảo mật bởi Firebase"/>
+                                                        <Span Text="{loc:Translate Key=PhoneAuth_InfoBullet1}"/>
+                                                        <Span Text="&#x0a;"/>
+                                                        <Span Text="{loc:Translate Key=PhoneAuth_InfoBullet2}"/>
+                                                        <Span Text="&#x0a;"/>
+                                                        <Span Text="{loc:Translate Key=PhoneAuth_InfoBullet3}"/>
+                                                        <Span Text="&#x0a;"/>
+                                                        <Span Text="{loc:Translate Key=PhoneAuth_InfoBullet4}"/>
                             </FormattedString>
                         </Label.FormattedText>
                     </Label>
@@ -191,15 +195,15 @@
                    Margin="0,0,0,20">
                 <Label.FormattedText>
                     <FormattedString>
-                        <Span Text="Bằng cách đăng nhập, bạn đồng ý với "/>
-                        <Span Text="Điều khoản sử dụng" 
-                              TextColor="#2196F3" 
-                              TextDecorations="Underline"/>
-                        <Span Text=" và "/>
-                        <Span Text="Chính sách bảo mật" 
-                              TextColor="#2196F3" 
-                              TextDecorations="Underline"/>
-                        <Span Text=" của chúng tôi"/>
+                            <Span Text="{loc:Translate Key=PhoneAuth_PrivacyPrefix}"/>
+                            <Span Text="{loc:Translate Key=PhoneAuth_Terms}" 
+                                   TextColor="#2196F3" 
+                                   TextDecorations="Underline"/>
+                            <Span Text="{loc:Translate Key=PhoneAuth_And}"/>
+                            <Span Text="{loc:Translate Key=PhoneAuth_Privacy}" 
+                                   TextColor="#2196F3" 
+                                   TextDecorations="Underline"/>
+                            <Span Text="{loc:Translate Key=PhoneAuth_PrivacySuffix}"/>
                     </FormattedString>
                 </Label.FormattedText>
             </Label>
@@ -207,3 +211,4 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+
