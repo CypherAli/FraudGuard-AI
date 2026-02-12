@@ -24,6 +24,7 @@ type FraudDetector struct {
 	alertCount int
 	startTime  time.Time
 	config     *FraudDetectionConfig // Configurable thresholds
+	sendAlert  func(models.AlertMessage) // Callback to send alerts to mobile client
 }
 
 // SessionState tracks accumulated risk for a call session
@@ -82,6 +83,14 @@ func NewFraudDetectorWithConfig(deviceID string, config *FraudDetectionConfig) *
 		startTime: time.Now(),
 		config:    config,
 	}
+}
+
+// SetAlertCallback sets the callback function for sending alerts to mobile client
+// This is required for Gemini AI async results to trigger mobile alerts
+func (fd *FraudDetector) SetAlertCallback(sendAlert func(models.AlertMessage)) {
+	fd.mu.Lock()
+	defer fd.mu.Unlock()
+	fd.sendAlert = sendAlert
 }
 
 // newSessionState creates a new session state
@@ -283,15 +292,88 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		Patterns:  patterns,
 	}
 
-	// TODO: Integrate with OpenAI/Gemini for semantic analysis
-	// This would provide more sophisticated fraud detection beyond keywords
-	// Example:
-	// if GlobalGeminiClient != nil {
-	//     aiResult := GlobalGeminiClient.AnalyzeFraud(text)
-	//     if aiResult.IsFraud {
-	//         currentScore += aiResult.RiskScore
-	//     }
-	// }
+	// Gemini AI contextual analysis - runs async for semantic fraud detection
+	// This catches sophisticated scams that keyword matching misses
+	// Results feed BACK into the alert pipeline via sendAlert callback
+	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
+		// Capture sendAlert callback and current session state under lock
+		alertCallback := fd.sendAlert
+		currentScore := fd.session.AccumulatedScore
+		sessionID := fd.session.SessionID
+
+		go func(deviceID string, txt string, history []string) {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("🔥 [%s] Recovered panic in Gemini analysis: %v", deviceID, r)
+				}
+			}()
+
+			aiResult, err := GlobalGeminiClient.AnalyzeFraudContext(txt, history)
+			if err != nil {
+				log.Printf("⚠️ [%s] Gemini analysis error: %v", deviceID, err)
+				GeminiCircuitBreaker.RecordFailure()
+				return
+			}
+			GeminiCircuitBreaker.RecordSuccess()
+
+			if aiResult == nil {
+				return
+			}
+
+			log.Printf("🤖 [%s] Gemini result: IsFraud=%v, Score=%d, Type=%s, Confidence=%s",
+				deviceID, aiResult.IsFraud, aiResult.RiskScore, aiResult.FraudType, aiResult.Confidence)
+
+			// If Gemini detects fraud with significant confidence, boost the accumulated score
+			// and send alert to mobile client
+			if aiResult.IsFraud && aiResult.RiskScore > 30 {
+				log.Printf("🤖🚨 [%s] Gemini AI fraud detected: Type=%s, Score=%d, Reason=%s",
+					deviceID, aiResult.FraudType, aiResult.RiskScore, aiResult.Explanation)
+
+				// Boost accumulated score with Gemini's assessment
+				// Use a fraction of Gemini score to complement keyword scoring
+				geminiBoost := aiResult.RiskScore / 2 // 50% of Gemini's score as boost
+				fd.mu.Lock()
+				// Only apply if still the same session
+				if fd.session.SessionID == sessionID {
+					fd.session.AccumulatedScore += geminiBoost
+					fd.session.DetectedPatterns = append(fd.session.DetectedPatterns,
+						fmt.Sprintf("AI: %s (+%d, confidence=%s)", aiResult.FraudType, geminiBoost, aiResult.Confidence))
+					log.Printf("🤖 [%s] Score boosted by Gemini: +%d → total=%d",
+						deviceID, geminiBoost, fd.session.AccumulatedScore)
+				}
+				fd.mu.Unlock()
+
+				// Send alert to mobile client if callback is set
+				if alertCallback != nil {
+					// Determine alert level based on combined score
+					combinedScore := currentScore + geminiBoost
+					alertType := "MEDIUM"
+					if combinedScore >= 80 || aiResult.RiskScore >= 80 {
+						alertType = "CRITICAL"
+					} else if combinedScore >= 60 || aiResult.RiskScore >= 60 {
+						alertType = "HIGH"
+					}
+
+					alert := models.AlertMessage{
+						Type:       "alert",
+						AlertType:  alertType,
+						Confidence: float64(aiResult.RiskScore) / 100.0,
+						Transcript: txt,
+						Keywords:   []string{fmt.Sprintf("AI: %s (%s)", aiResult.FraudType, aiResult.Confidence)},
+						Timestamp:  time.Now().Unix(),
+						Message: fmt.Sprintf("🤖 AI phát hiện: %s - %s (Độ tin cậy: %s)",
+							aiResult.FraudType, aiResult.Explanation, aiResult.Confidence),
+					}
+
+					log.Printf("🤖📤 [%s] Sending Gemini AI alert to mobile: %s", deviceID, alert.Message)
+					alertCallback(alert)
+					log.Printf("🤖✅ [%s] Gemini AI alert sent to mobile successfully", deviceID)
+				} else {
+					log.Printf("⚠️ [%s] Gemini detected fraud but no alert callback set!", deviceID)
+				}
+			}
+		}(fd.deviceID, text, fd.session.TranscriptHistory)
+	}
 
 	// Determine alert level based on accumulated score and config thresholds
 	if currentScore >= fd.config.CriticalThreshold {

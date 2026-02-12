@@ -569,4 +569,13 @@ Lần thử: {1}/{2}</value>
   <data name="PhoneAuth_PrivacySuffix" xml:space="preserve">
     <value> của chúng tôi</value>
   </data>
+  <data name="Main_ConnectionIssue" xml:space="preserve">
+    <value>⚠️ Lỗi kết nối - đang kết nối lại...</value>
+  </data>
+  <data name="Main_Reconnecting" xml:space="preserve">
+    <value>🔄 Đang kết nối lại máy chủ...</value>
+  </data>
+  <data name="Main_IncomingCall" xml:space="preserve">
+    <value>Phát hiện cuộc gọi đến...</value>
+  </data>
 </root>

@@ -384,9 +384,50 @@ namespace FraudGuardAI
             });
         }
 
-        private void OnErrorOccurred(object sender, Services.ErrorEventArgs e) { }
+        private void OnErrorOccurred(object sender, Services.ErrorEventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Error: {e.Message}");
 
-        private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e) { }
+                    // Show connection error in status for connection issues
+                    if (e.Message?.Contains("Connection") == true ||
+                        e.Message?.Contains("WebSocket") == true ||
+                        e.Message?.Contains("Reconnect") == true)
+                    {
+                        StatusLabel.Text = T("Main_ConnectionIssue");
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                }
+                catch { }
+            });
+        }
+
+        private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.IsConnected} - {e.Message}");
+
+                    if (e.IsConnected)
+                    {
+                        _isProtectionActive = true;
+                        UpdateProtectionUI(true);
+                    }
+                    else if (!_isConnecting && _isProtectionActive)
+                    {
+                        // Connection lost while protection was active
+                        StatusLabel.Text = T("Main_Reconnecting");
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                }
+                catch { }
+            });
+        }
 
         #endregion
 
@@ -516,7 +557,13 @@ namespace FraudGuardAI
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            
+
+            // Subscribe to call state changes for auto-protection
+#if ANDROID
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged += OnCallStateChanged;
+#endif
+
             // Cancel any stale animations
             _animationCts?.Cancel();
             _animationCts = new CancellationTokenSource();
@@ -569,10 +616,10 @@ namespace FraudGuardAI
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            
+
             // Cancel animations
             _animationCts?.Cancel();
-            
+
             // Only detach event handlers
             if (_audioService != null)
             {
@@ -580,7 +627,62 @@ namespace FraudGuardAI
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
             }
+
+#if ANDROID
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
+#endif
         }
+
+#if ANDROID
+        /// <summary>
+        /// Handle call state changes from CallStateReceiver
+        /// Updates UI when call auto-protection starts/stops
+        /// </summary>
+        private void OnCallStateChanged(object sender, FraudGuardAI.Platforms.Android.Services.CallStateChangedEventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    switch (e.State)
+                    {
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Ringing:
+                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📞 Incoming call: {e.PhoneNumber}");
+                            StatusLabel.Text = $"📞 {T("Main_IncomingCall")}";
+                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                            break;
+
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Active:
+                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📱 Call active - protection auto-started");
+                            _isProtectionActive = _audioService?.IsStreaming ?? false;
+                            if (_isProtectionActive)
+                            {
+                                _animationCts?.Cancel();
+                                _animationCts = new CancellationTokenSource();
+                                UpdateProtectionUI(true);
+                                _ = PulseAnimation(_animationCts.Token);
+                            }
+                            break;
+
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Ended:
+                            System.Diagnostics.Debug.WriteLine("[MainPage] 📴 Call ended");
+                            _isProtectionActive = _audioService?.IsStreaming ?? false;
+                            UpdateProtectionUI(_isProtectionActive);
+                            if (!_isProtectionActive)
+                            {
+                                _animationCts?.Cancel();
+                                AlertBanner.IsVisible = false;
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Call state handler error: {ex.Message}");
+                }
+            });
+        }
+#endif
 
         #endregion
     }
