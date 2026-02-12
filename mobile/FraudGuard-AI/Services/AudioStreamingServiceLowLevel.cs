@@ -463,26 +463,12 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== PROCESSING SERVER MESSAGE =====");
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Raw message ({message.Length} chars): {message}");
-                
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
-                
-                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON parsed successfully");
-
-                // Log all properties in the JSON
-                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON properties:");
-                foreach (var property in root.EnumerateObject())
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - {property.Name}: {property.Value}");
-                }
 
                 if (root.TryGetProperty("type", out var typeElement) &&
                     typeElement.GetString() == "alert")
                 {
-                    Log.Warn(TAG, $"🚨 ALERT received from server!");
-                    
                     var alertData = new AlertData
                     {
                         AlertType = root.GetProperty("alert_type").GetString(),
@@ -493,28 +479,13 @@ namespace FraudGuardAI.Services
                             : Array.Empty<string>(),
                         Timestamp = DateTime.Now
                     };
-                    
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] Alert parsed:");
-                    System.Diagnostics.Debug.WriteLine($"  - AlertType: {alertData.AlertType}");
-                    System.Diagnostics.Debug.WriteLine($"  - Confidence: {alertData.Confidence}");
-                    System.Diagnostics.Debug.WriteLine($"  - Transcript: {alertData.Transcript}");
-                    System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alertData.Keywords)}");
-                    
-                    Log.Warn(TAG, $"🚨 Triggering alert: {alertData.AlertType} confidence={alertData.Confidence:F2} transcript={alertData.Transcript}");
+
+                    Log.Warn(TAG, $"ALERT: {alertData.AlertType} confidence={alertData.Confidence:F2}");
                     OnAlertReceived(alertData);
-                    Log.Info(TAG, "✅ Alert event triggered to UI");
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ⚠️ Message is not an alert (type: {(root.TryGetProperty("type", out var t) ? t.GetString() : "missing")})");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== MESSAGE PROCESSING COMPLETE =====");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Message processing error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Stack trace: {ex.StackTrace}");
                 OnError($"Message processing error: {ex.Message}", ex);
             }
         }

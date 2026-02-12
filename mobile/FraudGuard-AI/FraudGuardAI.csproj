@@ -19,12 +19,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
-    <!-- Android SDK and Java Paths - Auto-detected -->
-    <AndroidSdkDirectory>C:\Users\Admin\AppData\Local\Android\Sdk</AndroidSdkDirectory>
-    <JavaSdkDirectory>C:\Program Files\Android\Android Studio\jbr</JavaSdkDirectory>
+    <!-- Android SDK paths auto-detected by MAUI - do not hardcode -->
     <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
-    <TargetFrameworkVersion>v15.0</TargetFrameworkVersion>
-    <AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
 
     <!-- Display name -->
     <ApplicationTitle>FraudGuard AI</ApplicationTitle>
@@ -87,10 +83,6 @@
     <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.90" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
     <PackageReference Include="Plugin.AudioRecorder" Version="1.1.0" />
-
-    <!-- Firebase removed: App now uses Email OTP via Brevo instead of Firebase Phone Auth -->
-    <!-- Removing Firebase packages fixes AndroidX version conflict that caused -->
-    <!-- TypeInitializationException on Microsoft.Maui.Controls.Button -->
   </ItemGroup>
 
   <!-- Android -->

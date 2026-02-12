@@ -7,6 +7,7 @@ var (
 	GlobalDeepgramClient *DeepgramClient
 	GlobalGeminiClient   *GeminiClient
 
-	// Circuit breaker for Gemini API
-	GeminiCircuitBreaker = NewCircuitBreaker("Gemini", 3, 60*time.Second)
+	// Circuit breakers for external AI APIs
+	GeminiCircuitBreaker   = NewCircuitBreaker("Gemini", 3, 60*time.Second)
+	DeepgramCircuitBreaker = NewCircuitBreaker("Deepgram", 5, 30*time.Second)
 )

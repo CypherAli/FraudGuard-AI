@@ -32,21 +32,16 @@ func main() {
 	log.Printf("🌐 Host: %s", cfg.Server.Host)
 	log.Printf("🔌 Port: %d", cfg.Server.Port)
 
-	// Initialize PostgreSQL database connection (for blacklist) - OPTIONAL
-	dbConnected := false
+	// Initialize PostgreSQL database connection (optional - blacklist features)
 	if err := db.Connect(&cfg.Database); err != nil {
-		log.Printf("⚠️ Warning: Failed to connect to PostgreSQL database: %v", err)
-		log.Println("⚠️ Blacklist and database features will be disabled")
+		log.Printf("Warning: PostgreSQL unavailable: %v", err)
+		log.Println("Blacklist and database features will be disabled")
 	} else {
-		dbConnected = true
 		defer db.Close()
-
-		// Auto-migrate: Create tables and seed data
 		if err := db.AutoMigrate(); err != nil {
-			log.Printf("⚠️ Warning: Failed to run migrations: %v", err)
+			log.Printf("Warning: Failed to run migrations: %v", err)
 		}
 	}
-	_ = dbConnected // Suppress unused variable warning
 
 	// Initialize SQLite database (for call history logs)
 	if err := repository.InitSQLite(); err != nil {
@@ -115,7 +110,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
-		r.Get("/history", handlers.GetHistory) // NEW: Call history endpoint
+		r.Get("/history", handlers.GetHistory)
 	})
 
 	// Auth routes (OTP Email authentication)

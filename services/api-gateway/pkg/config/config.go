@@ -74,7 +74,7 @@ func Load() (*Config, error) {
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnvAsInt("DB_PORT", 5432),
 			User:     getEnv("DB_USER", "fraudguard"),
-			Password: getEnv("DB_PASSWORD", "fraudguard_secure_2024"),
+			Password: getEnv("DB_PASSWORD", ""),
 			DBName:   getEnv("DB_NAME", "fraudguard_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 			MaxConns: getEnvAsInt("DB_MAX_CONNS", 25),

@@ -6,7 +6,7 @@ services:
     container_name: fraudguard-db
     environment:
       POSTGRES_USER: fraudguard
-      POSTGRES_PASSWORD: fraudguard_secure_2024
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       POSTGRES_DB: fraudguard_db
     ports:
       - "5433:5432"
