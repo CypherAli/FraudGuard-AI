@@ -569,4 +569,13 @@ Attempt: {1}/{2}</value>
   <data name="PhoneAuth_PrivacySuffix" xml:space="preserve">
     <value> of our app</value>
   </data>
+  <data name="Main_ConnectionIssue" xml:space="preserve">
+    <value>⚠️ Connection issue - reconnecting...</value>
+  </data>
+  <data name="Main_Reconnecting" xml:space="preserve">
+    <value>🔄 Reconnecting to server...</value>
+  </data>
+  <data name="Main_IncomingCall" xml:space="preserve">
+    <value>Incoming call detected...</value>
+  </data>
 </root>

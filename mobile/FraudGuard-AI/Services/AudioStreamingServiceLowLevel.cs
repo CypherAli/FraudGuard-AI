@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Android.Media;
+using Android.Util;
 using FraudGuardAI.Models;
 
 namespace FraudGuardAI.Services
@@ -32,6 +33,7 @@ namespace FraudGuardAI.Services
         private const Android.Media.Encoding AUDIO_FORMAT = Android.Media.Encoding.Pcm16bit;
         private const int BUFFER_SIZE = 8192; // Increased from 4096 to reduce fragmentation
         private const int BYTES_PER_SAMPLE = 2; // 16-bit = 2 bytes
+        private const string TAG = "FraudGuard"; // Logcat tag for filtering
 
         public event EventHandler<AlertEventArgs> AlertReceived;
         public event EventHandler<ErrorEventArgs> ErrorOccurred;
@@ -93,6 +95,7 @@ namespace FraudGuardAI.Services
                 );
 
                 _isConnected = true;
+                Log.Info(TAG, $"✅ WebSocket CONNECTED to: {fullUrl}");
                 OnConnectionStatusChanged(true, "Connected");
 
                 _ = Task.Run(() => ReceiveMessagesAsync(_cancellationTokenSource.Token));
@@ -102,6 +105,7 @@ namespace FraudGuardAI.Services
             catch (Exception ex)
             {
                 _isConnected = false;
+                Log.Error(TAG, $"❌ WebSocket connection FAILED: {ex.Message}");
                 OnConnectionStatusChanged(false, $"Failed: {ex.Message}");
                 OnError($"Connection failed: {ex.Message}", ex);
                 return false;
@@ -162,6 +166,7 @@ namespace FraudGuardAI.Services
                 // Bắt đầu recording
                 _audioRecord.StartRecording();
                 _isStreaming = true;
+                Log.Info(TAG, $"🎤 Audio recording STARTED - BufferSize={bufferSize}, MinBuffer={minBufferSize}");
 
                 // Bắt đầu streaming loop
                 _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource.Token));
@@ -315,7 +320,9 @@ namespace FraudGuardAI.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Starting audio stream - Buffer: {BUFFER_SIZE}, Rate: {SAMPLE_RATE}Hz");
+                Log.Info(TAG, $"🔄 Audio streaming loop started - Buffer: {BUFFER_SIZE}, Rate: {SAMPLE_RATE}Hz");
+                int chunksSent = 0;
+                long totalBytesSent = 0;
                 
                 while (_isStreaming && !cancellationToken.IsCancellationRequested)
                 {
@@ -362,6 +369,13 @@ namespace FraudGuardAI.Services
                                     cancellationToken
                                 );
                                 consecutiveErrors = 0; // Reset error counter on success
+                                chunksSent++;
+                                totalBytesSent += bytesRead;
+                                // Log every 50 chunks (~12 seconds at 8KB/250ms)
+                                if (chunksSent % 50 == 0)
+                                {
+                                    Log.Info(TAG, $"📡 Streaming: {chunksSent} chunks sent ({totalBytesSent / 1024}KB total)");
+                                }
                             }
                             else
                             {
@@ -467,7 +481,7 @@ namespace FraudGuardAI.Services
                 if (root.TryGetProperty("type", out var typeElement) &&
                     typeElement.GetString() == "alert")
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ Alert message detected!");
+                    Log.Warn(TAG, $"🚨 ALERT received from server!");
                     
                     var alertData = new AlertData
                     {
@@ -486,9 +500,9 @@ namespace FraudGuardAI.Services
                     System.Diagnostics.Debug.WriteLine($"  - Transcript: {alertData.Transcript}");
                     System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alertData.Keywords)}");
                     
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] 🚨 Triggering OnAlertReceived event...");
+                    Log.Warn(TAG, $"🚨 Triggering alert: {alertData.AlertType} confidence={alertData.Confidence:F2} transcript={alertData.Transcript}");
                     OnAlertReceived(alertData);
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ OnAlertReceived event triggered");
+                    Log.Info(TAG, "✅ Alert event triggered to UI");
                 }
                 else
                 {

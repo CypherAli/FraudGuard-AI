@@ -19,7 +19,10 @@
     
     <!-- Quyền ghi âm (BẮT BUỘC) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
+
+    <!-- Quyền đọc trạng thái cuộc gọi (tự động phát hiện cuộc gọi đến) -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
     <!-- Quyền Internet (BẮT BUỘC cho WebSocket) -->
     <uses-permission android:name="android.permission.INTERNET" />
     

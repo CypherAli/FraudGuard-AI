@@ -78,9 +78,24 @@ namespace FraudGuardAI.Helpers
             if (!hasMicrophone)
                 return false;
             
+            // Request phone state permission for auto-detecting incoming calls
+            #if ANDROID
+            try
+            {
+                var phoneStatus = await Permissions.CheckStatusAsync<Permissions.Phone>();
+                if (phoneStatus != PermissionStatus.Granted)
+                {
+                    phoneStatus = await Permissions.RequestAsync<Permissions.Phone>();
+                    System.Diagnostics.Debug.WriteLine($"[PermissionManager] Phone permission: {phoneStatus}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PermissionManager] Phone permission error: {ex.Message}");
+            }
+
             // Notification permission is optional but recommended
             // On Android 13+, we should request it
-            #if ANDROID
             try
             {
                 var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
@@ -94,7 +109,7 @@ namespace FraudGuardAI.Helpers
                 // Notification permission might not be available on older Android versions
             }
             #endif
-            
+
             return true;
         }
 
