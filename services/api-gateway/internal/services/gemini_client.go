@@ -75,6 +75,11 @@ type GeminiAnalysisResult struct {
 	Confidence  string `json:"confidence"`
 }
 
+// IsEnabled returns whether the Gemini client is active and configured
+func (g *GeminiClient) IsEnabled() bool {
+	return g != nil && g.APIKey != ""
+}
+
 // NewGeminiClient creates a new Gemini client
 func NewGeminiClient(apiKey string) *GeminiClient {
 	return &GeminiClient{
