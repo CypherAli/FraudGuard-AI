@@ -32,7 +32,7 @@ func GetHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("📊 History request: device_id=%s, limit=%d, fraud_only=%v", deviceID, limit, fraudOnly)
+	log.Printf(" History request: device_id=%s, limit=%d, fraud_only=%v", deviceID, limit, fraudOnly)
 
 	// Fetch data from repository
 	var logs interface{}
@@ -45,7 +45,7 @@ func GetHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		log.Printf("❌ Error fetching history: %v", err)
+		log.Printf(" Error fetching history: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -64,6 +64,6 @@ func GetHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("❌ Error encoding response: %v", err)
+		log.Printf(" Error encoding response: %v", err)
 	}
 }

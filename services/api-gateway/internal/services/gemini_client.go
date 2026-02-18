@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,18 +12,19 @@ import (
 	"time"
 )
 
-// GeminiClient handles communication with Google Gemini API for contextual fraud analysis
+// GeminiClient handles communication with Google Gemini API for advanced fraud detection
 type GeminiClient struct {
-	APIKey     string
-	HTTPClient *http.Client
-	Model      string
+	APIKey        string
+	HTTPClient    *http.Client // For real-time fraud analysis (short timeout)
+	SummaryClient *http.Client // For post-call summary (longer timeout)
+	Model         string
 }
 
 // GeminiRequest represents the request body for Gemini API
 type GeminiRequest struct {
 	Contents         []GeminiContent        `json:"contents"`
 	GenerationConfig GeminiGenerationConfig `json:"generationConfig"`
-	SafetySettings   []GeminiSafetySetting  `json:"safetySettings"`
+	SafetySettings   []GeminiSafetySetting  `json:"safetySettings,omitempty"`
 }
 
 // GeminiContent represents content in Gemini API
@@ -37,9 +39,10 @@ type GeminiPart struct {
 
 // GeminiGenerationConfig holds generation settings
 type GeminiGenerationConfig struct {
-	Temperature     float64 `json:"temperature"`
-	MaxOutputTokens int     `json:"maxOutputTokens"`
-	TopP            float64 `json:"topP"`
+	Temperature      float64 `json:"temperature"`
+	MaxOutputTokens  int     `json:"maxOutputTokens"`
+	TopP             float64 `json:"topP,omitempty"`
+	ResponseMimeType string  `json:"responseMimeType,omitempty"`
 }
 
 // GeminiSafetySetting represents safety configuration
@@ -63,7 +66,7 @@ type GeminiResponse struct {
 	} `json:"error,omitempty"`
 }
 
-// GeminiAnalysisResult holds the parsed result from Gemini
+// GeminiAnalysisResult holds the parsed result from Gemini fraud analysis
 type GeminiAnalysisResult struct {
 	IsFraud     bool   `json:"is_fraud"`
 	RiskScore   int    `json:"risk_score"`
@@ -72,19 +75,27 @@ type GeminiAnalysisResult struct {
 	Confidence  string `json:"confidence"`
 }
 
+// IsEnabled returns whether the Gemini client is active and configured
+func (g *GeminiClient) IsEnabled() bool {
+	return g != nil && g.APIKey != ""
+}
+
 // NewGeminiClient creates a new Gemini client
 func NewGeminiClient(apiKey string) *GeminiClient {
 	return &GeminiClient{
 		APIKey: apiKey,
 		HTTPClient: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 5 * time.Second, // Real-time fraud analysis: tight timeout
+		},
+		SummaryClient: &http.Client{
+			Timeout: 15 * time.Second, // Post-call summary: longer timeout for larger responses
 		},
 		Model: "gemini-2.0-flash",
 	}
 }
 
-// AnalyzeFraudContext performs contextual fraud analysis using Gemini AI
-// This provides deeper semantic understanding beyond keyword matching
+// AnalyzeFraudContext performs contextual fraud analysis using Gemini AI.
+// This provides deeper semantic understanding beyond keyword matching.
 func (g *GeminiClient) AnalyzeFraudContext(transcript string, previousContext []string) (*GeminiAnalysisResult, error) {
 	if transcript == "" {
 		return nil, fmt.Errorf("empty transcript")
@@ -93,7 +104,7 @@ func (g *GeminiClient) AnalyzeFraudContext(transcript string, previousContext []
 	// Build context from previous transcripts
 	contextStr := ""
 	if len(previousContext) > 0 {
-		// Only use last 5 transcripts for context
+		// Only use last 5 transcripts for context (limit token usage)
 		start := 0
 		if len(previousContext) > 5 {
 			start = len(previousContext) - 5
@@ -121,7 +132,7 @@ Các dạng lừa đảo phổ biến tại Việt Nam:
 Trả lời CHÍNH XÁC theo format JSON sau (không thêm bất kỳ text nào khác):
 {"is_fraud": true/false, "risk_score": 0-100, "fraud_type": "tên loại lừa đảo hoặc safe", "explanation": "giải thích ngắn gọn", "confidence": "high/medium/low"}`, contextStr, transcript)
 
-	// Build request
+	// Build request with safety settings to allow fraud-related content analysis
 	reqBody := GeminiRequest{
 		Contents: []GeminiContent{
 			{
@@ -186,7 +197,7 @@ Trả lời CHÍNH XÁC theo format JSON sau (không thêm bất kỳ text nào 
 		return nil, fmt.Errorf("empty gemini response")
 	}
 
-	// Extract JSON from response text
+	// Extract JSON from response text (handles markdown code fences)
 	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
 	responseText = extractJSON(responseText)
 
@@ -209,6 +220,101 @@ Trả lời CHÍNH XÁC theo format JSON sau (không thêm bất kỳ text nào 
 	return &result, nil
 }
 
+// GenerateCallSummary generates a post-call summary using Gemini.
+// Uses a longer timeout (SummaryClient) for larger responses.
+func (g *GeminiClient) GenerateCallSummary(transcripts []string, riskScore int, patterns []string) (string, error) {
+	if g.APIKey == "" {
+		return "", fmt.Errorf("gemini client not configured")
+	}
+
+	if !GeminiCircuitBreaker.Allow() {
+		return "", fmt.Errorf("gemini circuit breaker open")
+	}
+
+	fullTranscript := strings.Join(transcripts, " ")
+	if len(fullTranscript) > 2000 {
+		fullTranscript = fullTranscript[:2000] + "..."
+	}
+
+	patternStr := "Không có"
+	if len(patterns) > 0 {
+		patternStr = strings.Join(patterns, ", ")
+	}
+
+	prompt := fmt.Sprintf(`Tóm tắt cuộc gọi điện thoại này bằng tiếng Việt:
+
+Nội dung: "%s"
+Điểm rủi ro: %d/100
+Mẫu phát hiện: %s
+
+Viết tóm tắt ngắn gọn (3-5 câu) bao gồm:
+1. Nội dung chính của cuộc gọi
+2. Tại sao hệ thống đánh giá mức rủi ro này
+3. Khuyến nghị cho người dùng
+
+Chỉ trả về văn bản tóm tắt, không có markdown hay JSON.`, fullTranscript, riskScore, patternStr)
+
+	reqBody := GeminiRequest{
+		Contents: []GeminiContent{
+			{Parts: []GeminiPart{{Text: prompt}}},
+		},
+		GenerationConfig: GeminiGenerationConfig{
+			Temperature:     0.3,
+			MaxOutputTokens: 500,
+		},
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+		g.Model, g.APIKey)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Use SummaryClient with longer timeout for post-call summary
+	resp, err := g.SummaryClient.Do(req)
+	if err != nil {
+		GeminiCircuitBreaker.RecordFailure()
+		return "", fmt.Errorf("gemini request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		GeminiCircuitBreaker.RecordFailure()
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		GeminiCircuitBreaker.RecordFailure()
+		return "", fmt.Errorf("gemini API error (status %d)", resp.StatusCode)
+	}
+
+	var geminiResp GeminiResponse
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		GeminiCircuitBreaker.RecordFailure()
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		GeminiCircuitBreaker.RecordSuccess()
+		return strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text), nil
+	}
+
+	GeminiCircuitBreaker.RecordFailure()
+	return "", fmt.Errorf("empty response from gemini")
+}
+
 // extractJSON extracts JSON object from text that may contain markdown formatting
 func extractJSON(text string) string {
 	text = strings.TrimSpace(text)
@@ -229,7 +335,7 @@ func extractJSON(text string) string {
 	return text
 }
 
-// truncate truncates a string to max length
+// truncate truncates a string to max length with ellipsis
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

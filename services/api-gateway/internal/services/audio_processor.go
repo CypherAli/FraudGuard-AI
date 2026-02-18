@@ -1,10 +1,13 @@
 package services
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/fraudguard/api-gateway/internal/audio"
 	"github.com/fraudguard/api-gateway/internal/models"
 )
 
@@ -12,6 +15,8 @@ import (
 var (
 	detectorRegistry         = make(map[string]*FraudDetector)
 	detectorMutex            sync.RWMutex
+	deepfakeRegistry         = make(map[string]*audio.DeepfakeDetector)
+	deepfakeMutex            sync.RWMutex
 	audioProcessingSemaphore = make(chan struct{}, 50) // Max 50 concurrent goroutines
 )
 
@@ -86,8 +91,31 @@ func RemoveFraudDetector(deviceID string) {
 	delete(detectorRegistry, deviceID)
 	detectorMutex.Unlock()
 
+	deepfakeMutex.Lock()
+	delete(deepfakeRegistry, deviceID)
+	deepfakeMutex.Unlock()
+
 	removeAudioBuffer(deviceID)
-	log.Printf("[%s] Removed fraud detector and audio buffer", deviceID)
+	log.Printf("🗑️ [%s] Removed fraud detector and audio buffer from registry", deviceID)
+}
+
+// GetDeepfakeDetector retrieves or creates a deepfake detector for a device
+func GetDeepfakeDetector(deviceID string) *audio.DeepfakeDetector {
+	deepfakeMutex.RLock()
+	dd, exists := deepfakeRegistry[deviceID]
+	deepfakeMutex.RUnlock()
+	if exists {
+		return dd
+	}
+
+	deepfakeMutex.Lock()
+	defer deepfakeMutex.Unlock()
+	if dd, exists := deepfakeRegistry[deviceID]; exists {
+		return dd
+	}
+	dd = audio.NewDeepfakeDetector()
+	deepfakeRegistry[deviceID] = dd
+	return dd
 }
 
 // ProcessAudioStream handles real-time audio streaming with buffering.
@@ -125,7 +153,7 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		return
 	}
 
-	// Acquire semaphore slot
+	// Acquire global semaphore slot to limit total concurrent goroutines
 	select {
 	case audioProcessingSemaphore <- struct{}{}:
 	default:
@@ -141,13 +169,41 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			}
 		}()
 
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		log.Printf("🔄 [%s] Starting async transcription...", deviceID)
+
+		// Run deepfake analysis in parallel with transcription
+		var deepfakeScore int
+		var deepfakeDone chan struct{}
+		if audio.IsEnabled() {
+			deepfakeDone = make(chan struct{})
+			go func() {
+				defer close(deepfakeDone)
+				dd := GetDeepfakeDetector(deviceID)
+				analysis := dd.AnalyzeChunk(audioData)
+				deepfakeScore = dd.GetRollingScore() // Use rolling average for stability
+				if analysis.IsLikelyFake {
+					log.Printf("🎭 [%s] Deepfake detected! Score=%d (chunk=%d)",
+						deviceID, deepfakeScore, analysis.Score)
+				}
+			}()
+		}
+
+		// Step 1: Transcribe audio using Deepgram
 		transcript, err := GlobalDeepgramClient.TranscribeAudio(flushData)
-		if err != nil {
-			log.Printf("[%s] Deepgram transcription error: %v", deviceID, err)
+		if err != nil || ctx.Err() != nil {
+			log.Printf("❌ [%s] Deepgram transcription error: %v", deviceID, err)
 			DeepgramCircuitBreaker.RecordFailure()
 			return
 		}
 		DeepgramCircuitBreaker.RecordSuccess()
+
+		// Wait for deepfake analysis to complete
+		if deepfakeDone != nil {
+			<-deepfakeDone
+		}
 
 		if transcript == "" {
 			return
@@ -158,15 +214,33 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		detector := GetOrCreateFraudDetector(deviceID, sendAlert)
 		result := detector.AnalyzeText(transcript)
 
+		// Boost risk score if deepfake detected
+		if deepfakeScore > 70 {
+			result.RiskScore += 15
+			if result.RiskScore > 100 {
+				result.RiskScore = 100
+			}
+			result.Patterns = append(result.Patterns, fmt.Sprintf("DEEPFAKE: score=%d", deepfakeScore))
+			if !result.IsAlert && result.RiskScore >= 40 {
+				result.IsAlert = true
+				result.Action = "MEDIUM"
+				result.Message = fmt.Sprintf("🎭 CẢNH BÁO: Phát hiện giọng nói có thể là deepfake! (Điểm rủi ro: %d/100)", result.RiskScore)
+			}
+		}
+
+		log.Printf("📊 [%s] Analysis complete - IsAlert: %v, Action: %s, RiskScore: %d, DeepfakeScore: %d",
+			deviceID, result.IsAlert, result.Action, result.RiskScore, deepfakeScore)
+
 		if result.IsAlert {
 			alert := models.AlertMessage{
-				Type:       "alert",
-				AlertType:  result.Action,
-				Confidence: float64(result.RiskScore) / 100.0,
-				Transcript: transcript,
-				Keywords:   result.Patterns,
-				Timestamp:  time.Now().Unix(),
-				Message:    result.Message,
+				Type:          "alert",
+				AlertType:     result.Action,
+				Confidence:    float64(result.RiskScore) / 100.0,
+				Transcript:    transcript,
+				Keywords:      result.Patterns,
+				Timestamp:     time.Now().Unix(),
+				Message:       result.Message,
+				DeepfakeScore: deepfakeScore,
 			}
 			log.Printf("[%s] FRAUD ALERT: %s (Risk: %d%%)", deviceID, result.Action, result.RiskScore)
 			sendAlert(alert)

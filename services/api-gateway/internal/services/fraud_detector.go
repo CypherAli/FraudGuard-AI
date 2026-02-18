@@ -165,8 +165,15 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	score, patterns := fd.calculateRiskScore(normalizedText)
 
 	fd.session.AccumulatedScore += score
+
+	// Clamp accumulated score to [0, 100] range
+	// CRITICAL for database constraints and confidence_score calculation
 	if fd.session.AccumulatedScore < 0 {
 		fd.session.AccumulatedScore = 0
+	} else if fd.session.AccumulatedScore > 100 {
+		log.Printf("⚠️ [%s] Accumulated score exceeds 100 (%d), capping at 100",
+			fd.deviceID, fd.session.AccumulatedScore)
+		fd.session.AccumulatedScore = 100
 	}
 	fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patterns...)
 
@@ -179,7 +186,7 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		Patterns:  patterns,
 	}
 
-	// Gemini AI contextual analysis (async)
+	// Gemini AI contextual analysis (async with circuit breaker + panic recovery)
 	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
 		alertCallback := fd.sendAlert
 		capturedScore := fd.session.AccumulatedScore
@@ -473,6 +480,10 @@ func (fd *FraudDetector) EndSession() {
 		evidenceStr = evidenceStr[:1000] + "..."
 	}
 
+	// Apply data masking before saving to database
+	evidenceStr = MaskSensitiveData(evidenceStr)
+
+	// Determine if call is fraudulent using configurable threshold
 	isFraud := session.AccumulatedScore >= fd.config.HighThreshold
 
 	callLog := &models.CallLog{

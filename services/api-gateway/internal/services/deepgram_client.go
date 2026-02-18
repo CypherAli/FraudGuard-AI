@@ -42,12 +42,12 @@ func NewDeepgramClient(apiKey string) *DeepgramClient {
 func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 	// Validate audio data
 	if len(audioData) == 0 {
-		log.Printf("❌ [Deepgram] Empty audio data")
+		log.Printf(" [Deepgram] Empty audio data")
 		return "", fmt.Errorf("empty audio data")
 	}
 
 	if len(audioData) < 100 {
-		log.Printf("❌ [Deepgram] Audio data too short: %d bytes", len(audioData))
+		log.Printf(" [Deepgram] Audio data too short: %d bytes", len(audioData))
 		return "", fmt.Errorf("audio data too short (%d bytes)", len(audioData))
 	}
 
@@ -55,7 +55,7 @@ func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 
 	// Log first bytes for debugging audio format
 	if len(audioData) >= 16 {
-		log.Printf("🔊 [Deepgram] Audio header (first 16 bytes): %v", audioData[:16])
+		log.Printf(" [Deepgram] Audio header (first 16 bytes): %v", audioData[:16])
 	}
 
 	// Configure Deepgram for raw PCM linear16
@@ -71,11 +71,11 @@ func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 		"sample_rate=16000&" +
 		"channels=1"
 
-	log.Printf("🔊 [Deepgram] API URL: %s", url)
+	log.Printf(" [Deepgram] API URL: %s", url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader(audioData))
 	if err != nil {
-		log.Printf("❌ [Deepgram] Failed to create request: %v", err)
+		log.Printf(" [Deepgram] Failed to create request: %v", err)
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -83,36 +83,48 @@ func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 	// Changed from audio/wav to application/octet-stream for raw PCM
 	req.Header.Set("Content-Type", "application/octet-stream")
 
-	log.Printf("🔊 [Deepgram] Sending request...")
+	log.Printf(" [Deepgram] Sending request...")
 	resp, err := d.HTTPClient.Do(req)
 	if err != nil {
-		log.Printf("❌ [Deepgram] Request failed: %v", err)
+		log.Printf(" [Deepgram] Request failed: %v", err)
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-	log.Printf("🔊 [Deepgram] Response status: %d", resp.StatusCode)
-	log.Printf("🔊 [Deepgram] Response body (%d bytes): %s", len(body), string(body))
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf(" [Deepgram] Failed to read response body: %v", err)
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+	log.Printf(" [Deepgram] Response status: %d", resp.StatusCode)
+	log.Printf(" [Deepgram] Response body (%d bytes): %s", len(body), string(body))
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("❌ [Deepgram] API error (status %d): %s", resp.StatusCode, string(body))
+		log.Printf(" [Deepgram] API error (status %d): %s", resp.StatusCode, string(body))
 		return "", fmt.Errorf("deepgram API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var result DeepgramResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("❌ [Deepgram] Failed to decode response: %v", err)
+		log.Printf(" [Deepgram] Failed to decode response: %v", err)
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(result.Results.Channels) > 0 && len(result.Results.Channels[0].Alternatives) > 0 {
 		transcript := result.Results.Channels[0].Alternatives[0].Transcript
 		confidence := result.Results.Channels[0].Alternatives[0].Confidence
-		log.Printf("✅ [Deepgram] Transcript: '%s' (confidence: %.2f)", transcript, confidence)
+		log.Printf(" [Deepgram] Transcript: '%s' (confidence: %.2f)", transcript, confidence)
+
+		// Filter out low-confidence transcripts (noise, mumbling, background)
+		// Threshold 0.3 = very lenient, only rejects clearly garbage results
+		if confidence > 0 && confidence < 0.3 {
+			log.Printf("⚠️ [Deepgram] Low confidence (%.2f < 0.3), discarding transcript: '%s'", confidence, transcript)
+			return "", nil // Treat as silence
+		}
+
 		return transcript, nil
 	}
 
-	log.Printf("⚠️ [Deepgram] No transcription found in response")
+	log.Printf(" [Deepgram] No transcription found in response")
 	return "", nil // Return empty string instead of error - silence is valid
 }

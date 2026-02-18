@@ -1,6 +1,7 @@
 # Environment files
 **/.env
 **/.env.local
+.env.railway
 
 # Build artifacts
 **/bin/
@@ -19,13 +20,24 @@
 .idea/
 *.swp
 .DS_Store
+*.iml
 
 # Logs
 *.log
 **/log.txt
+build_output.txt
 
 # Database
 **/postgres_data/
 
-# Secrets (local only)
+# Secrets / Credentials
 mobile/FraudGuard-AI/Resources/Raw/appsettings.json
+*.keystore
+mobile/FraudGuard-AI/Platforms/Android/google-services.json
+
+# Claude editor worktrees (local only)
+.claude/worktrees/
+
+# Temp / OS artifacts
+nul
+Thumbs.db

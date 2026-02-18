@@ -347,18 +347,29 @@ namespace FraudGuardAI.Services
                                 bytesRead = (bytesRead / BYTES_PER_SAMPLE) * BYTES_PER_SAMPLE;
                             }
                             
-                            // Ensure data is not silence (all zeros)
+                            // Check audio energy level - skip silence to save bandwidth & API calls
                             bool isSilence = true;
-                            for (int i = 0; i < Math.Min(bytesRead, 100); i++)
+                            double energy = 0;
+                            int sampleCount = bytesRead / BYTES_PER_SAMPLE;
+                            for (int i = 0; i < bytesRead - 1; i += BYTES_PER_SAMPLE)
                             {
-                                if (buffer[i] != 0)
-                                {
-                                    isSilence = false;
-                                    break;
-                                }
+                                short sample = (short)(buffer[i] | (buffer[i + 1] << 8));
+                                energy += Math.Abs(sample);
                             }
-                            
-                            // Gửi lên WebSocket
+                            if (sampleCount > 0)
+                            {
+                                energy /= sampleCount;
+                            }
+                            // Threshold ~150 out of 32768 - filters out background noise/silence
+                            isSilence = energy < 150;
+
+                            if (isSilence)
+                            {
+                                // Skip sending silence - saves Deepgram API calls and bandwidth
+                                continue;
+                            }
+
+                            // Gửi lên WebSocket (only non-silent audio)
                             if (_webSocket?.State == WebSocketState.Open)
                             {
                                 var segment = new ArraySegment<byte>(buffer, 0, bytesRead);
@@ -477,6 +488,8 @@ namespace FraudGuardAI.Services
                         Keywords = root.TryGetProperty("keywords", out var k)
                             ? JsonSerializer.Deserialize<string[]>(k.GetRawText())
                             : Array.Empty<string>(),
+                        DeepfakeScore = root.TryGetProperty("deepfake_score", out var df) ? df.GetInt32() : 0,
+                        Message = root.TryGetProperty("message", out var msg) ? msg.GetString() : "",
                         Timestamp = DateTime.Now
                     };
 

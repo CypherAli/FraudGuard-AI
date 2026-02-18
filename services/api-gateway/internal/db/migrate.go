@@ -15,6 +15,12 @@ func AutoMigrate() error {
 
 	log.Println("🔄 Running database migrations...")
 
+	// Guard: Pool must be initialized before migration
+	if Pool == nil {
+		log.Println("⚠️ Database pool is nil, skipping migration")
+		return fmt.Errorf("database pool not initialized")
+	}
+
 	ctx := context.Background()
 
 	// Check if old schema exists (UUID-based blacklists table)

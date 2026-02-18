@@ -10,6 +10,7 @@ using FraudGuardAI.Localization;
 using System.Globalization;
 #if ANDROID
 using FraudGuardAI.Platforms.Android.Services;
+using Android.Provider;
 #endif
 
 namespace FraudGuardAI
@@ -251,6 +252,12 @@ namespace FraudGuardAI
 
 #if ANDROID
                     ServiceHelper.StartProtectionService();
+
+                    // Show overlay bubble if permission granted
+                    if (Settings.CanDrawOverlays(global::Android.App.Application.Context))
+                    {
+                        OverlayService.Show(global::Android.App.Application.Context);
+                    }
 #endif
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
@@ -287,6 +294,7 @@ namespace FraudGuardAI
 
 #if ANDROID
                 ServiceHelper.StopProtectionService();
+                OverlayService.Hide(global::Android.App.Application.Context);
 #endif
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
@@ -294,7 +302,10 @@ namespace FraudGuardAI
                     AlertBanner.IsVisible = false;
                 });
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Stop protection error: {ex.Message}");
+            }
         }
 
         private void UpdateProtectionUI(bool isActive, bool connecting = false)
@@ -383,7 +394,10 @@ namespace FraudGuardAI
                     else
                         await HandleLowRiskAlert(e.Alert, riskScore);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Alert processing error: {ex.Message}");
+                }
             });
         }
 
@@ -445,7 +459,15 @@ namespace FraudGuardAI
 #if ANDROID
             var context = global::Android.App.Application.Context;
             AlertNotificationHelper.ShowFraudAlert(context, alert.AlertType, riskScore, alert.Transcript);
+
+            // Update overlay bubble with risk info
+            OverlayService.Update(context, (int)riskScore, alert.DeepfakeScore,
+                $"🚨 {alert.AlertType} - {riskScore:F0}%");
 #endif
+
+            string deepfakeWarning = alert.DeepfakeScore > 70
+                ? $"\n🎭 Deepfake: {alert.DeepfakeScore}% (Giọng nói có thể giả mạo!)\n"
+                : "";
 
             await DisplayAlert(
                 T("Main_HighRiskTitle"),
@@ -473,8 +495,8 @@ namespace FraudGuardAI
         private void ShowAlertBanner(AlertData alert, double riskScore, bool isHighRisk)
         {
             AlertBanner.IsVisible = true;
-            AlertBanner.BackgroundColor = isHighRisk 
-                ? AppConstants.DangerBackground 
+            AlertBanner.BackgroundColor = isHighRisk
+                ? AppConstants.DangerBackground
                 : AppConstants.WarningBackground;
 
             AlertTypeLabel.Text = isHighRisk ? T("Main_HighRiskDetected") : alert.AlertType;

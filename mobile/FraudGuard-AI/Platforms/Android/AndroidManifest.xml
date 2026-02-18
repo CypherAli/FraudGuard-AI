@@ -10,11 +10,17 @@
         android:networkSecurityConfig="@xml/network_security_config">
         
         <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
-        <service 
+        <service
             android:name=".Platforms.Android.Services.FraudGuardForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Overlay bubble service -->
+        <service
+            android:name=".Platforms.Android.Services.OverlayService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
     
     <!-- Quyền ghi âm (BẮT BUỘC) -->
@@ -54,8 +60,14 @@
     <!-- Android 13+ Post notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
+    <!-- Overlay permission (floating bubble during calls) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Read contacts (whitelist import) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- Khai báo audio recording feature -->
-    <uses-feature 
-        android:name="android.hardware.microphone" 
+    <uses-feature
+        android:name="android.hardware.microphone"
         android:required="true" />
 </manifest>
