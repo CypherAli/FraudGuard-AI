@@ -191,6 +191,9 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		alertCallback := fd.sendAlert
 		capturedScore := fd.session.AccumulatedScore
 		sessionID := fd.session.SessionID
+		// Copy slice to avoid race: goroutine runs after lock is released
+		historyCopy := make([]string, len(fd.session.TranscriptHistory))
+		copy(historyCopy, fd.session.TranscriptHistory)
 
 		go func(deviceID string, txt string, history []string) {
 			defer func() {
@@ -243,7 +246,7 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 				}
 				alertCallback(alert)
 			}
-		}(fd.deviceID, text, fd.session.TranscriptHistory)
+		}(fd.deviceID, text, historyCopy)
 	}
 
 	// Determine alert level based on accumulated score
