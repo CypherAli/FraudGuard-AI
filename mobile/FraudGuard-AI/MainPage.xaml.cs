@@ -25,6 +25,8 @@ namespace FraudGuardAI
         private CancellationTokenSource _animationCts;
         private bool _pulseAnimationRunning = false;
         private DashboardStats _stats = new();
+        // Tracks which banner alert started the auto-dismiss timer (prevents race condition)
+        private string _lastBannerAlertId = string.Empty;
 
         #endregion
 
@@ -122,7 +124,7 @@ namespace FraudGuardAI
                 
                 _stats.BlockedTotal = fraudCalls.Count;
                 _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
-                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= (AppConstants.HIGH_RISK_THRESHOLD / 100.0));
+                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD);
 
                 // Protection efficiency: percentage of calls analyzed where threats were detected and blocked
                 if (allCalls.Count > 0 && fraudCalls.Count > 0)
@@ -385,11 +387,11 @@ namespace FraudGuardAI
                     
                     _stats.BlockedTotal++;
                     _stats.BlockedToday++;
-                    if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
+                    if (e.Alert.Confidence >= AppConstants.HIGH_RISK_THRESHOLD)
                         _stats.SeriousThreats++;
                     UpdateStatsDisplay();
 
-                    if (riskScore >= AppConstants.HIGH_RISK_THRESHOLD)
+                    if (e.Alert.Confidence >= AppConstants.HIGH_RISK_THRESHOLD)
                         await HandleHighRiskAlert(e.Alert, riskScore);
                     else
                         await HandleLowRiskAlert(e.Alert, riskScore);
@@ -484,231 +486,16 @@ namespace FraudGuardAI
 
         private async Task HandleLowRiskAlert(AlertData alert, double riskScore)
         {
+            // Unique ID per alert prevents race condition:
+            // newer alert arriving during delay keeps its banner visible
+            string thisAlertId = System.Guid.NewGuid().ToString();
+            _lastBannerAlertId = thisAlertId;
+
             ShowAlertBanner(alert, riskScore, isHighRisk: false);
             await Task.Delay(AppConstants.ALERT_AUTO_DISMISS_DELAY);
-            if (AlertBanner.IsVisible && riskScore < AppConstants.HIGH_RISK_THRESHOLD)
-            {
+
+            // Only dismiss if no newer alert replaced this one during the delay
+            if (_lastBannerAlertId == thisAlertId && AlertBanner.IsVisible)
                 AlertBanner.IsVisible = false;
-            }
         }
-
-        private void ShowAlertBanner(AlertData alert, double riskScore, bool isHighRisk)
-        {
-            AlertBanner.IsVisible = true;
-            AlertBanner.BackgroundColor = isHighRisk
-                ? AppConstants.DangerBackground
-                : AppConstants.WarningBackground;
-
-            AlertTypeLabel.Text = isHighRisk ? T("Main_HighRiskDetected") : alert.AlertType;
-            AlertMessageLabel.Text = string.IsNullOrEmpty(alert.Transcript)
-                ? T("Main_SuspiciousActivity")
-                : alert.Transcript;
-            AlertConfidenceLabel.Text = string.Format(
-                CultureInfo.CurrentCulture,
-                T("Main_RiskLevelFormat"),
-                riskScore.ToString("F0", CultureInfo.CurrentCulture)
-            );
-        }
-
-        #endregion
-
-        #region Animations
-
-        private async Task AnimateToActiveState()
-        {
-            await Task.WhenAll(
-                ShieldBorder.ScaleTo(0.95, 150, Easing.CubicOut)
-            );
-
-            ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
-            
-            await ShieldBorder.ScaleTo(1, 200, Easing.SpringOut);
-        }
-
-        private async Task AnimateToDangerState()
-        {
-            await ShieldBorder.ScaleTo(0.95, 100);
-            
-            ShieldBorder.Stroke = AppConstants.DangerColor;
-            StatusLabel.Text = T("Main_ThreatDetected");
-            StatusLabel.TextColor = Color.FromArgb("#FCA5A5");
-
-            await ShieldBorder.ScaleTo(1.05, 150, Easing.SpringOut);
-            await ShieldBorder.ScaleTo(1, 100);
-        }
-
-        private async Task PulseAnimation(CancellationToken ct)
-        {
-            if (_pulseAnimationRunning) return;
-            _pulseAnimationRunning = true;
-            try
-            {
-                while (_isProtectionActive && !ct.IsCancellationRequested)
-                {
-                    await ShieldBorder.ScaleTo(1.05, 1000, Easing.SinInOut);
-                    if (ct.IsCancellationRequested) break;
-                    await ShieldBorder.ScaleTo(1.0, 1000, Easing.SinInOut);
-                }
-            }
-            catch (TaskCanceledException) { }
-            finally
-            {
-                _pulseAnimationRunning = false;
-            }
-        }
-
-        #endregion
-
-        #region Vibration
-
-        private void TriggerVibration()
-        {
-            try
-            {
-                Vibration.Default.Vibrate(TimeSpan.FromMilliseconds(AppConstants.VIBRATION_DURATION));
-                Task.Delay((int)AppConstants.VIBRATION_PAUSE)
-                    .ContinueWith(_ => Vibration.Default.Vibrate(TimeSpan.FromMilliseconds(AppConstants.VIBRATION_DURATION)));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainPage] Vibration Error: {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region Lifecycle
-
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-
-            // Subscribe to call state changes for auto-protection
-#if ANDROID
-            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
-            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged += OnCallStateChanged;
-#endif
-
-            // Cancel any stale animations
-            _animationCts?.Cancel();
-            _animationCts = new CancellationTokenSource();
-            
-            // Reattach to shared service
-            var sharedService = App.GetAudioService();
-            if (sharedService != null)
-            {
-                _audioService = sharedService;
-                _isProtectionActive = _audioService.IsStreaming;
-                
-                // Re-attach event handlers
-                _audioService.AlertReceived -= OnAlertReceived;
-                _audioService.ErrorOccurred -= OnErrorOccurred;
-                _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
-                
-                _audioService.AlertReceived += OnAlertReceived;
-                _audioService.ErrorOccurred += OnErrorOccurred;
-                _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
-                
-                // Update UI to reflect current state
-                if (_isProtectionActive)
-                {
-                    var ct = _animationCts.Token;
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        UpdateProtectionUI(true);
-                        if (!_pulseAnimationRunning)
-                        {
-                            _ = PulseAnimation(ct);
-                        }
-                    });
-                }
-                else
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        UpdateProtectionUI(false);
-                    });
-                }
-            }
-
-            // Refresh stats
-            UpdateStatsDisplay();
-        }
-
-        private static string T(string key)
-            => LocalizationResourceManager.Instance[key];
-
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-
-            // Cancel animations
-            _animationCts?.Cancel();
-
-            // Only detach event handlers
-            if (_audioService != null)
-            {
-                _audioService.AlertReceived -= OnAlertReceived;
-                _audioService.ErrorOccurred -= OnErrorOccurred;
-                _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
-            }
-
-#if ANDROID
-            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
-#endif
-        }
-
-#if ANDROID
-        /// <summary>
-        /// Handle call state changes from CallStateReceiver
-        /// Updates UI when call auto-protection starts/stops
-        /// </summary>
-        private void OnCallStateChanged(object sender, FraudGuardAI.Platforms.Android.Services.CallStateChangedEventArgs e)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                try
-                {
-                    switch (e.State)
-                    {
-                        case FraudGuardAI.Platforms.Android.Services.CallState.Ringing:
-                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📞 Incoming call: {e.PhoneNumber}");
-                            StatusLabel.Text = $"📞 {T("Main_IncomingCall")}";
-                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
-                            break;
-
-                        case FraudGuardAI.Platforms.Android.Services.CallState.Active:
-                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📱 Call active - protection auto-started");
-                            _isProtectionActive = _audioService?.IsStreaming ?? false;
-                            if (_isProtectionActive)
-                            {
-                                _animationCts?.Cancel();
-                                _animationCts = new CancellationTokenSource();
-                                UpdateProtectionUI(true);
-                                _ = PulseAnimation(_animationCts.Token);
-                            }
-                            break;
-
-                        case FraudGuardAI.Platforms.Android.Services.CallState.Ended:
-                            System.Diagnostics.Debug.WriteLine("[MainPage] 📴 Call ended");
-                            _isProtectionActive = _audioService?.IsStreaming ?? false;
-                            UpdateProtectionUI(_isProtectionActive);
-                            if (!_isProtectionActive)
-                            {
-                                _animationCts?.Cancel();
-                                AlertBanner.IsVisible = false;
-                            }
-                            break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Call state handler error: {ex.Message}");
-                }
-            });
-        }
-#endif
-
-        #endregion
-    }
 }

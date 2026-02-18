@@ -37,6 +37,7 @@ type SessionState struct {
 	StartTime         time.Time
 	LastUpdateTime    time.Time
 	AlertsSent        int
+	LastAlertTime     time.Time // For alert cooldown enforcement
 }
 
 // FraudAnalysisResult contains the result of fraud analysis
@@ -189,7 +190,6 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	// Gemini AI contextual analysis (async with circuit breaker + panic recovery)
 	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
 		alertCallback := fd.sendAlert
-		capturedScore := fd.session.AccumulatedScore
 		sessionID := fd.session.SessionID
 		// Copy slice to avoid race: goroutine runs after lock is released
 		historyCopy := make([]string, len(fd.session.TranscriptHistory))
@@ -221,17 +221,25 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 			fd.mu.Lock()
 			if fd.session.SessionID == sessionID {
 				fd.session.AccumulatedScore += geminiBoost
+				// Clamp so AccumulatedScore never exceeds 100
+				if fd.session.AccumulatedScore > 100 {
+					fd.session.AccumulatedScore = 100
+				}
 				fd.session.DetectedPatterns = append(fd.session.DetectedPatterns,
 					fmt.Sprintf("AI: %s (+%d, confidence=%s)", aiResult.FraudType, geminiBoost, aiResult.Confidence))
 			}
 			fd.mu.Unlock()
 
 			if alertCallback != nil {
-				combinedScore := capturedScore + geminiBoost
+				// Use current AccumulatedScore (not stale capturedScore) for alertType decision
+				fd.mu.RLock()
+				currentAccumulated := fd.session.AccumulatedScore
+				fd.mu.RUnlock()
+
 				alertType := "MEDIUM"
-				if combinedScore >= 80 || aiResult.RiskScore >= 80 {
+				if currentAccumulated >= 80 || aiResult.RiskScore >= 80 {
 					alertType = "CRITICAL"
-				} else if combinedScore >= 60 || aiResult.RiskScore >= 60 {
+				} else if currentAccumulated >= 60 || aiResult.RiskScore >= 60 {
 					alertType = "HIGH"
 				}
 
@@ -250,29 +258,50 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	}
 
 	// Determine alert level based on accumulated score
+
+	// Spam guards: respect MaxAlertsPerSession and AlertCooldown
+	alertsExhausted := fd.session.AlertsSent >= fd.config.MaxAlertsPerSession
+	cooldownActive := fd.config.AlertCooldownMs > 0 &&
+		!fd.session.LastAlertTime.IsZero() &&
+		time.Since(fd.session.LastAlertTime) < time.Duration(fd.config.AlertCooldownMs)*time.Millisecond
 	switch {
 	case currentScore >= fd.config.CriticalThreshold:
-		result.IsAlert = true
 		result.Action = "CRITICAL"
 		result.Message = fmt.Sprintf("CẢNH BÁO NGHIÊM TRỌNG: Phát hiện dấu hiệu lừa đảo rất cao! (Điểm rủi ro: %d/100)", currentScore)
-		fd.session.AlertsSent++
-		fd.alertCount++
-		log.Printf("[%s] CRITICAL ALERT: Score=%d, Patterns=%v", fd.deviceID, currentScore, patterns)
+		if !alertsExhausted && !cooldownActive {
+			result.IsAlert = true
+			fd.session.AlertsSent++
+			fd.session.LastAlertTime = time.Now()
+			fd.alertCount++
+			log.Printf("[%s] CRITICAL ALERT: Score=%d, Patterns=%v", fd.deviceID, currentScore, patterns)
+		} else {
+			log.Printf("[%s] CRITICAL suppressed (exhausted=%v cooldown=%v)", fd.deviceID, alertsExhausted, cooldownActive)
+		}
 
 	case currentScore >= fd.config.HighThreshold:
-		result.IsAlert = true
 		result.Action = "HIGH"
 		result.Message = fmt.Sprintf("CẢNH BÁO CAO: Cuộc gọi có dấu hiệu đáng ngờ! (Điểm rủi ro: %d/100)", currentScore)
-		fd.session.AlertsSent++
-		fd.alertCount++
-		log.Printf("[%s] HIGH ALERT: Score=%d", fd.deviceID, currentScore)
+		if !alertsExhausted && !cooldownActive {
+			result.IsAlert = true
+			fd.session.AlertsSent++
+			fd.session.LastAlertTime = time.Now()
+			fd.alertCount++
+			log.Printf("[%s] HIGH ALERT: Score=%d", fd.deviceID, currentScore)
+		} else {
+			log.Printf("[%s] HIGH suppressed (exhausted=%v cooldown=%v)", fd.deviceID, alertsExhausted, cooldownActive)
+		}
 
 	case currentScore >= fd.config.MediumThreshold:
-		result.IsAlert = true
 		result.Action = "MEDIUM"
 		result.Message = fmt.Sprintf("CẢNH BÁO: Phát hiện một số dấu hiệu bất thường (Điểm rủi ro: %d/100)", currentScore)
-		fd.session.AlertsSent++
-		fd.alertCount++
+		if !alertsExhausted && !cooldownActive {
+			result.IsAlert = true
+			fd.session.AlertsSent++
+			fd.session.LastAlertTime = time.Now()
+			fd.alertCount++
+		} else {
+			log.Printf("[%s] MEDIUM suppressed (exhausted=%v cooldown=%v)", fd.deviceID, alertsExhausted, cooldownActive)
+		}
 
 	case currentScore >= fd.config.LowThreshold:
 		result.Action = "LOW"
@@ -329,6 +358,23 @@ func (fd *FraudDetector) calculateRiskScore(text string) (int, []string) {
 	}
 
 	return totalScore, detectedPatterns
+}
+
+// AddDeepfakeBoost adds a deepfake score boost to the session's AccumulatedScore.
+// This ensures the persistent session score reflects deepfake detection impact,
+// not just the transient result.RiskScore local copy in audio_processor.go.
+func (fd *FraudDetector) AddDeepfakeBoost(boost int) {
+	fd.mu.Lock()
+	defer fd.mu.Unlock()
+	fd.session.AccumulatedScore += boost
+	if fd.session.AccumulatedScore > 100 {
+		fd.session.AccumulatedScore = 100
+	}
+	if fd.session.AccumulatedScore < 0 {
+		fd.session.AccumulatedScore = 0
+	}
+	log.Printf("[%s] Deepfake boost applied: +%d → AccumulatedScore=%d",
+		fd.deviceID, boost, fd.session.AccumulatedScore)
 }
 
 // GetCurrentRiskScore returns the current accumulated risk score

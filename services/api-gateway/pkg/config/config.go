@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -98,7 +100,7 @@ func Load() (*Config, error) {
 		Database: dbConfig,
 		Server: ServerConfig{
 			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
-			Port:         port, // ✅ Use PORT from Render, fallback to SERVER_PORT or 8080
+			Port:         port,
 			ReadTimeout:  getEnvAsDuration("SERVER_READ_TIMEOUT", 15*time.Second),
 			WriteTimeout: getEnvAsDuration("SERVER_WRITE_TIMEOUT", 15*time.Second),
 		},
@@ -118,14 +120,62 @@ func Load() (*Config, error) {
 		},
 	}
 
-	// Validate required fields - DATABASE is OPTIONAL now
-	// Server will work without database (auth endpoints still work)
-	// databaseURL = os.Getenv("DATABASE_URL")
-	// if databaseURL == "" && cfg.Database.Password == "" {
-	// 	return nil, fmt.Errorf("DATABASE_URL or DB_PASSWORD is required")
-	// }
-
 	return cfg, nil
+}
+
+// Validate checks the configuration for common issues and logs warnings.
+// It does NOT return an error for missing optional fields (AI keys, Redis, DB)
+// because the server degrades gracefully without them. It only errors on
+// clearly invalid settings that would cause a runtime failure.
+func (c *Config) Validate() error {
+	var warnings []string
+
+	// Server
+	if c.Server.Port <= 0 || c.Server.Port > 65535 {
+		return fmt.Errorf("invalid SERVER_PORT=%d: must be 1-65535", c.Server.Port)
+	}
+	if c.Server.ReadTimeout < time.Second {
+		warnings = append(warnings, fmt.Sprintf("SERVER_READ_TIMEOUT=%v is very low (<1s)", c.Server.ReadTimeout))
+	}
+	if c.Server.WriteTimeout < time.Second {
+		warnings = append(warnings, fmt.Sprintf("SERVER_WRITE_TIMEOUT=%v is very low (<1s)", c.Server.WriteTimeout))
+	}
+
+	// Database — warn if neither DATABASE_URL nor DB_PASSWORD is set
+	hasDatabaseURL := os.Getenv("DATABASE_URL") != ""
+	if !hasDatabaseURL && c.Database.Password == "" {
+		warnings = append(warnings, "No DATABASE_URL or DB_PASSWORD set — blacklist features will be unavailable")
+	}
+
+	// AI keys — warn if missing (features degrade gracefully)
+	if c.AI.DeepgramAPIKey == "" {
+		warnings = append(warnings, "DEEPGRAM_API_KEY not set — speech-to-text transcription will be disabled")
+	}
+	if c.AI.GeminiAPIKey == "" {
+		warnings = append(warnings, "GEMINI_API_KEY not set — AI fraud analysis and call summaries will be disabled")
+	}
+
+	// CORS — warn if wildcard in non-development
+	goEnv := strings.ToLower(getEnv("GO_ENV", "development"))
+	corsOrigin := getEnv("CORS_ALLOWED_ORIGIN", "*")
+	if goEnv == "production" && corsOrigin == "*" {
+		warnings = append(warnings, "CORS_ALLOWED_ORIGIN=* is insecure in production. Set it to your app's domain.")
+	}
+
+	// WebSocket buffers
+	if c.WebSocket.ReadBufferSize < 512 {
+		warnings = append(warnings, fmt.Sprintf("WS_READ_BUFFER_SIZE=%d is very small", c.WebSocket.ReadBufferSize))
+	}
+	if c.WebSocket.WriteBufferSize < 512 {
+		warnings = append(warnings, fmt.Sprintf("WS_WRITE_BUFFER_SIZE=%d is very small", c.WebSocket.WriteBufferSize))
+	}
+
+	// Log all warnings
+	for _, w := range warnings {
+		log.Printf("⚠️  [Config] %s", w)
+	}
+
+	return nil
 }
 
 // Helper functions to read environment variables with defaults

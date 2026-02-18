@@ -1,80 +1,70 @@
 # Database Migration Guide
 
-## Schema Changes History
+## Kiến trúc Database
 
-### 002_fix_blacklist_schema.sql
-**Date**: 2026-02-10  
-**Breaking Change**: YES ⚠️
+FraudGuard AI dùng **2 database riêng biệt**:
 
-**Changes:**
-- Changed `blacklist.id` from UUID to SERIAL (auto-increment integer)
-- Renamed `blacklists` → `blacklist` (singular)
-- Unified columns: `report_count` → `reported_count`, `risk_level` → `confidence_score`
-- Added missing columns: `first_reported_at`, `status`
+| Database | Engine | Lưu gì | Tạo bởi |
+|----------|--------|--------|---------|
+| `fraudguard_db` | PostgreSQL (cloud) | `blacklist` table | `migrate.go` — tự động khi server start |
+| `fraud_guard.db` | SQLite (local) | Call logs per-session | GORM AutoMigrate — tự động khi start |
 
-**Impact:**
-- ✅ **Safe for development**: No foreign key dependencies
-- ⚠️ **Production**: Drops all existing blacklist data
+> **Lưu ý**: Bảng `users` và `call_logs` trong `001_init.sql` là schema cũ, **hiện không dùng**.
+> Code thực tế lưu call logs vào SQLite thông qua GORM.
 
-**Migration Steps:**
+---
 
-#### Development/Testing:
+## Các file migrations/
+
+| File | Mục đích | Chạy khi nào |
+|------|----------|-------------|
+| `000_create_database.sql` | Tạo PostgreSQL user + database | 1 lần khi setup lần đầu |
+| `001_init.sql` | Schema ban đầu (tham khảo) | Không cần chạy — `migrate.go` lo |
+| `002_fix_blacklist_schema.sql` | Fix blacklist UUID → SERIAL | Đã áp dụng (v2) |
+| `003_seed_data.sql` | Seed 42 số fraud VN | Tham khảo — `migrate.go` đã có seed |
+
+---
+
+## Setup lần đầu (Fresh install)
+
 ```bash
-# Run migration (will drop & recreate table)
-psql -d fraudguard_db -f migrations/002_fix_blacklist_schema.sql
+# 1. Tạo PostgreSQL database (chỉ cần 1 lần)
+psql -U postgres -f migrations/000_create_database.sql
 
-# Re-seed data
-go run cmd/server/main.go --migrate
+# 2. Khởi động server — tự động tạo bảng + seed data
+cd services/api-gateway
+go run cmd/api/main.go
+# Server sẽ tự chạy AutoMigrate() khi start
 ```
 
-#### Production (if you have live data):
-```sql
--- 1. Backup existing data
-CREATE TABLE blacklist_backup AS 
-SELECT phone_number, reason, 
-       confidence_score, reported_count,
-       created_at 
-FROM blacklist;
+Không cần chạy tay các file SQL còn lại.
 
--- 2. Run migration
-\i migrations/002_fix_blacklist_schema.sql
+---
 
--- 3. Restore data with new schema
-INSERT INTO blacklist 
-  (phone_number, reason, confidence_score, reported_count, 
-   first_reported_at, last_reported_at, status)
-SELECT 
-  phone_number, reason, confidence_score, reported_count,
-  created_at, NOW(), 'active'
-FROM blacklist_backup
-ON CONFLICT (phone_number) DO NOTHING;
+## Thêm migration mới
 
--- 4. Verify and drop backup
-SELECT COUNT(*) FROM blacklist;
-DROP TABLE blacklist_backup;
-```
+Khi cần thay đổi schema PostgreSQL:
 
-## Migration Safety Checklist
+1. Tạo file: `00X_mo_ta.sql` (đánh số tiếp theo)
+2. Cập nhật `internal/db/migrate.go` để áp dụng thay đổi
+3. Document breaking changes trong file này
+4. Test trên dev trước
 
-Before running ANY migration:
-- [ ] Backup database: `pg_dump fraudguard_db > backup_$(date +%Y%m%d).sql`
-- [ ] Test migration on staging/dev first
-- [ ] Check for foreign key dependencies
-- [ ] Verify data can be re-seeded or backed up
-- [ ] Plan rollback strategy
-
-## Rollback Strategy
-
-If migration fails:
 ```bash
-# Restore from backup
-psql -d fraudguard_db < backup_YYYYMMDD.sql
+# Backup trước khi migrate production
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M).sql
+
+# Restore nếu có lỗi
+psql $DATABASE_URL < backup_YYYYMMDD_HHMM.sql
 ```
 
-## Future Migrations
+---
 
-When adding new migrations:
-1. Name files: `00X_description.sql` (sequential numbering)
-2. Document breaking changes in this file
-3. Test on dev/staging first
-4. Always provide rollback instructions
+## Schema History
+
+### v2 — 002_fix_blacklist_schema.sql (2026-02-10)
+**Breaking Change** ⚠️
+- `blacklist.id`: UUID → SERIAL (auto-increment)
+- Rename: `blacklists` → `blacklist`
+- Rename: `report_count` → `reported_count`, `risk_level` → `confidence_score`
+- Thêm: `first_reported_at`, `status`
