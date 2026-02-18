@@ -477,112 +477,71 @@ namespace FraudGuardAI.Services
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
 
-                if (root.TryGetProperty("type", out var typeElement) &&
-                    typeElement.GetString() == "alert")
-                {
-                    var alertData = new AlertData
-                    {
-                        AlertType = root.GetProperty("alert_type").GetString(),
-                        Confidence = root.GetProperty("confidence").GetDouble(),
-                        Transcript = root.TryGetProperty("transcript", out var t) ? t.GetString() : "",
-                        Keywords = root.TryGetProperty("keywords", out var k)
-                            ? JsonSerializer.Deserialize<string[]>(k.GetRawText())
-                            : Array.Empty<string>(),
-                        DeepfakeScore = root.TryGetProperty("deepfake_score", out var df) ? df.GetInt32() : 0,
-                        Message = root.TryGetProperty("message", out var msg) ? msg.GetString() : "",
-                        Timestamp = DateTime.Now
-                    };
+                if (!root.TryGetProperty("type", out var typeElement) ||
+                    typeElement.GetString() != "alert")
+                    return; // Not an alert message, ignore
 
-                    Log.Warn(TAG, $"ALERT: {alertData.AlertType} confidence={alertData.Confidence:F2}");
-                    OnAlertReceived(alertData);
+                // Validate required fields before accessing
+                if (!root.TryGetProperty("alert_type", out var alertTypeEl) ||
+                    alertTypeEl.ValueKind == JsonValueKind.Null)
+                {
+                    Log.Error(TAG, $"[AudioService] Alert missing alert_type field: {message}");
+                    OnError("Invalid alert: missing alert_type", null);
+                    return;
                 }
+
+                if (!root.TryGetProperty("confidence", out var confidenceEl) ||
+                    confidenceEl.ValueKind == JsonValueKind.Null)
+                {
+                    Log.Error(TAG, "[AudioService] Alert missing confidence field");
+                    OnError("Invalid alert: missing confidence", null);
+                    return;
+                }
+
+                // Parse backend Unix timestamp -> local DateTime
+                DateTime alertTimestamp = DateTime.Now;
+                if (root.TryGetProperty("timestamp", out var tsEl) &&
+                    tsEl.ValueKind == JsonValueKind.Number)
+                {
+                    long unixSec = tsEl.GetInt64();
+                    if (unixSec > 0)
+                    {
+                        try { alertTimestamp = DateTimeOffset.FromUnixTimeSeconds(unixSec).LocalDateTime; }
+                        catch { /* Overflow/invalid - keep DateTime.Now */ }
+                    }
+                }
+
+                // Parse keywords safely
+                string[] keywords = Array.Empty<string>();
+                if (root.TryGetProperty("keywords", out var kEl) &&
+                    kEl.ValueKind == JsonValueKind.Array)
+                {
+                    try { keywords = JsonSerializer.Deserialize<string[]>(kEl.GetRawText()) ?? Array.Empty<string>(); }
+                    catch (Exception kEx) { Log.Warn(TAG, $"[AudioService] Could not parse keywords: {kEx.Message}"); }
+                }
+
+                var alertData = new AlertData
+                {
+                    AlertType    = alertTypeEl.GetString() ?? "UNKNOWN",
+                    Confidence   = confidenceEl.GetDouble(),
+                    Transcript   = root.TryGetProperty("transcript", out var tr) && tr.ValueKind != JsonValueKind.Null ? tr.GetString() ?? "" : "",
+                    Keywords     = keywords,
+                    DeepfakeScore = root.TryGetProperty("deepfake_score", out var df) && df.ValueKind == JsonValueKind.Number ? df.GetInt32() : 0,
+                    Message      = root.TryGetProperty("message", out var mg) && mg.ValueKind != JsonValueKind.Null ? mg.GetString() ?? "" : "",
+                    Timestamp    = alertTimestamp
+                };
+
+                Log.Warn(TAG, $"ALERT: {alertData.AlertType} confidence={alertData.Confidence:F2} at {alertData.Timestamp:HH:mm:ss}");
+                OnAlertReceived(alertData);
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                Log.Error(TAG, $"[AudioService] Failed to parse alert JSON: {ex.Message}");
+                OnError($"Alert JSON parse error: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
                 OnError($"Message processing error: {ex.Message}", ex);
             }
         }
-
-        private int _reconnectAttempts = 0;
-        private const int MAX_RECONNECT_ATTEMPTS = 5;
-        
-        
-        private async Task ReconnectAsync()
-        {
-            try
-            {
-                _reconnectAttempts++;
-                
-                if (_reconnectAttempts > MAX_RECONNECT_ATTEMPTS)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Max reconnect attempts ({MAX_RECONNECT_ATTEMPTS}) reached");
-                    OnError("Failed to reconnect after multiple attempts", null);
-                    _reconnectAttempts = 0;
-                    return;
-                }
-                
-                // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-                int baseDelay = (int)Math.Pow(2, _reconnectAttempts - 1) * 1000;
-                
-                // Add jitter (0-1000ms) to prevent thundering herd
-                int jitter = Random.Shared.Next(0, 1000); // Random.Shared is thread-safe (.NET 6+)
-                int totalDelay = baseDelay + jitter;
-                
-                System.Diagnostics.Debug.WriteLine($"[AudioService] 🔄 Reconnect attempt {_reconnectAttempts}/{MAX_RECONNECT_ATTEMPTS}");
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Waiting {totalDelay}ms (base: {baseDelay}ms + jitter: {jitter}ms)");
-                
-                _webSocket?.Dispose();
-                _webSocket = null;
-                _isConnected = false;
-                
-                await Task.Delay(totalDelay);
-                
-                bool success = await ConnectAsync();
-                if (success)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ Reconnection successful");
-                    _reconnectAttempts = 0; // Reset on success
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Reconnect failed: {ex.Message}");
-                OnError($"Reconnect failed: {ex.Message}", ex);
-            }
-        }
-
-        #endregion
-
-        #region Event Handlers
-
-        private void OnAlertReceived(AlertData alertData)
-        {
-            AlertReceived?.Invoke(this, new AlertEventArgs(alertData));
-        }
-
-        private void OnError(string message, Exception exception)
-        {
-            ErrorOccurred?.Invoke(this, new ErrorEventArgs(message, exception));
-        }
-
-        private void OnConnectionStatusChanged(bool isConnected, string message)
-        {
-            ConnectionStatusChanged?.Invoke(this, new ConnectionStatusEventArgs(isConnected, message));
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _audioRecord?.Release();
-            _audioRecord?.Dispose();
-            _webSocket?.Dispose();
-        }
-
-        #endregion
-    }
 }

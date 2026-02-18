@@ -8,9 +8,22 @@ namespace FraudGuardAI.Constants
     public static class AppConstants
     {
         #region Risk Thresholds
+        // These thresholds MUST match the backend fraud_detection_config.go values:
+        //   LOW=20, MEDIUM=40, HIGH=60, CRITICAL=80
+        // Backend sends alert_type: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+        // and confidence as 0.0-1.0 (RiskScore/100)
 
-        public const double HIGH_RISK_THRESHOLD = 80.0;
-        public const double MEDIUM_RISK_THRESHOLD = 50.0;
+        /// <summary>Critical alert - full-screen popup + Android notification + vibration</summary>
+        public const double CRITICAL_RISK_THRESHOLD = 0.80; // 80/100 backend score
+
+        /// <summary>High alert - full-screen popup + Android notification + vibration</summary>
+        public const double HIGH_RISK_THRESHOLD = 0.60;     // 60/100 backend score
+
+        /// <summary>Medium alert - banner only (no popup), auto-dismiss after 5s</summary>
+        public const double MEDIUM_RISK_THRESHOLD = 0.40;   // 40/100 backend score
+
+        /// <summary>Low alert - banner only, minimal prominence, auto-dismiss after 5s</summary>
+        public const double LOW_RISK_THRESHOLD = 0.20;      // 20/100 backend score
 
         #endregion
 

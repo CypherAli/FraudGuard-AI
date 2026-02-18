@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fraudguard/api-gateway/internal/models"
 	"github.com/fraudguard/api-gateway/internal/services"
 	"github.com/gorilla/websocket"
 )
+
+// droppedAlerts tracks total alerts dropped due to full send buffers (for monitoring)
+var droppedAlerts int64
 
 const (
 	// Time allowed to write a message to the peer
@@ -50,7 +54,7 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 	return &Client{
 		hub:      hub,
 		conn:     conn,
-		send:     make(chan []byte, 256),
+		send:     make(chan []byte, 512), // Buffer 512 alerts; overflow drops with log warning
 		deviceID: deviceID,
 		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}
@@ -159,8 +163,9 @@ func (c *Client) sendAlert(alert models.AlertMessage) {
 		log.Printf("✅✅✅ [%s] Alert successfully queued to WebSocket channel", c.deviceID)
 		log.Printf("📢 [%s] Alert message: %s", c.deviceID, alert.Message)
 	default:
-		log.Printf("❌❌❌ [%s] FAILED to send alert - WebSocket buffer FULL (%d/%d)",
-			c.deviceID, len(c.send), cap(c.send))
+		atomic.AddInt64(&droppedAlerts, 1)
+		log.Printf("❌❌❌ [%s] FAILED to send alert - WebSocket buffer FULL (%d/%d) [total dropped: %d]",
+			c.deviceID, len(c.send), cap(c.send), atomic.LoadInt64(&droppedAlerts))
 		log.Printf("⚠️ [%s] Alert dropped due to full buffer. Consider increasing buffer size.", c.deviceID)
 	}
 }
