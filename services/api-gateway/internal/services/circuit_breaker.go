@@ -122,6 +122,3 @@ func (cb *CircuitBreaker) IsOpen() bool {
 	defer cb.mu.RUnlock()
 	return cb.state == StateOpen
 }
-
-// Global circuit breaker for Deepgram API
-var DeepgramCircuitBreaker = NewCircuitBreaker("Deepgram", 5, 30*time.Second)

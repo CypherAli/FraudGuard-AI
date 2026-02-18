@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Android.Media;
+using Android.Util;
 using FraudGuardAI.Models;
 
 namespace FraudGuardAI.Services
@@ -22,8 +23,9 @@ namespace FraudGuardAI.Services
         private ClientWebSocket _webSocket;
         private AudioRecord _audioRecord;
         private CancellationTokenSource _cancellationTokenSource;
-        private bool _isStreaming;
-        private bool _isConnected;
+        private volatile bool _isStreaming;
+        private volatile bool _isConnected;
+        private readonly SemaphoreSlim _startStopLock = new SemaphoreSlim(1, 1);
 
         // Cấu hình Audio (khớp với backend Deepgram)
         private const int SAMPLE_RATE = 16000;
@@ -31,6 +33,7 @@ namespace FraudGuardAI.Services
         private const Android.Media.Encoding AUDIO_FORMAT = Android.Media.Encoding.Pcm16bit;
         private const int BUFFER_SIZE = 8192; // Increased from 4096 to reduce fragmentation
         private const int BYTES_PER_SAMPLE = 2; // 16-bit = 2 bytes
+        private const string TAG = "FraudGuard"; // Logcat tag for filtering
 
         public event EventHandler<AlertEventArgs> AlertReceived;
         public event EventHandler<ErrorEventArgs> ErrorOccurred;
@@ -92,6 +95,7 @@ namespace FraudGuardAI.Services
                 );
 
                 _isConnected = true;
+                Log.Info(TAG, $"✅ WebSocket CONNECTED to: {fullUrl}");
                 OnConnectionStatusChanged(true, "Connected");
 
                 _ = Task.Run(() => ReceiveMessagesAsync(_cancellationTokenSource.Token));
@@ -101,6 +105,7 @@ namespace FraudGuardAI.Services
             catch (Exception ex)
             {
                 _isConnected = false;
+                Log.Error(TAG, $"❌ WebSocket connection FAILED: {ex.Message}");
                 OnConnectionStatusChanged(false, $"Failed: {ex.Message}");
                 OnError($"Connection failed: {ex.Message}", ex);
                 return false;
@@ -161,6 +166,7 @@ namespace FraudGuardAI.Services
                 // Bắt đầu recording
                 _audioRecord.StartRecording();
                 _isStreaming = true;
+                Log.Info(TAG, $"🎤 Audio recording STARTED - BufferSize={bufferSize}, MinBuffer={minBufferSize}");
 
                 // Bắt đầu streaming loop
                 _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource.Token));
@@ -178,7 +184,13 @@ namespace FraudGuardAI.Services
         public async Task StopStreamingAsync()
         {
             System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync called");
-            
+
+            if (!await _startStopLock.WaitAsync(TimeSpan.FromSeconds(5)))
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] StopStreamingAsync: lock timeout, already stopping");
+                return;
+            }
+
             try
             {
                 // 1. Set flags FIRST to stop loops immediately
@@ -272,6 +284,10 @@ namespace FraudGuardAI.Services
                 System.Diagnostics.Debug.WriteLine($"[AudioService] StopStreamingAsync error: {ex.Message}");
                 OnError($"Error stopping: {ex.Message}", ex);
             }
+            finally
+            {
+                _startStopLock.Release();
+            }
         }
 
         #endregion
@@ -304,7 +320,9 @@ namespace FraudGuardAI.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Starting audio stream - Buffer: {BUFFER_SIZE}, Rate: {SAMPLE_RATE}Hz");
+                Log.Info(TAG, $"🔄 Audio streaming loop started - Buffer: {BUFFER_SIZE}, Rate: {SAMPLE_RATE}Hz");
+                int chunksSent = 0;
+                long totalBytesSent = 0;
                 
                 while (_isStreaming && !cancellationToken.IsCancellationRequested)
                 {
@@ -362,6 +380,13 @@ namespace FraudGuardAI.Services
                                     cancellationToken
                                 );
                                 consecutiveErrors = 0; // Reset error counter on success
+                                chunksSent++;
+                                totalBytesSent += bytesRead;
+                                // Log every 50 chunks (~12 seconds at 8KB/250ms)
+                                if (chunksSent % 50 == 0)
+                                {
+                                    Log.Info(TAG, $"📡 Streaming: {chunksSent} chunks sent ({totalBytesSent / 1024}KB total)");
+                                }
                             }
                             else
                             {
@@ -449,26 +474,12 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== PROCESSING SERVER MESSAGE =====");
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Raw message ({message.Length} chars): {message}");
-                
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
-                
-                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON parsed successfully");
-
-                // Log all properties in the JSON
-                System.Diagnostics.Debug.WriteLine($"[AudioService] JSON properties:");
-                foreach (var property in root.EnumerateObject())
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - {property.Name}: {property.Value}");
-                }
 
                 if (root.TryGetProperty("type", out var typeElement) &&
                     typeElement.GetString() == "alert")
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ Alert message detected!");
-                    
                     var alertData = new AlertData
                     {
                         AlertType = root.GetProperty("alert_type").GetString(),
@@ -481,28 +492,13 @@ namespace FraudGuardAI.Services
                         Message = root.TryGetProperty("message", out var msg) ? msg.GetString() : "",
                         Timestamp = DateTime.Now
                     };
-                    
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] Alert parsed:");
-                    System.Diagnostics.Debug.WriteLine($"  - AlertType: {alertData.AlertType}");
-                    System.Diagnostics.Debug.WriteLine($"  - Confidence: {alertData.Confidence}");
-                    System.Diagnostics.Debug.WriteLine($"  - Transcript: {alertData.Transcript}");
-                    System.Diagnostics.Debug.WriteLine($"  - Keywords: {string.Join(", ", alertData.Keywords)}");
-                    
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] 🚨 Triggering OnAlertReceived event...");
+
+                    Log.Warn(TAG, $"ALERT: {alertData.AlertType} confidence={alertData.Confidence:F2}");
                     OnAlertReceived(alertData);
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ✅ OnAlertReceived event triggered");
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AudioService] ⚠️ Message is not an alert (type: {(root.TryGetProperty("type", out var t) ? t.GetString() : "missing")})");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ===== MESSAGE PROCESSING COMPLETE =====");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AudioService] ❌ Message processing error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[AudioService] Stack trace: {ex.StackTrace}");
                 OnError($"Message processing error: {ex.Message}", ex);
             }
         }

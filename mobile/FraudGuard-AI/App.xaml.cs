@@ -1,36 +1,55 @@
 using FraudGuardAI.Services;
+using FraudGuardAI.Pages;
 using FraudGuardAI.Pages.Auth;
+using FraudGuardAI.Localization;
 using System.Diagnostics;
+using Microsoft.Maui.Storage;
+using System.Globalization;
 
 namespace FraudGuardAI
 {
     public partial class App : Application
     {
         private static AudioStreamingServiceLowLevel _audioService;
+        private const string PREF_LIGHT_THEME = "LightThemeEnabled";
+        private const string PREF_LIGHT_THEME_USER_SET = "LightThemeUserSet";
+        private const string PREF_APP_LANGUAGE = "AppLanguage";
         
         public App()
         {
             try
             {
+                Debug.WriteLine("[App] Initializing App...");
                 InitializeComponent();
+                Debug.WriteLine("[App] InitializeComponent() completed");
 
-                // Initialize shared audio service
-                _audioService = new AudioStreamingServiceLowLevel();
+                string languageCode = Preferences.Get(PREF_APP_LANGUAGE, "en");
+                LocalizationResourceManager.Instance.SetCulture(new CultureInfo(languageCode));
 
-                // Set default page with error handling
-                MainPage = new NavigationPage(new LoginPage())
+                bool lightThemeUserSet = Preferences.Get(PREF_LIGHT_THEME_USER_SET, false);
+                bool lightThemeEnabled = lightThemeUserSet && Preferences.Get(PREF_LIGHT_THEME, false);
+                if (!lightThemeUserSet)
                 {
-                    BarBackgroundColor = Color.FromArgb("#0D1B2A"),
-                    BarTextColor = Color.FromArgb("#E0E6ED")
-                };
-                
-                Debug.WriteLine("[App] ✅ App initialized successfully");
+                    Preferences.Set(PREF_LIGHT_THEME, false);
+                }
+                UserAppTheme = lightThemeEnabled ? AppTheme.Light : AppTheme.Dark;
+                ApplyThemeResources(lightThemeEnabled);
+
+                // DO NOT initialize AudioService here - defer to when it's actually needed
+                // Initializing services in App constructor can cause silent failures
+                // that prevent UI from rendering (black screen)
+
+                // Use StartupPage to handle initialization with better error handling
+                // This prevents black screen by showing loading state
+                MainPage = new StartupPage();
+
+                Debug.WriteLine("[App] ✅ App initialized successfully with StartupPage");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[App] ❌ CRITICAL ERROR during initialization: {ex.Message}");
                 Debug.WriteLine($"[App] Stack trace: {ex.StackTrace}");
-                
+
                 // Show error page instead of black screen
                 MainPage = CreateErrorPage(ex);
             }
@@ -89,16 +108,50 @@ namespace FraudGuardAI
         }
 
         /// <summary>
-        /// Get shared audio service instance (singleton pattern)
+        /// Get shared audio service instance (lazy singleton pattern)
         /// This ensures connection persists across tab navigation
+        /// Audio service is only created when first needed, not at app startup
         /// </summary>
         public static AudioStreamingServiceLowLevel GetAudioService()
         {
             if (_audioService == null)
             {
+                Debug.WriteLine("[App] Creating AudioStreamingServiceLowLevel (lazy init)");
                 _audioService = new AudioStreamingServiceLowLevel();
             }
             return _audioService;
+        }
+
+        public static void ApplyThemeResources(bool useLightTheme)
+        {
+            if (Application.Current == null)
+                return;
+
+            var resources = Application.Current.Resources;
+            if (useLightTheme)
+            {
+                resources["TextPrimary"] = Color.FromArgb("#1B2530");
+                resources["TextSecondary"] = Color.FromArgb("#5A6B7A");
+                resources["CardBg"] = Color.FromArgb("#FFFFFF");
+                resources["InputBg"] = Color.FromArgb("#EEF2F6");
+                resources["StatCardBg"] = Color.FromArgb("#F1F5F9");
+                resources["BackgroundColor"] = Color.FromArgb("#F5F7FB");
+                resources["CardBackground"] = Color.FromArgb("#FFFFFF");
+                resources["InputBackground"] = Color.FromArgb("#EEF2F6");
+                resources["BorderColor"] = Color.FromArgb("#D6E0EA");
+            }
+            else
+            {
+                resources["TextPrimary"] = Color.FromArgb("#E0E6ED");
+                resources["TextSecondary"] = Color.FromArgb("#8B9CAF");
+                resources["CardBg"] = Color.FromArgb("#1B2838");
+                resources["InputBg"] = Color.FromArgb("#0F1923");
+                resources["StatCardBg"] = Color.FromArgb("#1E2A3A");
+                resources["BackgroundColor"] = Color.FromArgb("#0D1B2A");
+                resources["CardBackground"] = Color.FromArgb("#1B2838");
+                resources["InputBackground"] = Color.FromArgb("#0F1923");
+                resources["BorderColor"] = Color.FromArgb("#2A3F54");
+            }
         }
         
         /// <summary>

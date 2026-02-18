@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/fraudguard/api-gateway/internal/models"
@@ -37,8 +38,11 @@ type Client struct {
 	// Device ID for this client
 	deviceID string
 
-	// Semaphore to limit concurrent audio processing goroutines
+	// Semaphore to limit concurrent audio processing goroutines per client
 	audioSem chan struct{}
+
+	// Ensures send channel is closed exactly once (prevents double-close panic)
+	sendOnce sync.Once
 }
 
 // NewClient creates a new Client instance
@@ -50,6 +54,13 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 		deviceID: deviceID,
 		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}
+}
+
+// closeSend safely closes the send channel exactly once
+func (c *Client) closeSend() {
+	c.sendOnce.Do(func() {
+		close(c.send)
+	})
 }
 
 // ReadPump pumps messages from the websocket connection to the hub

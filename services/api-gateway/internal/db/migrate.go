@@ -9,6 +9,10 @@ import (
 // AutoMigrate creates tables and seeds initial data
 // BREAKING CHANGE (v2): Migrates from UUID to SERIAL ID for blacklist table
 func AutoMigrate() error {
+	if Pool == nil {
+		return fmt.Errorf("database pool is nil, cannot run migrations")
+	}
+
 	log.Println("🔄 Running database migrations...")
 
 	// Guard: Pool must be initialized before migration

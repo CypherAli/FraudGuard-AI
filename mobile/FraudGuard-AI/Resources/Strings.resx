@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Common_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Language_SelectTitle" xml:space="preserve">
+    <value>Select language</value>
+  </data>
+  <data name="Language_Vietnamese" xml:space="preserve">
+    <value>Vietnamese</value>
+  </data>
+  <data name="Language_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Language_Current" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Tab_Protection" xml:space="preserve">
+    <value>Protection</value>
+  </data>
+  <data name="Tab_History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Tab_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Main_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Main_DashboardSubtitle" xml:space="preserve">
+    <value>Monitor and manage scam calls</value>
+  </data>
+  <data name="Main_ReportNumber" xml:space="preserve">
+    <value>+ Report new number</value>
+  </data>
+  <data name="Main_ProtectionOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Main_ProtectionInactive" xml:space="preserve">
+    <value>Not activated</value>
+  </data>
+  <data name="Main_NoData" xml:space="preserve">
+    <value>No data yet</value>
+  </data>
+  <data name="Main_WeeklyChangeFormat" xml:space="preserve">
+    <value>↑ +{0} this week</value>
+  </data>
+  <data name="Main_EfficiencyChangeFormat" xml:space="preserve">
+    <value>↑ {0}</value>
+  </data>
+  <data name="Main_BlockRateFormat" xml:space="preserve">
+    <value>Block rate: {0}</value>
+  </data>
+  <data name="Main_PermissionTitle" xml:space="preserve">
+    <value>Permissions required</value>
+  </data>
+  <data name="Main_PermissionMessage" xml:space="preserve">
+    <value>Microphone and Notification permissions are required for protection.</value>
+  </data>
+  <data name="Main_ProtectionConnecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="Main_ProtectionConnectingShort" xml:space="preserve">
+    <value>Connecting</value>
+  </data>
+  <data name="Main_ButtonConnecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="Main_ProtectionActive" xml:space="preserve">
+    <value>Protection is active</value>
+  </data>
+  <data name="Main_ProtectionProtecting" xml:space="preserve">
+    <value>Protecting</value>
+  </data>
+  <data name="Main_DisableProtection" xml:space="preserve">
+    <value>Disable protection</value>
+  </data>
+  <data name="Main_ConnectionFailedTitle" xml:space="preserve">
+    <value>Connection failed</value>
+  </data>
+  <data name="Main_ConnectionFailedMessage" xml:space="preserve">
+    <value>Cannot connect to the protection server.
+
+• Check the Server address in Settings
+• Make sure the server is running
+• Check your network connection</value>
+  </data>
+  <data name="Main_EnableProtection" xml:space="preserve">
+    <value>Enable protection</value>
+  </data>
+  <data name="Main_BlockedCount" xml:space="preserve">
+    <value>BLOCKED</value>
+  </data>
+  <data name="Main_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Main_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Main_HighRiskTitle" xml:space="preserve">
+    <value>⚠️ HIGH RISK</value>
+  </data>
+  <data name="Main_HighRiskMessage" xml:space="preserve">
+    <value>Scam indicators detected!
+
+Type: {0}
+Risk level: {1}%
+Content: {2}
+
+Consider ending the call immediately.</value>
+  </data>
+  <data name="Main_BlockedToday" xml:space="preserve">
+    <value>BLOCKED TODAY</value>
+  </data>
+  <data name="Main_SevereThreats" xml:space="preserve">
+    <value>SEVERE THREATS</value>
+  </data>
+  <data name="Main_HighRiskAcknowledge" xml:space="preserve">
+    <value>Got it</value>
+  </data>
+  <data name="Main_HighRiskDetected" xml:space="preserve">
+    <value>High risk detected</value>
+  </data>
+  <data name="Main_SuspiciousActivity" xml:space="preserve">
+    <value>Suspicious activity detected</value>
+  </data>
+  <data name="Main_RiskLevelFormat" xml:space="preserve">
+    <value>Risk level: {0}%</value>
+  </data>
+  <data name="Main_ThreatDetected" xml:space="preserve">
+    <value>⚠️ THREAT DETECTED</value>
+  </data>
+  <data name="Main_ReportTitle" xml:space="preserve">
+    <value>Report new number</value>
+  </data>
+  <data name="Main_ReportPrompt" xml:space="preserve">
+    <value>Enter scam phone number:</value>
+  </data>
+  <data name="Main_ReportConfirm" xml:space="preserve">
+    <value>Report</value>
+  </data>
+  <data name="Main_ReportCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Main_ReportSuccessTitle" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Main_ReportSuccessMessage" xml:space="preserve">
+    <value>Reported number {0}</value>
+  </data>
+  <data name="Main_Effectiveness" xml:space="preserve">
+    <value>PROTECTION EFFECTIVENESS</value>
+  </data>
+  <data name="Main_RecentCalls" xml:space="preserve">
+    <value>Recent calls</value>
+  </data>
+  <data name="Main_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Main_NoCalls" xml:space="preserve">
+    <value>No calls yet</value>
+  </data>
+  <data name="History_Title" xml:space="preserve">
+    <value>Call history</value>
+  </data>
+  <data name="History_Subtitle" xml:space="preserve">
+    <value>Analyzed calls</value>
+  </data>
+  <data name="History_EmptyTitle" xml:space="preserve">
+    <value>No history yet</value>
+  </data>
+  <data name="History_EmptySubtitle" xml:space="preserve">
+    <value>Analyzed calls will appear here</value>
+  </data>
+  <data name="History_Evidence" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="History_Error" xml:space="preserve">
+    <value>Unable to load history</value>
+  </data>
+  <data name="History_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings_Subtitle" xml:space="preserve">
+    <value>Manage account and preferences</value>
+  </data>
+  <data name="Settings_DefaultUserName" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Settings_PhoneLabel" xml:space="preserve">
+    <value>Phone number</value>
+  </data>
+  <data name="Settings_NotUpdated" xml:space="preserve">
+    <value>Not updated</value>
+  </data>
+  <data name="Settings_EditProfile" xml:space="preserve">
+    <value>Edit profile</value>
+  </data>
+  <data name="Settings_EditProfile_Title" xml:space="preserve">
+    <value>Edit profile</value>
+  </data>
+  <data name="Settings_EditProfile_Prompt" xml:space="preserve">
+    <value>Enter new display name:</value>
+  </data>
+  <data name="Settings_EditProfile_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Settings_EditProfile_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Settings_EditProfile_Placeholder" xml:space="preserve">
+    <value>Your name</value>
+  </data>
+  <data name="Settings_EditProfile_SuccessTitle" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Settings_EditProfile_SuccessMessage" xml:space="preserve">
+    <value>Profile updated</value>
+  </data>
+  <data name="Settings_Security_Title" xml:space="preserve">
+    <value>Account security</value>
+  </data>
+  <data name="Settings_Security_Message" xml:space="preserve">
+    <value>This feature is under development.
+
+Will include:
+• Change password
+• Two-step verification
+• Session management</value>
+  </data>
+  <data name="Settings_Help_Title" xml:space="preserve">
+    <value>Help &amp; Support</value>
+  </data>
+  <data name="Settings_Help_MessageFormat" xml:space="preserve">
+    <value>FraudGuard AI
+
+Call protection app.
+
+Contact: support@fraudguard.ai
+Version: 1.0.0{0}</value>
+  </data>
+  <data name="Settings_Help_CrashLogFormat" xml:space="preserve">
+    <value>
+
+Crash log:
+{0}...</value>
+  </data>
+  <data name="Settings_Help_ClearLog" xml:space="preserve">
+    <value>Clear log</value>
+  </data>
+  <data name="Settings_Help_LogClearedTitle" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Settings_Help_LogClearedMessage" xml:space="preserve">
+    <value>Crash log cleared</value>
+  </data>
+  <data name="Settings_Help_LogErrorFormat" xml:space="preserve">
+    <value>FraudGuard AI
+
+Call protection app.
+
+Contact: support@fraudguard.ai
+Version: 1.0.0
+
+Log read error: {0}</value>
+  </data>
+  <data name="Settings_Logout_Title" xml:space="preserve">
+    <value>Log out</value>
+  </data>
+  <data name="Settings_Logout_ConfirmMessage" xml:space="preserve">
+    <value>Are you sure you want to log out?</value>
+  </data>
+  <data name="Settings_Logout_ConfirmButton" xml:space="preserve">
+    <value>Log out</value>
+  </data>
+  <data name="Settings_Logout_CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Settings_Logout_ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Settings_Logout_ServiceUnavailable" xml:space="preserve">
+    <value>Authentication service is unavailable</value>
+  </data>
+  <data name="Settings_Logout_ErrorMessage" xml:space="preserve">
+    <value>Unable to log out: {0}</value>
+  </data>
+  <data name="Settings_UISection" xml:space="preserve">
+    <value>INTERFACE</value>
+  </data>
+  <data name="Settings_AutoProtection" xml:space="preserve">
+    <value>Auto protection</value>
+  </data>
+  <data name="Settings_AutoProtectionDesc" xml:space="preserve">
+    <value>Enable automatically on app start</value>
+  </data>
+  <data name="Settings_LightMode" xml:space="preserve">
+    <value>Light mode</value>
+  </data>
+  <data name="Settings_LightModeDesc" xml:space="preserve">
+    <value>Bright, clear interface</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings_SecuritySection" xml:space="preserve">
+    <value>SECURITY</value>
+  </data>
+  <data name="Settings_AccountSecurity" xml:space="preserve">
+    <value>Account security</value>
+  </data>
+  <data name="Settings_AccountSecurityDesc" xml:space="preserve">
+    <value>Password and 2-step verification</value>
+  </data>
+  <data name="Settings_ConnectionSection" xml:space="preserve">
+    <value>CONNECTION</value>
+  </data>
+  <data name="Settings_ServerConnection" xml:space="preserve">
+    <value>Server connection</value>
+  </data>
+  <data name="Settings_ServerConnected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Settings_ServerDisconnected" xml:space="preserve">
+    <value>Not connected</value>
+  </data>
+  <data name="Settings_USBMode" xml:space="preserve">
+    <value>USB mode</value>
+  </data>
+  <data name="Settings_USBModeDesc" xml:space="preserve">
+    <value>Auto connect when USB plugged</value>
+  </data>
+  <data name="Settings_ServerAddress" xml:space="preserve">
+    <value>Server address</value>
+  </data>
+  <data name="Settings_CurrentConfig" xml:space="preserve">
+    <value>Current configuration</value>
+  </data>
+  <data name="Settings_Save" xml:space="preserve">
+    <value>💾 Save</value>
+  </data>
+  <data name="Settings_Test" xml:space="preserve">
+    <value>🔍 Test</value>
+  </data>
+  <data name="Settings_HelpTitle" xml:space="preserve">
+    <value>Help and Support</value>
+  </data>
+  <data name="Settings_HelpDesc" xml:space="preserve">
+    <value>Get help with FraudGuard</value>
+  </data>
+  <data name="Settings_Logout" xml:space="preserve">
+    <value>Log out</value>
+  </data>
+  <data name="Settings_Version" xml:space="preserve">
+    <value>FraudGuard v1.0</value>
+  </data>
+  <data name="Settings_NgrokLabel" xml:space="preserve">
+    <value>• Ngrok: </value>
+  </data>
+  <data name="Settings_LanLabel" xml:space="preserve">
+    <value>• LAN: </value>
+  </data>
+  <data name="Settings_Avatar_ErrorTitle" xml:space="preserve">
+    <value>Avatar</value>
+  </data>
+  <data name="Settings_Avatar_NotSupported" xml:space="preserve">
+    <value>Photo library is not supported on this device.</value>
+  </data>
+  <data name="Settings_Avatar_Permission" xml:space="preserve">
+    <value>Photo library permission is required to change your avatar.</value>
+  </data>
+  <data name="Settings_Avatar_ErrorMessage" xml:space="preserve">
+    <value>Unable to change avatar. Please try again.</value>
+  </data>
+  <data name="Startup_Initializing" xml:space="preserve">
+    <value>Initializing...</value>
+  </data>
+  <data name="Startup_Status_InitializingApp" xml:space="preserve">
+    <value>Initializing app...</value>
+  </data>
+  <data name="Startup_Status_CheckingEnvironment" xml:space="preserve">
+    <value>Checking environment...</value>
+  </data>
+  <data name="Startup_LoadingAuth" xml:space="preserve">
+    <value>Loading authentication services...</value>
+  </data>
+  <data name="Startup_Status_CheckingAuthStatus" xml:space="preserve">
+    <value>Checking sign-in status...</value>
+  </data>
+  <data name="Startup_Status_Authenticated" xml:space="preserve">
+    <value>Signed in, navigating...</value>
+  </data>
+  <data name="Startup_Status_NavigateLogin" xml:space="preserve">
+    <value>Navigating to login...</value>
+  </data>
+  <data name="Startup_Error_MauiContextNotReady" xml:space="preserve">
+    <value>Environment is not ready yet</value>
+  </data>
+  <data name="Startup_Error_AuthServiceLoadFailed" xml:space="preserve">
+    <value>Unable to load authentication service</value>
+  </data>
+  <data name="Startup_Error_RetryFormat" xml:space="preserve">
+    <value>{0}
+
+Attempt: {1}/{2}</value>
+  </data>
+  <data name="Startup_Error_RestartMessage" xml:space="preserve">
+    <value>Please restart the app</value>
+  </data>
+  <data name="Startup_ErrorTitle" xml:space="preserve">
+    <value>Startup error</value>
+  </data>
+  <data name="Startup_Retry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Login_Title" xml:space="preserve">
+    <value>FraudGuard AI</value>
+  </data>
+  <data name="Login_Subtitle" xml:space="preserve">
+    <value>Protect your calls</value>
+  </data>
+  <data name="Login_EmailLogin" xml:space="preserve">
+    <value>Sign in with Email</value>
+  </data>
+  <data name="Login_EmailDesc" xml:space="preserve">
+    <value>Enter your email, we will send a 6-digit OTP</value>
+  </data>
+  <data name="Login_YourEmail" xml:space="preserve">
+    <value>Your email</value>
+  </data>
+  <data name="Login_SendOtp" xml:space="preserve">
+    <value>Send OTP</value>
+  </data>
+  <data name="Login_InfoNoPassword" xml:space="preserve">
+    <value>No password needed</value>
+  </data>
+  <data name="Login_InfoSingleLogin" xml:space="preserve">
+    <value>Sign in once, use forever</value>
+  </data>
+  <data name="Register_Back" xml:space="preserve">
+    <value>← Back</value>
+  </data>
+  <data name="Register_Title" xml:space="preserve">
+    <value>Create account</value>
+  </data>
+  <data name="Register_Subtitle" xml:space="preserve">
+    <value>Sign up to start protecting calls</value>
+  </data>
+  <data name="Register_Phone" xml:space="preserve">
+    <value>Phone number</value>
+  </data>
+  <data name="Register_PasswordOptional" xml:space="preserve">
+    <value>Password (optional)</value>
+  </data>
+  <data name="Register_ConfirmPassword" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="Register_TermsPrefix" xml:space="preserve">
+    <value>I agree to </value>
+  </data>
+  <data name="Register_Terms" xml:space="preserve">
+    <value>Terms of use</value>
+  </data>
+  <data name="Register_And" xml:space="preserve">
+    <value> and </value>
+  </data>
+  <data name="Register_Privacy" xml:space="preserve">
+    <value>Privacy policy</value>
+  </data>
+  <data name="Register_Button" xml:space="preserve">
+    <value>Sign up</value>
+  </data>
+  <data name="Register_HaveAccount" xml:space="preserve">
+    <value>Already have an account?</value>
+  </data>
+  <data name="Register_Login" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Otp_Back" xml:space="preserve">
+    <value>← Back</value>
+  </data>
+  <data name="Otp_Title" xml:space="preserve">
+    <value>OTP verification</value>
+  </data>
+  <data name="Otp_SentToEmail" xml:space="preserve">
+    <value>OTP has been sent to email</value>
+  </data>
+  <data name="Otp_Verify" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="Otp_NoCode" xml:space="preserve">
+    <value>Did not receive a code?</value>
+  </data>
+  <data name="Otp_Resend" xml:space="preserve">
+    <value>Resend</value>
+  </data>
+  <data name="PhoneAuth_Title" xml:space="preserve">
+    <value>Phone sign-in</value>
+  </data>
+  <data name="PhoneAuth_HeaderTitle" xml:space="preserve">
+    <value>FraudGuard AI</value>
+  </data>
+  <data name="PhoneAuth_HeaderSubtitle" xml:space="preserve">
+    <value>Secure SMS verification</value>
+  </data>
+  <data name="PhoneAuth_EnterPhoneTitle" xml:space="preserve">
+    <value>Enter phone number</value>
+  </data>
+  <data name="PhoneAuth_EnterPhoneDesc" xml:space="preserve">
+    <value>We will send a 6-digit OTP to your phone number</value>
+  </data>
+  <data name="PhoneAuth_SendOtp" xml:space="preserve">
+    <value>Send OTP</value>
+  </data>
+  <data name="PhoneAuth_EnterOtpTitle" xml:space="preserve">
+    <value>Enter OTP</value>
+  </data>
+  <data name="PhoneAuth_OtpSent" xml:space="preserve">
+    <value>OTP sent to +84 xxx xxx xxx</value>
+  </data>
+  <data name="PhoneAuth_Verify" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="PhoneAuth_ResendQuestion" xml:space="preserve">
+    <value>Did not receive a code?</value>
+  </data>
+  <data name="PhoneAuth_Resend" xml:space="preserve">
+    <value>Resend</value>
+  </data>
+  <data name="PhoneAuth_ChangePhone" xml:space="preserve">
+    <value>Change phone number</value>
+  </data>
+  <data name="PhoneAuth_InfoTitle" xml:space="preserve">
+    <value>ℹ️ Important note</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet1" xml:space="preserve">
+    <value>• Phone number must be in international format (+84)</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet2" xml:space="preserve">
+    <value>• OTP is valid for 60 seconds</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet3" xml:space="preserve">
+    <value>• SMS fees may apply</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet4" xml:space="preserve">
+    <value>• Information is protected by Firebase</value>
+  </data>
+  <data name="PhoneAuth_PrivacyPrefix" xml:space="preserve">
+    <value>By signing in, you agree to </value>
+  </data>
+  <data name="PhoneAuth_Terms" xml:space="preserve">
+    <value>Terms of use</value>
+  </data>
+  <data name="PhoneAuth_And" xml:space="preserve">
+    <value> and </value>
+  </data>
+  <data name="PhoneAuth_Privacy" xml:space="preserve">
+    <value>Privacy policy</value>
+  </data>
+  <data name="PhoneAuth_PrivacySuffix" xml:space="preserve">
+    <value> of our app</value>
+  </data>
+  <data name="Main_ConnectionIssue" xml:space="preserve">
+    <value>⚠️ Connection issue - reconnecting...</value>
+  </data>
+  <data name="Main_Reconnecting" xml:space="preserve">
+    <value>🔄 Reconnecting to server...</value>
+  </data>
+  <data name="Main_IncomingCall" xml:space="preserve">
+    <value>Incoming call detected...</value>
+  </data>
+</root>

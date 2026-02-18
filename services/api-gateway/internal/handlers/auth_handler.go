@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,10 +24,33 @@ type OTPEntry struct {
 	Verified  bool
 }
 
+// Session token storage
+type SessionEntry struct {
+	Email     string
+	Token     string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+// Rate limiter entry
+type RateLimitEntry struct {
+	Count     int
+	FirstSent time.Time
+}
+
 var (
 	otpStore     = make(map[string]*OTPEntry)
 	otpMutex     sync.RWMutex
-	otpRateLimit = make(map[string]time.Time) // Rate limit: email -> last sent time
+	sessionStore = make(map[string]*SessionEntry)
+	sessionMutex sync.RWMutex
+	rateLimiter  = make(map[string]*RateLimitEntry)
+	rateMutex    sync.Mutex
+)
+
+const (
+	maxOTPRequestsPerWindow = 3
+	rateLimitWindow         = 10 * time.Minute
+	sessionExpiry           = 30 * 24 * time.Hour // 30 days
 )
 
 // SendOTPRequest is the request body for sending OTP
@@ -40,10 +64,38 @@ type VerifyOTPRequest struct {
 	OTP   string `json:"otp"`
 }
 
-// GenerateOTP generates a 6-digit OTP
-func GenerateOTP() string {
-	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
-	return fmt.Sprintf("%06d", n.Int64())
+// GenerateOTP generates a 6-digit OTP using cryptographic random
+func GenerateOTP() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate OTP: %w", err)
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+// checkRateLimit checks if OTP sending is rate-limited for this email
+func checkRateLimit(email string) bool {
+	rateMutex.Lock()
+	defer rateMutex.Unlock()
+
+	entry, exists := rateLimiter[email]
+	if !exists {
+		rateLimiter[email] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		return true // allowed
+	}
+
+	// Reset window if expired
+	if time.Since(entry.FirstSent) > rateLimitWindow {
+		rateLimiter[email] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		return true
+	}
+
+	if entry.Count >= maxOTPRequestsPerWindow {
+		return false // rate limited
+	}
+
+	entry.Count++
+	return true
 }
 
 // SendOTP handles the OTP sending request
@@ -65,23 +117,22 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rate limit: 60 seconds between OTP requests per email
-	otpMutex.RLock()
-	if lastSent, exists := otpRateLimit[email]; exists {
-		if time.Since(lastSent) < 60*time.Second {
-			otpMutex.RUnlock()
-			remaining := 60 - int(time.Since(lastSent).Seconds())
-			sendJSONError(w, fmt.Sprintf("Vui lòng đợi %d giây trước khi yêu cầu OTP mới", remaining), http.StatusTooManyRequests)
-			return
-		}
+	// Rate limiting check
+	if !checkRateLimit(email) {
+		sendJSONError(w, "Bạn đã gửi quá nhiều yêu cầu OTP. Vui lòng thử lại sau 10 phút.", http.StatusTooManyRequests)
+		return
 	}
-	otpMutex.RUnlock()
 
 	// Generate OTP
-	otp := GenerateOTP()
+	otp, err := GenerateOTP()
+	if err != nil {
+		log.Printf("❌ [Auth] Failed to generate OTP: %v", err)
+		sendJSONError(w, "Lỗi hệ thống. Vui lòng thử lại.", http.StatusInternalServerError)
+		return
+	}
 	expiresAt := time.Now().Add(5 * time.Minute) // OTP expires in 5 minutes
 
-	// Store OTP and update rate limit
+	// Store OTP
 	otpMutex.Lock()
 	otpStore[email] = &OTPEntry{
 		Code:      otp,
@@ -89,7 +140,6 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: expiresAt,
 		Verified:  false,
 	}
-	otpRateLimit[email] = time.Now()
 	otpMutex.Unlock()
 
 	// Send email
@@ -149,7 +199,8 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if entry.Code != otp {
+	// Constant-time comparison to prevent timing attacks
+	if subtle.ConstantTimeCompare([]byte(entry.Code), []byte(otp)) != 1 {
 		sendJSONError(w, "OTP không chính xác", http.StatusBadRequest)
 		return
 	}
@@ -159,8 +210,13 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 	entry.Verified = true
 	otpMutex.Unlock()
 
-	// Generate a simple session token (in production, use JWT)
-	sessionToken := generateSessionToken(email)
+	// Generate a session token and store it
+	sessionToken, err := generateSessionToken(email)
+	if err != nil {
+		log.Printf("❌ [Auth] Failed to generate session token: %v", err)
+		sendJSONError(w, "Lỗi hệ thống. Vui lòng thử lại.", http.StatusInternalServerError)
+		return
+	}
 
 	log.Printf("✅ [Auth] OTP verified for %s", email)
 
@@ -194,9 +250,22 @@ func CheckSession(w http.ResponseWriter, r *http.Request) {
 	// Remove "Bearer " prefix if present
 	token = strings.TrimPrefix(token, "Bearer ")
 
-	// Validate token (simple validation for demo)
-	if len(token) < 32 {
+	// Validate token against stored sessions
+	sessionMutex.RLock()
+	session, exists := sessionStore[token]
+	sessionMutex.RUnlock()
+
+	if !exists {
 		sendJSONError(w, "Token không hợp lệ", http.StatusUnauthorized)
+		return
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		// Remove expired session
+		sessionMutex.Lock()
+		delete(sessionStore, token)
+		sessionMutex.Unlock()
+		sendJSONError(w, "Phiên đăng nhập đã hết hạn", http.StatusUnauthorized)
 		return
 	}
 
@@ -204,6 +273,7 @@ func CheckSession(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"valid":   true,
+		"email":   session.Email,
 	})
 }
 
@@ -275,23 +345,36 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func generateSessionToken(_ string) string {
-	// Simple token generation (use JWT in production)
-	// Note: email parameter reserved for future JWT implementation
+func generateSessionToken(email string) (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate session token: %w", err)
+	}
+	token := fmt.Sprintf("%x", b)
+
+	// Store session
+	sessionMutex.Lock()
+	sessionStore[token] = &SessionEntry{
+		Email:     email,
+		Token:     token,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(sessionExpiry),
+	}
+	sessionMutex.Unlock()
+
+	return token, nil
 }
 
 func generateUserID(_ string) string {
-	// Simple user ID from email hash
-	// Note: email parameter reserved for future hash-based ID generation
 	b := make([]byte, 8)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to timestamp-based ID
+		return fmt.Sprintf("user_%d", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("user_%x", b)
 }
 
-// CleanupExpiredOTPs removes expired OTPs periodically
+// CleanupExpiredOTPs removes expired OTPs and sessions periodically
 func CleanupExpiredOTPs(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -301,20 +384,34 @@ func CleanupExpiredOTPs(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			otpMutex.Lock()
 			now := time.Now()
+
+			// Cleanup OTPs
+			otpMutex.Lock()
 			for email, entry := range otpStore {
 				if now.After(entry.ExpiresAt) {
 					delete(otpStore, email)
 				}
 			}
-			// Clean up old rate limit entries (older than 2 minutes)
-			for email, lastSent := range otpRateLimit {
-				if now.Sub(lastSent) > 2*time.Minute {
-					delete(otpRateLimit, email)
+			otpMutex.Unlock()
+
+			// Cleanup expired sessions
+			sessionMutex.Lock()
+			for token, session := range sessionStore {
+				if now.After(session.ExpiresAt) {
+					delete(sessionStore, token)
 				}
 			}
-			otpMutex.Unlock()
+			sessionMutex.Unlock()
+
+			// Cleanup rate limiter
+			rateMutex.Lock()
+			for email, entry := range rateLimiter {
+				if time.Since(entry.FirstSent) > rateLimitWindow {
+					delete(rateLimiter, email)
+				}
+			}
+			rateMutex.Unlock()
 		}
 	}
 }

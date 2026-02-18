@@ -35,21 +35,16 @@ func main() {
 	log.Printf("🌐 Host: %s", cfg.Server.Host)
 	log.Printf("🔌 Port: %d", cfg.Server.Port)
 
-	// Initialize PostgreSQL database connection (for blacklist) - OPTIONAL
-	dbConnected := false
+	// Initialize PostgreSQL database connection (optional - blacklist features)
 	if err := db.Connect(&cfg.Database); err != nil {
-		log.Printf("⚠️ Warning: Failed to connect to PostgreSQL database: %v", err)
-		log.Println("⚠️ Blacklist and database features will be disabled")
+		log.Printf("Warning: PostgreSQL unavailable: %v", err)
+		log.Println("Blacklist and database features will be disabled")
 	} else {
-		dbConnected = true
 		defer db.Close()
-
-		// Auto-migrate: Create tables and seed data
 		if err := db.AutoMigrate(); err != nil {
-			log.Printf("⚠️ Warning: Failed to run migrations: %v", err)
+			log.Printf("Warning: Failed to run migrations: %v", err)
 		}
 	}
-	_ = dbConnected // Suppress unused variable warning
 
 	// Initialize SQLite database (for call history logs)
 	if err := repository.InitSQLite(); err != nil {
@@ -65,12 +60,12 @@ func main() {
 		log.Println(" Deepgram API key not configured")
 	}
 
-	// Initialize Gemini client for advanced AI fraud detection
+	// Initialize Gemini client for contextual AI fraud detection
 	if cfg.AI.GeminiAPIKey != "" {
 		services.GlobalGeminiClient = services.NewGeminiClient(cfg.AI.GeminiAPIKey)
-		log.Println("🤖 Gemini client initialized (AI fraud analysis enabled)")
+		log.Println("🤖 Gemini AI client initialized - contextual fraud analysis ACTIVE")
 	} else {
-		log.Println("ℹ️ Gemini API key not configured - using keyword detection only")
+		log.Println("⚠️ Gemini API key not configured - using keyword-only detection")
 	}
 
 	// Initialize cache (in-memory, Redis-compatible interface)
@@ -86,9 +81,11 @@ func main() {
 		log.Println("📊 Prometheus metrics enabled (FEATURE_METRICS=true)")
 	}
 
-	// Create WebSocket hub
+	// Create WebSocket hub with cancellable context
 	wsHub := hub.NewHub()
-	go wsHub.Run()
+	hubCtx, hubCancel := context.WithCancel(context.Background())
+	defer hubCancel()
+	go wsHub.Run(hubCtx)
 	log.Println(" WebSocket hub started")
 
 	// Setup HTTP router
@@ -101,10 +98,14 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	// CORS middleware (allow all origins for development)
+	// CORS middleware
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "*" // Default to * for development
+	}
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			if r.Method == "OPTIONS" {
@@ -144,8 +145,10 @@ func main() {
 	// Prometheus metrics endpoint
 	r.Get("/metrics", metrics.MetricsHandler())
 
-	// Start OTP cleanup goroutine
-	go handlers.CleanupExpiredOTPs(context.Background())
+	// Start OTP cleanup goroutine with cancellable context
+	otpCtx, otpCancel := context.WithCancel(context.Background())
+	defer otpCancel()
+	go handlers.CleanupExpiredOTPs(otpCtx)
 
 	// Welcome route
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -178,18 +181,23 @@ func main() {
 	}
 
 	// Start server in a goroutine
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Printf(" Server listening on %s", serverAddr)
 		log.Printf(" WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf(" Server failed to start: %v", err)
+			serverErr <- err
 		}
 	}()
 
-	// Graceful shutdown
+	// Wait for shutdown signal or server error
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case <-quit:
+	case err := <-serverErr:
+		log.Printf("Server failed to start: %v", err)
+	}
 
 	log.Println("🛑 Shutting down server...")
 

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
@@ -6,6 +7,8 @@ using Microsoft.Maui.Storage;
 using FraudGuardAI.Constants;
 using FraudGuardAI.Services;
 using FraudGuardAI.Pages.Auth;
+using FraudGuardAI.Localization;
+using System.Globalization;
 
 namespace FraudGuardAI
 {
@@ -17,6 +20,10 @@ namespace FraudGuardAI
         private const string PREF_DEVICE_ID = "DeviceID";
         private const string PREF_USB_MODE = "UsbMode";
         private const string PREF_AUTO_PROTECTION = "AutoProtection";  // Enable/Disable auto protection
+        private const string PREF_LIGHT_THEME = "LightThemeEnabled";
+        private const string PREF_LIGHT_THEME_USER_SET = "LightThemeUserSet";
+        private const string PREF_APP_LANGUAGE = "AppLanguage";
+        private const string PREF_AVATAR_PATH = "AvatarImagePath";
         private const string DEFAULT_URL = AppConstants.PRODUCTION_SERVER_URL;  // Use production by default
         private const string USB_URL = AppConstants.USB_SERVER_URL; // For emulator
         private const string DEFAULT_DEVICE_ID = "android_device";
@@ -88,19 +95,56 @@ namespace FraudGuardAI
                 if (user != null)
                 {
                     if (UserNameLabel != null)
-                        UserNameLabel.Text = user.DisplayName ?? "Người dùng";
+                        UserNameLabel.Text = user.DisplayName ?? LocalizationResourceManager.Instance["Settings_DefaultUserName"];
                     if (UserEmailLabel != null)
                         UserEmailLabel.Text = user.Email ?? "user@example.com";
                     if (PhoneNumberLabel != null)
-                        PhoneNumberLabel.Text = !string.IsNullOrEmpty(user.PhoneNumber) ? user.PhoneNumber : "Chưa cập nhật";
+                        PhoneNumberLabel.Text = !string.IsNullOrEmpty(user.PhoneNumber)
+                            ? user.PhoneNumber
+                            : LocalizationResourceManager.Instance["Settings_NotUpdated"];
                     if (AvatarInitials != null && !string.IsNullOrEmpty(user.DisplayName))
                         AvatarInitials.Text = GetInitials(user.DisplayName);
                 }
+
+                LoadAvatarImage();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error loading user info: {ex.Message}");
             }
+        }
+
+        private void LoadAvatarImage()
+        {
+            try
+            {
+                string savedPath = Preferences.Get(PREF_AVATAR_PATH, string.Empty);
+                if (!string.IsNullOrWhiteSpace(savedPath) && File.Exists(savedPath))
+                {
+                    SetAvatarImage(savedPath);
+                }
+                else
+                {
+                    if (AvatarImage != null)
+                        AvatarImage.IsVisible = false;
+                    if (AvatarInitials != null)
+                        AvatarInitials.IsVisible = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error loading avatar: {ex.Message}");
+            }
+        }
+
+        private void SetAvatarImage(string filePath)
+        {
+            if (AvatarImage == null || AvatarInitials == null)
+                return;
+
+            AvatarImage.Source = ImageSource.FromFile(filePath);
+            AvatarImage.IsVisible = true;
+            AvatarInitials.IsVisible = false;
         }
         
         private string GetInitials(string name)
@@ -125,7 +169,9 @@ namespace FraudGuardAI
                         ServerStatusDot.BackgroundColor = isConnected ? SuccessColor : Color.FromArgb("#5C6B7A");
                     if (ServerStatusLabel != null)
                     {
-                        ServerStatusLabel.Text = isConnected ? "Đã kết nối" : "Chưa kết nối";
+                        ServerStatusLabel.Text = isConnected
+                            ? LocalizationResourceManager.Instance["Settings_ServerConnected"]
+                            : LocalizationResourceManager.Instance["Settings_ServerDisconnected"];
                         ServerStatusLabel.TextColor = isConnected ? SuccessColor : Color.FromArgb("#8B9CAF");
                     }
                 });
@@ -163,6 +209,16 @@ namespace FraudGuardAI
                 bool autoProtection = Preferences.Get(PREF_AUTO_PROTECTION, true);  // Default to enabled
                 if (AutoProtectionSwitch != null)
                     AutoProtectionSwitch.IsToggled = autoProtection;
+
+                bool lightThemeUserSet = Preferences.Get(PREF_LIGHT_THEME_USER_SET, false);
+                bool lightThemeEnabled = lightThemeUserSet && Preferences.Get(PREF_LIGHT_THEME, false);
+                if (!lightThemeUserSet)
+                {
+                    Preferences.Set(PREF_LIGHT_THEME, false);
+                }
+                if (DarkModeSwitch != null)
+                    DarkModeSwitch.IsToggled = lightThemeEnabled;
+                ApplyTheme(lightThemeEnabled);
 
                 // Get saved URL or use default
                 string savedURL = Preferences.Get(PREF_SERVER_URL, "");
@@ -359,11 +415,11 @@ namespace FraudGuardAI
             try
             {
                 string newName = await DisplayPromptAsync(
-                    "Chỉnh sửa hồ sơ",
-                    "Nhập tên hiển thị mới:",
-                    "Lưu",
-                    "Hủy",
-                    placeholder: "Tên của bạn"
+                    T("Settings_EditProfile_Title"),
+                    T("Settings_EditProfile_Prompt"),
+                    T("Settings_EditProfile_Save"),
+                    T("Settings_EditProfile_Cancel"),
+                    placeholder: T("Settings_EditProfile_Placeholder")
                 );
 
                 if (!string.IsNullOrEmpty(newName))
@@ -371,7 +427,11 @@ namespace FraudGuardAI
                     UserNameLabel.Text = newName;
                     AvatarInitials.Text = GetInitials(newName);
                     // TODO: Save to server
-                    await DisplayAlert("Thành công", "Đã cập nhật hồ sơ", "OK");
+                    await DisplayAlert(
+                        T("Settings_EditProfile_SuccessTitle"),
+                        T("Settings_EditProfile_SuccessMessage"),
+                        T("Common_OK")
+                    );
                 }
             }
             catch (Exception ex)
@@ -380,36 +440,104 @@ namespace FraudGuardAI
             }
         }
 
+        private async void OnChangeAvatarClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                var result = await MediaPicker.PickPhotoAsync();
+                if (result == null)
+                    return;
+
+                string extension = Path.GetExtension(result.FileName);
+                string fileName = $"avatar_{DateTime.UtcNow:yyyyMMddHHmmss}{extension}";
+                string destPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
+
+                using (Stream sourceStream = await result.OpenReadAsync())
+                using (FileStream destStream = File.OpenWrite(destPath))
+                {
+                    await sourceStream.CopyToAsync(destStream);
+                }
+
+                string oldPath = Preferences.Get(PREF_AVATAR_PATH, string.Empty);
+                Preferences.Set(PREF_AVATAR_PATH, destPath);
+
+                if (!string.IsNullOrWhiteSpace(oldPath) && File.Exists(oldPath) && !string.Equals(oldPath, destPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        File.Delete(oldPath);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors for old avatar
+                    }
+                }
+
+                SetAvatarImage(destPath);
+            }
+            catch (FeatureNotSupportedException)
+            {
+                await DisplayAlert(T("Settings_Avatar_ErrorTitle"), T("Settings_Avatar_NotSupported"), T("Common_OK"));
+            }
+            catch (PermissionException)
+            {
+                await DisplayAlert(T("Settings_Avatar_ErrorTitle"), T("Settings_Avatar_Permission"), T("Common_OK"));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Avatar pick error: {ex.Message}");
+                await DisplayAlert(T("Settings_Avatar_ErrorTitle"), T("Settings_Avatar_ErrorMessage"), T("Common_OK"));
+            }
+        }
+
         private void OnDarkModeToggled(object sender, ToggledEventArgs e)
         {
-            // Dark mode is always on for this design
-            // Could implement theme switching here if needed
-            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Dark mode: {e.Value}");
+            Preferences.Set(PREF_LIGHT_THEME_USER_SET, true);
+            Preferences.Set(PREF_LIGHT_THEME, e.Value);
+            ApplyTheme(e.Value);
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Light theme: {e.Value}");
+        }
+
+        private void ApplyTheme(bool useLightTheme)
+        {
+            if (Application.Current == null)
+                return;
+
+            Application.Current.UserAppTheme = useLightTheme ? AppTheme.Light : AppTheme.Dark;
+            App.ApplyThemeResources(useLightTheme);
         }
 
         private async void OnLanguageClicked(object sender, EventArgs e)
         {
-            string action = await DisplayActionSheet(
-                "Chọn ngôn ngữ",
-                "Hủy",
-                null,
-                "Tiếng Việt",
-                "English"
-            );
+            string title = LocalizationResourceManager.Instance["Language_SelectTitle"];
+            string cancel = LocalizationResourceManager.Instance["Common_Cancel"];
+            string optionVi = LocalizationResourceManager.Instance["Language_Vietnamese"];
+            string optionEn = LocalizationResourceManager.Instance["Language_English"];
 
-            if (!string.IsNullOrEmpty(action) && action != "Hủy")
+            string action = await DisplayActionSheet(title, cancel, null, optionVi, optionEn);
+
+            if (action == optionVi)
             {
-                LanguageLabel.Text = action;
-                // TODO: Apply language change
+                SetLanguage("vi");
             }
+            else if (action == optionEn)
+            {
+                SetLanguage("en");
+            }
+        }
+
+        private void SetLanguage(string languageCode)
+        {
+            Preferences.Set(PREF_APP_LANGUAGE, languageCode);
+            LocalizationResourceManager.Instance.SetCulture(new CultureInfo(languageCode));
         }
 
         private async void OnSecurityClicked(object sender, EventArgs e)
         {
             await DisplayAlert(
-                "Bảo mật tài khoản",
-                "Tính năng đang được phát triển.\n\nSẽ bao gồm:\n• Đổi mật khẩu\n• Xác thực 2 bước\n• Quản lý phiên đăng nhập",
-                "OK"
+                T("Settings_Security_Title"),
+                T("Settings_Security_Message"),
+                T("Common_OK")
             );
         }
 
@@ -426,29 +554,34 @@ namespace FraudGuardAI
                     var content = await System.IO.File.ReadAllTextAsync(crashLogPath);
                     if (!string.IsNullOrEmpty(content))
                     {
-                        crashInfo = $"\n\n📋 Crash Log:\n{content.Substring(0, Math.Min(500, content.Length))}...";
+                        string snippet = content.Substring(0, Math.Min(500, content.Length));
+                        crashInfo = string.Format(T("Settings_Help_CrashLogFormat"), snippet);
                     }
                 }
                 
                 bool clearLog = await DisplayAlert(
-                    "Trợ giúp & Hỗ trợ",
-                    $"FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0{crashInfo}",
-                    "Xóa Log",
-                    "Đóng"
+                    T("Settings_Help_Title"),
+                    string.Format(T("Settings_Help_MessageFormat"), crashInfo),
+                    T("Settings_Help_ClearLog"),
+                    T("Common_Close")
                 );
                 
                 if (clearLog && System.IO.File.Exists(crashLogPath))
                 {
                     System.IO.File.Delete(crashLogPath);
-                    await DisplayAlert("Thành công", "Đã xóa crash log", "OK");
+                    await DisplayAlert(
+                        T("Settings_Help_LogClearedTitle"),
+                        T("Settings_Help_LogClearedMessage"),
+                        T("Common_OK")
+                    );
                 }
             }
             catch (Exception ex)
             {
                 await DisplayAlert(
-                    "Trợ giúp & Hỗ trợ",
-                    $"FraudGuard AI\n\nỨng dụng bảo vệ cuộc gọi khỏi lừa đảo.\n\nLiên hệ: support@fraudguard.ai\nPhiên bản: 1.0.0\n\nLỗi đọc log: {ex.Message}",
-                    "OK"
+                    T("Settings_Help_Title"),
+                    string.Format(T("Settings_Help_LogErrorFormat"), ex.Message),
+                    T("Common_OK")
                 );
             }
         }
@@ -459,10 +592,10 @@ namespace FraudGuardAI
             {
                 // Confirm logout
                 bool confirm = await DisplayAlert(
-                    "Đăng xuất",
-                    "Bạn có chắc chắn muốn đăng xuất?",
-                    "Đăng xuất",
-                    "Hủy"
+                    T("Settings_Logout_Title"),
+                    T("Settings_Logout_ConfirmMessage"),
+                    T("Settings_Logout_ConfirmButton"),
+                    T("Settings_Logout_CancelButton")
                 );
 
                 if (!confirm)
@@ -473,7 +606,11 @@ namespace FraudGuardAI
                 // Check if auth service is available
                 if (_authService == null)
                 {
-                    await DisplayAlert("Lỗi", "Dịch vụ xác thực không khả dụng", "OK");
+                    await DisplayAlert(
+                        T("Settings_Logout_ErrorTitle"),
+                        T("Settings_Logout_ServiceUnavailable"),
+                        T("Common_OK")
+                    );
                     return;
                 }
 
@@ -490,9 +627,16 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Logout error: {ex.Message}");
-                await DisplayAlert("Lỗi", $"Không thể đăng xuất: {ex.Message}", "OK");
+                await DisplayAlert(
+                    T("Settings_Logout_ErrorTitle"),
+                    string.Format(T("Settings_Logout_ErrorMessage"), ex.Message),
+                    T("Common_OK")
+                );
             }
         }
+
+        private static string T(string key)
+            => LocalizationResourceManager.Instance[key];
 
         #endregion
 

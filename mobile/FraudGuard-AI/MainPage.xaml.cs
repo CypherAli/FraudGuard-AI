@@ -6,6 +6,8 @@ using FraudGuardAI.Constants;
 using FraudGuardAI.Helpers;
 using FraudGuardAI.Services;
 using FraudGuardAI.Models;
+using FraudGuardAI.Localization;
+using System.Globalization;
 #if ANDROID
 using FraudGuardAI.Platforms.Android.Services;
 using Android.Provider;
@@ -32,6 +34,12 @@ namespace FraudGuardAI
         {
             InitializeComponent();
             InitializeAudioService();
+
+            LocalizationResourceManager.Instance.PropertyChanged += (_, __) =>
+            {
+                UpdateProtectionUI(_isProtectionActive, _isConnecting);
+                UpdateStatsDisplay();
+            };
             
             // Load dashboard stats asynchronously
             _ = LoadDashboardStatsAsync();
@@ -113,11 +121,14 @@ namespace FraudGuardAI
                 var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
                 
                 _stats.BlockedTotal = fraudCalls.Count;
-                _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.Date == DateTime.Today);
+                _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
                 _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= (AppConstants.HIGH_RISK_THRESHOLD / 100.0));
-                
-                if (allCalls.Count > 0)
-                    _stats.ProtectionEfficiency = (fraudCalls.Count / (double)allCalls.Count) * 100;
+
+                // Protection efficiency: percentage of calls analyzed where threats were detected and blocked
+                if (allCalls.Count > 0 && fraudCalls.Count > 0)
+                    _stats.ProtectionEfficiency = Math.Min(100, ((allCalls.Count - fraudCalls.Count) / (double)allCalls.Count) * 100);
+                else if (allCalls.Count > 0)
+                    _stats.ProtectionEfficiency = 100; // All calls safe = 100% protection
                 else
                     _stats.ProtectionEfficiency = 0;
             }
@@ -142,15 +153,27 @@ namespace FraudGuardAI
                 
                 WeeklyChangeLabel.IsVisible = _stats.WeeklyChange > 0;
                 if (WeeklyChangeLabel.IsVisible)
-                    WeeklyChangeLabel.Text = $"↑ +{_stats.WeeklyChange} tuần này";
+                    WeeklyChangeLabel.Text = string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_WeeklyChangeFormat"),
+                        _stats.WeeklyChange
+                    );
                 
                 EfficiencyChangeLabel.IsVisible = _stats.EfficiencyChange > 0;
                 if (EfficiencyChangeLabel.IsVisible)
-                    EfficiencyChangeLabel.Text = $"↑ {_stats.EfficiencyChangeDisplay}";
+                    EfficiencyChangeLabel.Text = string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_EfficiencyChangeFormat"),
+                        _stats.EfficiencyChangeDisplay
+                    );
                 
                 BlockRateLabel.Text = !_isProtectionActive || _stats.BlockedTotal == 0
-                    ? "Chưa có dữ liệu"
-                    : $"Tỷ lệ chặn: {_stats.EfficiencyDisplay}";
+                    ? T("Main_NoData")
+                    : string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_BlockRateFormat"),
+                        _stats.EfficiencyDisplay
+                    );
             });
         }
 
@@ -168,8 +191,11 @@ namespace FraudGuardAI
             {
                 if (!await PermissionManager.RequestAllPermissionsAsync())
                 {
-                    await DisplayAlert("Thiếu quyền",
-                        "Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.", "OK");
+                    await DisplayAlert(
+                        T("Main_PermissionTitle"),
+                        T("Main_PermissionMessage"),
+                        T("Common_OK")
+                    );
                     return;
                 }
                 await StartProtectionAsync();
@@ -178,11 +204,25 @@ namespace FraudGuardAI
 
         private async void OnReportButtonClicked(object sender, EventArgs e)
         {
-            var result = await DisplayPromptAsync("Báo cáo số mới", "Nhập số điện thoại lừa đảo:",
-                "Báo cáo", "Hủy", placeholder: "0912345678", keyboard: Keyboard.Telephone);
+            var result = await DisplayPromptAsync(
+                T("Main_ReportTitle"),
+                T("Main_ReportPrompt"),
+                T("Main_ReportConfirm"),
+                T("Main_ReportCancel"),
+                placeholder: "0912345678",
+                keyboard: Keyboard.Telephone
+            );
 
             if (!string.IsNullOrEmpty(result))
-                await DisplayAlert("Thành công", $"Đã báo cáo số {result}", "OK");
+                await DisplayAlert(
+                    T("Main_ReportSuccessTitle"),
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        T("Main_ReportSuccessMessage"),
+                        result
+                    ),
+                    T("Common_OK")
+                );
         }
 
         #endregion
@@ -275,30 +315,30 @@ namespace FraudGuardAI
                 if (connecting)
                 {
                     ProtectionIconLabel.Text = "⏳";
-                    StatusLabel.Text = "Đang kết nối...";
-                    ProtectionStatusLabel.Text = "Đang kết nối";
+                    StatusLabel.Text = T("Main_ProtectionConnecting");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionConnectingShort");
                     ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
                     ToggleProtectionButton.IsEnabled = false;
-                    ToggleProtectionButton.Text = "Đang kết nối...";
+                    ToggleProtectionButton.Text = T("Main_ButtonConnecting");
                 }
                 else if (isActive)
                 {
-                    ProtectionIconLabel.Text = "✅";
-                    StatusLabel.Text = "Bảo vệ đang hoạt động";
-                    ProtectionStatusLabel.Text = "Đang bảo vệ";
+                    ProtectionIconLabel.Text = "✓";
+                    StatusLabel.Text = T("Main_ProtectionActive");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionProtecting");
                     ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
                     ToggleProtectionButton.IsEnabled = true;
-                    ToggleProtectionButton.Text = "Tắt bảo vệ";
+                    ToggleProtectionButton.Text = T("Main_DisableProtection");
                     ToggleProtectionButton.BackgroundColor = Color.FromArgb("#EF4444");
                 }
                 else
                 {
                     ProtectionIconLabel.Text = "🛡️";
-                    StatusLabel.Text = "Chưa kích hoạt";
-                    ProtectionStatusLabel.Text = "Đã tắt";
+                    StatusLabel.Text = T("Main_ProtectionInactive");
+                    ProtectionStatusLabel.Text = T("Main_ProtectionOff");
                     ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
                     ToggleProtectionButton.IsEnabled = true;
-                    ToggleProtectionButton.Text = "Kích hoạt bảo vệ";
+                    ToggleProtectionButton.Text = T("Main_EnableProtection");
                     ToggleProtectionButton.BackgroundColor = Color.FromArgb("#14B8A6");
                 }
             });
@@ -311,12 +351,10 @@ namespace FraudGuardAI
                 UpdateProtectionUI(false);
                 
                 bool retry = await Application.Current.MainPage.DisplayAlert(
-                    "Kết nối thất bại",
-                    "Không thể kết nối đến máy chủ bảo vệ.\n\n" +
-                    "• Kiểm tra địa chỉ Server trong Cài đặt\n" +
-                    "• Đảm bảo server đang chạy\n" +
-                    "• Kiểm tra kết nối mạng",
-                    "Thử lại", "Cài đặt"
+                    T("Main_ConnectionFailedTitle"),
+                    T("Main_ConnectionFailedMessage"),
+                    T("Main_Retry"),
+                    T("Main_Settings")
                 );
 
                 if (retry)
@@ -365,12 +403,47 @@ namespace FraudGuardAI
 
         private void OnErrorOccurred(object sender, Services.ErrorEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Service error: {e.Message}");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Error: {e.Message}");
+
+                    // Show connection error in status for connection issues
+                    if (e.Message?.Contains("Connection") == true ||
+                        e.Message?.Contains("WebSocket") == true ||
+                        e.Message?.Contains("Reconnect") == true)
+                    {
+                        StatusLabel.Text = T("Main_ConnectionIssue");
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                }
+                catch { }
+            });
         }
 
         private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.IsConnected} - {e.Message}");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.IsConnected} - {e.Message}");
+
+                    if (e.IsConnected)
+                    {
+                        _isProtectionActive = true;
+                        UpdateProtectionUI(true);
+                    }
+                    else if (!_isConnecting && _isProtectionActive)
+                    {
+                        // Connection lost while protection was active
+                        StatusLabel.Text = T("Main_Reconnecting");
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                }
+                catch { }
+            });
         }
 
         #endregion
@@ -397,14 +470,15 @@ namespace FraudGuardAI
                 : "";
 
             await DisplayAlert(
-                "⚠️ NGUY HIỂM CAO",
-                $"Phát hiện dấu hiệu lừa đảo!\n\n" +
-                $"Loại: {alert.AlertType}\n" +
-                $"Mức độ rủi ro: {riskScore:F0}%\n" +
-                deepfakeWarning +
-                $"Nội dung: {alert.Transcript}\n\n" +
-                $"Hãy cân nhắc kết thúc cuộc gọi ngay.",
-                "Đã hiểu"
+                T("Main_HighRiskTitle"),
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    T("Main_HighRiskMessage"),
+                    alert.AlertType,
+                    riskScore.ToString("F0", CultureInfo.CurrentCulture),
+                    alert.Transcript
+                ),
+                T("Main_HighRiskAcknowledge")
             );
         }
 
@@ -425,15 +499,15 @@ namespace FraudGuardAI
                 ? AppConstants.DangerBackground
                 : AppConstants.WarningBackground;
 
-            AlertTypeLabel.Text = isHighRisk ? "Phát hiện rủi ro cao" : alert.AlertType;
+            AlertTypeLabel.Text = isHighRisk ? T("Main_HighRiskDetected") : alert.AlertType;
             AlertMessageLabel.Text = string.IsNullOrEmpty(alert.Transcript)
-                ? "Phát hiện hoạt động đáng ngờ"
+                ? T("Main_SuspiciousActivity")
                 : alert.Transcript;
-
-            string deepfakeInfo = alert.DeepfakeScore > 50
-                ? $" | 🎭 Deepfake: {alert.DeepfakeScore}%"
-                : "";
-            AlertConfidenceLabel.Text = $"Mức độ rủi ro: {riskScore:F0}%{deepfakeInfo}";
+            AlertConfidenceLabel.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                T("Main_RiskLevelFormat"),
+                riskScore.ToString("F0", CultureInfo.CurrentCulture)
+            );
         }
 
         #endregion
@@ -456,7 +530,7 @@ namespace FraudGuardAI
             await ShieldBorder.ScaleTo(0.95, 100);
             
             ShieldBorder.Stroke = AppConstants.DangerColor;
-            StatusLabel.Text = "⚠️ PHÁT HIỆN MỐI ĐE DỌA";
+            StatusLabel.Text = T("Main_ThreatDetected");
             StatusLabel.TextColor = Color.FromArgb("#FCA5A5");
 
             await ShieldBorder.ScaleTo(1.05, 150, Easing.SpringOut);
@@ -508,7 +582,13 @@ namespace FraudGuardAI
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            
+
+            // Subscribe to call state changes for auto-protection
+#if ANDROID
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged += OnCallStateChanged;
+#endif
+
             // Cancel any stale animations
             _animationCts?.Cancel();
             _animationCts = new CancellationTokenSource();
@@ -550,18 +630,21 @@ namespace FraudGuardAI
                     });
                 }
             }
-            
+
             // Refresh stats
             UpdateStatsDisplay();
         }
 
+        private static string T(string key)
+            => LocalizationResourceManager.Instance[key];
+
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            
+
             // Cancel animations
             _animationCts?.Cancel();
-            
+
             // Only detach event handlers
             if (_audioService != null)
             {
@@ -569,7 +652,62 @@ namespace FraudGuardAI
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
             }
+
+#if ANDROID
+            FraudGuardAI.Platforms.Android.Services.CallStateReceiver.CallStateChanged -= OnCallStateChanged;
+#endif
         }
+
+#if ANDROID
+        /// <summary>
+        /// Handle call state changes from CallStateReceiver
+        /// Updates UI when call auto-protection starts/stops
+        /// </summary>
+        private void OnCallStateChanged(object sender, FraudGuardAI.Platforms.Android.Services.CallStateChangedEventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    switch (e.State)
+                    {
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Ringing:
+                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📞 Incoming call: {e.PhoneNumber}");
+                            StatusLabel.Text = $"📞 {T("Main_IncomingCall")}";
+                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                            break;
+
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Active:
+                            System.Diagnostics.Debug.WriteLine($"[MainPage] 📱 Call active - protection auto-started");
+                            _isProtectionActive = _audioService?.IsStreaming ?? false;
+                            if (_isProtectionActive)
+                            {
+                                _animationCts?.Cancel();
+                                _animationCts = new CancellationTokenSource();
+                                UpdateProtectionUI(true);
+                                _ = PulseAnimation(_animationCts.Token);
+                            }
+                            break;
+
+                        case FraudGuardAI.Platforms.Android.Services.CallState.Ended:
+                            System.Diagnostics.Debug.WriteLine("[MainPage] 📴 Call ended");
+                            _isProtectionActive = _audioService?.IsStreaming ?? false;
+                            UpdateProtectionUI(_isProtectionActive);
+                            if (!_isProtectionActive)
+                            {
+                                _animationCts?.Cancel();
+                                AlertBanner.IsVisible = false;
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Call state handler error: {ex.Message}");
+                }
+            });
+        }
+#endif
 
         #endregion
     }

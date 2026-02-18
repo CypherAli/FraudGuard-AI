@@ -125,8 +125,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                         WakeLockFlags.Partial, // Chỉ giữ CPU, không giữ màn hình
                         "FraudGuard::AudioProcessing"
                     );
-                    _wakeLock?.Acquire();
-                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired - CPU will stay active");
+                    // Timeout 4 giờ để tránh drain pin vô hạn
+                    _wakeLock?.Acquire(4 * 60 * 60 * 1000L);
+                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired with 4h timeout");
                 }
             }
             catch (Exception ex)

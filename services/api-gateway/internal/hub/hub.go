@@ -1,11 +1,9 @@
 package hub
 
 import (
+	"context"
 	"log"
 	"sync"
-	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the clients
@@ -25,10 +23,10 @@ type Hub struct {
 	Unregister chan *Client
 
 	// Mutex to protect the clients map
-	// Using RWMutex for better performance:
-	// - Lock() for write operations (register/unregister)
-	// - RLock() for read operations (broadcast)
 	mu sync.RWMutex
+
+	// Context for graceful shutdown of Run loop
+	cancel context.CancelFunc
 }
 
 // NewHub creates a new Hub instance
@@ -41,51 +39,52 @@ func NewHub() *Hub {
 	}
 }
 
-// Run starts the hub's main loop
-// This method should be run in a separate goroutine
-func (h *Hub) Run() {
+// Run starts the hub's main loop with context for graceful shutdown.
+// This method should be run in a separate goroutine.
+func (h *Hub) Run(ctx context.Context) {
+	childCtx, cancel := context.WithCancel(ctx)
+	h.cancel = cancel
+	defer cancel()
+
 	for {
 		select {
+		case <-childCtx.Done():
+			log.Println("Hub Run loop stopped (context cancelled)")
+			return
+
 		case client := <-h.Register:
-			// WRITE OPERATION: Use Lock() to modify the map
 			h.mu.Lock()
 			h.clients[client] = true
 			log.Printf(" Client registered: %s (Total: %d)", client.deviceID, len(h.clients))
 			h.mu.Unlock()
 
 		case client := <-h.Unregister:
-			// WRITE OPERATION: Use Lock() to modify the map
 			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
-				close(client.send)
+				client.closeSend() // safe close via sync.Once
 				log.Printf(" Client unregistered: %s (Total: %d)", client.deviceID, len(h.clients))
 			}
 			h.mu.Unlock()
 
 		case message := <-h.Broadcast:
-			// ✅ FIX: Collect failed clients first, then delete under write lock
-			// This prevents data race from delete() under RLock()
 			var failedClients []*Client
 
 			h.mu.RLock()
 			for client := range h.clients {
 				select {
 				case client.send <- message:
-					// Message sent successfully
 				default:
-					// Client's send buffer is full, mark for removal
 					failedClients = append(failedClients, client)
 				}
 			}
 			h.mu.RUnlock()
 
-			// Clean up failed clients under write lock
 			if len(failedClients) > 0 {
 				h.mu.Lock()
 				for _, client := range failedClients {
 					if _, ok := h.clients[client]; ok {
-						close(client.send)
+						client.closeSend() // safe close via sync.Once
 						delete(h.clients, client)
 						log.Printf(" Client send buffer full, closing: %s", client.deviceID)
 					}
@@ -103,9 +102,14 @@ func (h *Hub) GetClientCount() int {
 	return len(h.clients)
 }
 
-// GracefulShutdown closes all client connections gracefully
-// Sends proper WebSocket close frames to trigger client-side reconnection logic
+// GracefulShutdown closes all client connections gracefully.
+// Stops the Run loop, then closes all client send channels and connections.
 func (h *Hub) GracefulShutdown() {
+	// Stop Run loop first so it doesn't race with us
+	if h.cancel != nil {
+		h.cancel()
+	}
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -118,14 +122,8 @@ func (h *Hub) GracefulShutdown() {
 	log.Printf("🛑 Graceful shutdown: Closing %d WebSocket connections...", clientCount)
 
 	for client := range h.clients {
-		// Send close frame to trigger graceful disconnect on client side
-		closeMsg := websocket.FormatCloseMessage(websocket.CloseGoingAway, "Server shutting down")
-		if err := client.conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(time.Second)); err != nil {
-			log.Printf("⚠️ Error sending close frame to %s: %v", client.deviceID, err)
-		}
-
-		// Close the send channel
-		close(client.send)
+		// closeSend will cause WritePump to exit and send CloseMessage itself
+		client.closeSend()
 		delete(h.clients, client)
 	}
 

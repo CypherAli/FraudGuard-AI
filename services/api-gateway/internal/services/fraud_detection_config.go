@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -95,15 +96,15 @@ func LoadFromEnvironment() *FraudDetectionConfig {
 
 // Validate checks if the configuration is valid
 func (c *FraudDetectionConfig) Validate() error {
-	// Ensure thresholds are in ascending order
 	if c.LowThreshold >= c.MediumThreshold ||
 		c.MediumThreshold >= c.HighThreshold ||
 		c.HighThreshold >= c.CriticalThreshold {
-		log.Printf("⚠️ [Config] WARNING: Thresholds not in ascending order!")
+		return fmt.Errorf("thresholds not in ascending order: LOW=%d, MEDIUM=%d, HIGH=%d, CRITICAL=%d",
+			c.LowThreshold, c.MediumThreshold, c.HighThreshold, c.CriticalThreshold)
 	}
 
 	if c.MaxAudioAgeSeconds <= 0 {
-		log.Printf("⚠️ [Config] WARNING: MaxAudioAgeSeconds should be positive")
+		return fmt.Errorf("MaxAudioAgeSeconds must be positive, got %d", c.MaxAudioAgeSeconds)
 	}
 
 	return nil

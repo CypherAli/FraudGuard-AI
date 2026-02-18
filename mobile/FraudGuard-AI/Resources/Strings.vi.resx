@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Common_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Hủy</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Đóng</value>
+  </data>
+  <data name="Language_SelectTitle" xml:space="preserve">
+    <value>Chọn ngôn ngữ</value>
+  </data>
+  <data name="Language_Vietnamese" xml:space="preserve">
+    <value>Tiếng Việt</value>
+  </data>
+  <data name="Language_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Language_Current" xml:space="preserve">
+    <value>Tiếng Việt</value>
+  </data>
+  <data name="Tab_Protection" xml:space="preserve">
+    <value>Bảo vệ</value>
+  </data>
+  <data name="Tab_History" xml:space="preserve">
+    <value>Lịch sử</value>
+  </data>
+  <data name="Tab_Settings" xml:space="preserve">
+    <value>Cài đặt</value>
+  </data>
+  <data name="Main_Dashboard" xml:space="preserve">
+    <value>Bảng điều khiển</value>
+  </data>
+  <data name="Main_DashboardSubtitle" xml:space="preserve">
+    <value>Theo dõi và quản lý các cuộc gọi lừa đảo</value>
+  </data>
+  <data name="Main_ReportNumber" xml:space="preserve">
+    <value>+ Báo cáo số mới</value>
+  </data>
+  <data name="Main_ProtectionOff" xml:space="preserve">
+    <value>Đã tắt</value>
+  </data>
+  <data name="Main_ProtectionInactive" xml:space="preserve">
+    <value>Chưa kích hoạt</value>
+  </data>
+  <data name="Main_NoData" xml:space="preserve">
+    <value>Chưa có dữ liệu</value>
+  </data>
+  <data name="Main_WeeklyChangeFormat" xml:space="preserve">
+    <value>↑ +{0} tuần này</value>
+  </data>
+  <data name="Main_EfficiencyChangeFormat" xml:space="preserve">
+    <value>↑ {0}</value>
+  </data>
+  <data name="Main_BlockRateFormat" xml:space="preserve">
+    <value>Tỷ lệ chặn: {0}</value>
+  </data>
+  <data name="Main_PermissionTitle" xml:space="preserve">
+    <value>Thiếu quyền</value>
+  </data>
+  <data name="Main_PermissionMessage" xml:space="preserve">
+    <value>Cần cấp quyền Microphone và Notification để bảo vệ hoạt động.</value>
+  </data>
+  <data name="Main_ProtectionConnecting" xml:space="preserve">
+    <value>Đang kết nối...</value>
+  </data>
+  <data name="Main_ProtectionConnectingShort" xml:space="preserve">
+    <value>Đang kết nối</value>
+  </data>
+  <data name="Main_ButtonConnecting" xml:space="preserve">
+    <value>Đang kết nối...</value>
+  </data>
+  <data name="Main_ProtectionActive" xml:space="preserve">
+    <value>Bảo vệ đang hoạt động</value>
+  </data>
+  <data name="Main_ProtectionProtecting" xml:space="preserve">
+    <value>Đang bảo vệ</value>
+  </data>
+  <data name="Main_DisableProtection" xml:space="preserve">
+    <value>Tắt bảo vệ</value>
+  </data>
+  <data name="Main_ConnectionFailedTitle" xml:space="preserve">
+    <value>Kết nối thất bại</value>
+  </data>
+  <data name="Main_ConnectionFailedMessage" xml:space="preserve">
+    <value>Không thể kết nối đến máy chủ bảo vệ.
+
+• Kiểm tra địa chỉ Server trong Cài đặt
+• Đảm bảo server đang chạy
+• Kiểm tra kết nối mạng</value>
+  </data>
+  <data name="Main_EnableProtection" xml:space="preserve">
+    <value>Kích hoạt bảo vệ</value>
+  </data>
+  <data name="Main_BlockedCount" xml:space="preserve">
+    <value>SỐ ĐÃ CHẶN</value>
+  </data>
+  <data name="Main_Retry" xml:space="preserve">
+    <value>Thử lại</value>
+  </data>
+  <data name="Main_Settings" xml:space="preserve">
+    <value>Cài đặt</value>
+  </data>
+  <data name="Main_HighRiskTitle" xml:space="preserve">
+    <value>⚠️ NGUY HIỂM CAO</value>
+  </data>
+  <data name="Main_HighRiskMessage" xml:space="preserve">
+    <value>Phát hiện dấu hiệu lừa đảo!
+
+Loại: {0}
+Mức độ rủi ro: {1}%
+Nội dung: {2}
+
+Hãy cân nhắc kết thúc cuộc gọi ngay.</value>
+  </data>
+  <data name="Main_BlockedToday" xml:space="preserve">
+    <value>CHẶN HÔM NAY</value>
+  </data>
+  <data name="Main_SevereThreats" xml:space="preserve">
+    <value>MỐI ĐE DỌA NGHIÊM TRỌNG</value>
+  </data>
+  <data name="Main_HighRiskAcknowledge" xml:space="preserve">
+    <value>Đã hiểu</value>
+  </data>
+  <data name="Main_HighRiskDetected" xml:space="preserve">
+    <value>Phát hiện rủi ro cao</value>
+  </data>
+  <data name="Main_SuspiciousActivity" xml:space="preserve">
+    <value>Phát hiện hoạt động đáng ngờ</value>
+  </data>
+  <data name="Main_RiskLevelFormat" xml:space="preserve">
+    <value>Mức độ rủi ro: {0}%</value>
+  </data>
+  <data name="Main_ThreatDetected" xml:space="preserve">
+    <value>⚠️ PHÁT HIỆN MỐI ĐE DỌA</value>
+  </data>
+  <data name="Main_ReportTitle" xml:space="preserve">
+    <value>Báo cáo số mới</value>
+  </data>
+  <data name="Main_ReportPrompt" xml:space="preserve">
+    <value>Nhập số điện thoại lừa đảo:</value>
+  </data>
+  <data name="Main_ReportConfirm" xml:space="preserve">
+    <value>Báo cáo</value>
+  </data>
+  <data name="Main_ReportCancel" xml:space="preserve">
+    <value>Hủy</value>
+  </data>
+  <data name="Main_ReportSuccessTitle" xml:space="preserve">
+    <value>Thành công</value>
+  </data>
+  <data name="Main_ReportSuccessMessage" xml:space="preserve">
+    <value>Đã báo cáo số {0}</value>
+  </data>
+  <data name="Main_Effectiveness" xml:space="preserve">
+    <value>HIỆU QUẢ BẢO VỆ</value>
+  </data>
+  <data name="Main_RecentCalls" xml:space="preserve">
+    <value>Cuộc gọi gần đây</value>
+  </data>
+  <data name="Main_Today" xml:space="preserve">
+    <value>Hôm nay</value>
+  </data>
+  <data name="Main_NoCalls" xml:space="preserve">
+    <value>Chưa có cuộc gọi nào</value>
+  </data>
+  <data name="History_Title" xml:space="preserve">
+    <value>Lịch sử cuộc gọi</value>
+  </data>
+  <data name="History_Subtitle" xml:space="preserve">
+    <value>Cuộc gọi đã được phân tích</value>
+  </data>
+  <data name="History_EmptyTitle" xml:space="preserve">
+    <value>Chưa có lịch sử</value>
+  </data>
+  <data name="History_EmptySubtitle" xml:space="preserve">
+    <value>Cuộc gọi được phân tích sẽ hiển thị ở đây</value>
+  </data>
+  <data name="History_Evidence" xml:space="preserve">
+    <value>Bằng chứng</value>
+  </data>
+  <data name="History_Error" xml:space="preserve">
+    <value>Không thể tải lịch sử</value>
+  </data>
+  <data name="History_Retry" xml:space="preserve">
+    <value>Thử lại</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Cài đặt</value>
+  </data>
+  <data name="Settings_Subtitle" xml:space="preserve">
+    <value>Quản lý tài khoản và tùy chọn</value>
+  </data>
+  <data name="Settings_DefaultUserName" xml:space="preserve">
+    <value>Người dùng</value>
+  </data>
+  <data name="Settings_PhoneLabel" xml:space="preserve">
+    <value>Số điện thoại</value>
+  </data>
+  <data name="Settings_NotUpdated" xml:space="preserve">
+    <value>Chưa cập nhật</value>
+  </data>
+  <data name="Settings_EditProfile" xml:space="preserve">
+    <value>Chỉnh sửa hồ sơ</value>
+  </data>
+  <data name="Settings_EditProfile_Title" xml:space="preserve">
+    <value>Chỉnh sửa hồ sơ</value>
+  </data>
+  <data name="Settings_EditProfile_Prompt" xml:space="preserve">
+    <value>Nhập tên hiển thị mới:</value>
+  </data>
+  <data name="Settings_EditProfile_Save" xml:space="preserve">
+    <value>Lưu</value>
+  </data>
+  <data name="Settings_EditProfile_Cancel" xml:space="preserve">
+    <value>Hủy</value>
+  </data>
+  <data name="Settings_EditProfile_Placeholder" xml:space="preserve">
+    <value>Tên của bạn</value>
+  </data>
+  <data name="Settings_EditProfile_SuccessTitle" xml:space="preserve">
+    <value>Thành công</value>
+  </data>
+  <data name="Settings_EditProfile_SuccessMessage" xml:space="preserve">
+    <value>Đã cập nhật hồ sơ</value>
+  </data>
+  <data name="Settings_Security_Title" xml:space="preserve">
+    <value>Bảo mật tài khoản</value>
+  </data>
+  <data name="Settings_Security_Message" xml:space="preserve">
+    <value>Tính năng đang được phát triển.
+
+Sẽ bao gồm:
+• Đổi mật khẩu
+• Xác thực 2 bước
+• Quản lý phiên đăng nhập</value>
+  </data>
+  <data name="Settings_Help_Title" xml:space="preserve">
+    <value>Trợ giúp &amp; Hỗ trợ</value>
+  </data>
+  <data name="Settings_Help_MessageFormat" xml:space="preserve">
+    <value>FraudGuard AI
+
+Ứng dụng bảo vệ cuộc gọi khỏi lừa đảo.
+
+Liên hệ: support@fraudguard.ai
+Phiên bản: 1.0.0{0}</value>
+  </data>
+  <data name="Settings_Help_CrashLogFormat" xml:space="preserve">
+    <value>
+
+Nhật ký lỗi:
+{0}...</value>
+  </data>
+  <data name="Settings_Help_ClearLog" xml:space="preserve">
+    <value>Xóa log</value>
+  </data>
+  <data name="Settings_Help_LogClearedTitle" xml:space="preserve">
+    <value>Thành công</value>
+  </data>
+  <data name="Settings_Help_LogClearedMessage" xml:space="preserve">
+    <value>Đã xóa crash log</value>
+  </data>
+  <data name="Settings_Help_LogErrorFormat" xml:space="preserve">
+    <value>FraudGuard AI
+
+Ứng dụng bảo vệ cuộc gọi khỏi lừa đảo.
+
+Liên hệ: support@fraudguard.ai
+Phiên bản: 1.0.0
+
+Lỗi đọc log: {0}</value>
+  </data>
+  <data name="Settings_Logout_Title" xml:space="preserve">
+    <value>Đăng xuất</value>
+  </data>
+  <data name="Settings_Logout_ConfirmMessage" xml:space="preserve">
+    <value>Bạn có chắc chắn muốn đăng xuất?</value>
+  </data>
+  <data name="Settings_Logout_ConfirmButton" xml:space="preserve">
+    <value>Đăng xuất</value>
+  </data>
+  <data name="Settings_Logout_CancelButton" xml:space="preserve">
+    <value>Hủy</value>
+  </data>
+  <data name="Settings_Logout_ErrorTitle" xml:space="preserve">
+    <value>Lỗi</value>
+  </data>
+  <data name="Settings_Logout_ServiceUnavailable" xml:space="preserve">
+    <value>Dịch vụ xác thực không khả dụng</value>
+  </data>
+  <data name="Settings_Logout_ErrorMessage" xml:space="preserve">
+    <value>Không thể đăng xuất: {0}</value>
+  </data>
+  <data name="Settings_UISection" xml:space="preserve">
+    <value>GIAO DIỆN</value>
+  </data>
+  <data name="Settings_AutoProtection" xml:space="preserve">
+    <value>Bảo vệ tự động</value>
+  </data>
+  <data name="Settings_AutoProtectionDesc" xml:space="preserve">
+    <value>Tự động kích hoạt khi khởi động app</value>
+  </data>
+  <data name="Settings_LightMode" xml:space="preserve">
+    <value>Chế độ sáng</value>
+  </data>
+  <data name="Settings_LightModeDesc" xml:space="preserve">
+    <value>Giao diện sáng rõ, dễ nhìn</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Ngôn ngữ</value>
+  </data>
+  <data name="Settings_SecuritySection" xml:space="preserve">
+    <value>BẢO MẬT</value>
+  </data>
+  <data name="Settings_AccountSecurity" xml:space="preserve">
+    <value>Bảo mật tài khoản</value>
+  </data>
+  <data name="Settings_AccountSecurityDesc" xml:space="preserve">
+    <value>Mật khẩu và xác thực 2 bước</value>
+  </data>
+  <data name="Settings_ConnectionSection" xml:space="preserve">
+    <value>KẾT NỐI</value>
+  </data>
+  <data name="Settings_ServerConnection" xml:space="preserve">
+    <value>Kết nối Server</value>
+  </data>
+  <data name="Settings_ServerConnected" xml:space="preserve">
+    <value>Đã kết nối</value>
+  </data>
+  <data name="Settings_ServerDisconnected" xml:space="preserve">
+    <value>Chưa kết nối</value>
+  </data>
+  <data name="Settings_USBMode" xml:space="preserve">
+    <value>Chế độ USB</value>
+  </data>
+  <data name="Settings_USBModeDesc" xml:space="preserve">
+    <value>Tự động kết nối khi cắm USB</value>
+  </data>
+  <data name="Settings_ServerAddress" xml:space="preserve">
+    <value>Địa chỉ Server</value>
+  </data>
+  <data name="Settings_CurrentConfig" xml:space="preserve">
+    <value>Cấu hình hiện tại</value>
+  </data>
+  <data name="Settings_Save" xml:space="preserve">
+    <value>💾 Lưu</value>
+  </data>
+  <data name="Settings_Test" xml:space="preserve">
+    <value>🔍 Test</value>
+  </data>
+  <data name="Settings_HelpTitle" xml:space="preserve">
+    <value>Trợ giúp &amp; Hỗ trợ</value>
+  </data>
+  <data name="Settings_HelpDesc" xml:space="preserve">
+    <value>Nhận trợ giúp với FraudGuard</value>
+  </data>
+  <data name="Settings_Logout" xml:space="preserve">
+    <value>Đăng xuất</value>
+  </data>
+  <data name="Settings_Version" xml:space="preserve">
+    <value>FraudGuard v1.0</value>
+  </data>
+  <data name="Settings_NgrokLabel" xml:space="preserve">
+    <value>• Ngrok: </value>
+  </data>
+  <data name="Settings_LanLabel" xml:space="preserve">
+    <value>• LAN: </value>
+  </data>
+  <data name="Settings_Avatar_ErrorTitle" xml:space="preserve">
+    <value>Ảnh đại diện</value>
+  </data>
+  <data name="Settings_Avatar_NotSupported" xml:space="preserve">
+    <value>Thiết bị này không hỗ trợ thư viện ảnh.</value>
+  </data>
+  <data name="Settings_Avatar_Permission" xml:space="preserve">
+    <value>Cần cấp quyền truy cập thư viện ảnh để đổi ảnh đại diện.</value>
+  </data>
+  <data name="Settings_Avatar_ErrorMessage" xml:space="preserve">
+    <value>Không thể đổi ảnh đại diện. Vui lòng thử lại.</value>
+  </data>
+  <data name="Startup_Initializing" xml:space="preserve">
+    <value>Đang khởi tạo...</value>
+  </data>
+  <data name="Startup_Status_InitializingApp" xml:space="preserve">
+    <value>Đang khởi tạo ứng dụng...</value>
+  </data>
+  <data name="Startup_Status_CheckingEnvironment" xml:space="preserve">
+    <value>Kiểm tra môi trường...</value>
+  </data>
+  <data name="Startup_LoadingAuth" xml:space="preserve">
+    <value>Đang tải dịch vụ xác thực...</value>
+  </data>
+  <data name="Startup_Status_CheckingAuthStatus" xml:space="preserve">
+    <value>Kiểm tra trạng thái đăng nhập...</value>
+  </data>
+  <data name="Startup_Status_Authenticated" xml:space="preserve">
+    <value>Đã đăng nhập, đang chuyển trang...</value>
+  </data>
+  <data name="Startup_Status_NavigateLogin" xml:space="preserve">
+    <value>Chuyển đến trang đăng nhập...</value>
+  </data>
+  <data name="Startup_Error_MauiContextNotReady" xml:space="preserve">
+    <value>Môi trường chưa sẵn sàng</value>
+  </data>
+  <data name="Startup_Error_AuthServiceLoadFailed" xml:space="preserve">
+    <value>Không thể tải dịch vụ xác thực</value>
+  </data>
+  <data name="Startup_Error_RetryFormat" xml:space="preserve">
+    <value>{0}
+
+Lần thử: {1}/{2}</value>
+  </data>
+  <data name="Startup_Error_RestartMessage" xml:space="preserve">
+    <value>Vui lòng khởi động lại ứng dụng</value>
+  </data>
+  <data name="Startup_ErrorTitle" xml:space="preserve">
+    <value>Lỗi khởi động</value>
+  </data>
+  <data name="Startup_Retry" xml:space="preserve">
+    <value>Thử lại</value>
+  </data>
+  <data name="Login_Title" xml:space="preserve">
+    <value>FraudGuard AI</value>
+  </data>
+  <data name="Login_Subtitle" xml:space="preserve">
+    <value>Bảo vệ cuộc gọi của bạn</value>
+  </data>
+  <data name="Login_EmailLogin" xml:space="preserve">
+    <value>Đăng nhập bằng Email</value>
+  </data>
+  <data name="Login_EmailDesc" xml:space="preserve">
+    <value>Nhập email, chúng tôi sẽ gửi mã OTP 6 số để xác thực</value>
+  </data>
+  <data name="Login_YourEmail" xml:space="preserve">
+    <value>Email của bạn</value>
+  </data>
+  <data name="Login_SendOtp" xml:space="preserve">
+    <value>Gửi mã OTP</value>
+  </data>
+  <data name="Login_InfoNoPassword" xml:space="preserve">
+    <value>Không cần mật khẩu</value>
+  </data>
+  <data name="Login_InfoSingleLogin" xml:space="preserve">
+    <value>Đăng nhập 1 lần, dùng mãi mãi</value>
+  </data>
+  <data name="Register_Back" xml:space="preserve">
+    <value>← Quay lại</value>
+  </data>
+  <data name="Register_Title" xml:space="preserve">
+    <value>Tạo tài khoản</value>
+  </data>
+  <data name="Register_Subtitle" xml:space="preserve">
+    <value>Đăng ký để bắt đầu bảo vệ cuộc gọi</value>
+  </data>
+  <data name="Register_Phone" xml:space="preserve">
+    <value>Số điện thoại</value>
+  </data>
+  <data name="Register_PasswordOptional" xml:space="preserve">
+    <value>Mật khẩu (tùy chọn)</value>
+  </data>
+  <data name="Register_ConfirmPassword" xml:space="preserve">
+    <value>Xác nhận mật khẩu</value>
+  </data>
+  <data name="Register_TermsPrefix" xml:space="preserve">
+    <value>Tôi đồng ý với </value>
+  </data>
+  <data name="Register_Terms" xml:space="preserve">
+    <value>Điều khoản sử dụng</value>
+  </data>
+  <data name="Register_And" xml:space="preserve">
+    <value> và </value>
+  </data>
+  <data name="Register_Privacy" xml:space="preserve">
+    <value>Chính sách bảo mật</value>
+  </data>
+  <data name="Register_Button" xml:space="preserve">
+    <value>Đăng ký</value>
+  </data>
+  <data name="Register_HaveAccount" xml:space="preserve">
+    <value>Đã có tài khoản?</value>
+  </data>
+  <data name="Register_Login" xml:space="preserve">
+    <value>Đăng nhập</value>
+  </data>
+  <data name="Otp_Back" xml:space="preserve">
+    <value>← Quay lại</value>
+  </data>
+  <data name="Otp_Title" xml:space="preserve">
+    <value>Xác minh OTP</value>
+  </data>
+  <data name="Otp_SentToEmail" xml:space="preserve">
+    <value>Mã OTP đã được gửi đến email</value>
+  </data>
+  <data name="Otp_Verify" xml:space="preserve">
+    <value>Xác minh</value>
+  </data>
+  <data name="Otp_NoCode" xml:space="preserve">
+    <value>Không nhận được mã?</value>
+  </data>
+  <data name="Otp_Resend" xml:space="preserve">
+    <value>Gửi lại</value>
+  </data>
+  <data name="PhoneAuth_Title" xml:space="preserve">
+    <value>Đăng nhập bằng số điện thoại</value>
+  </data>
+  <data name="PhoneAuth_HeaderTitle" xml:space="preserve">
+    <value>FraudGuard AI</value>
+  </data>
+  <data name="PhoneAuth_HeaderSubtitle" xml:space="preserve">
+    <value>Xác thực bảo mật bằng SMS</value>
+  </data>
+  <data name="PhoneAuth_EnterPhoneTitle" xml:space="preserve">
+    <value>Nhập số điện thoại</value>
+  </data>
+  <data name="PhoneAuth_EnterPhoneDesc" xml:space="preserve">
+    <value>Chúng tôi sẽ gửi mã OTP 6 chữ số đến số điện thoại của bạn</value>
+  </data>
+  <data name="PhoneAuth_SendOtp" xml:space="preserve">
+    <value>Gửi mã OTP</value>
+  </data>
+  <data name="PhoneAuth_EnterOtpTitle" xml:space="preserve">
+    <value>Nhập mã OTP</value>
+  </data>
+  <data name="PhoneAuth_OtpSent" xml:space="preserve">
+    <value>Mã đã được gửi đến +84 xxx xxx xxx</value>
+  </data>
+  <data name="PhoneAuth_Verify" xml:space="preserve">
+    <value>Xác thực</value>
+  </data>
+  <data name="PhoneAuth_ResendQuestion" xml:space="preserve">
+    <value>Không nhận được mã?</value>
+  </data>
+  <data name="PhoneAuth_Resend" xml:space="preserve">
+    <value>Gửi lại</value>
+  </data>
+  <data name="PhoneAuth_ChangePhone" xml:space="preserve">
+    <value>Đổi số điện thoại</value>
+  </data>
+  <data name="PhoneAuth_InfoTitle" xml:space="preserve">
+    <value>ℹ️ Lưu ý quan trọng</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet1" xml:space="preserve">
+    <value>• Số điện thoại phải theo định dạng quốc tế (+84)</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet2" xml:space="preserve">
+    <value>• Mã OTP có hiệu lực trong 60 giây</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet3" xml:space="preserve">
+    <value>• Có thể phát sinh phí tin nhắn SMS</value>
+  </data>
+  <data name="PhoneAuth_InfoBullet4" xml:space="preserve">
+    <value>• Thông tin được bảo mật bởi Firebase</value>
+  </data>
+  <data name="PhoneAuth_PrivacyPrefix" xml:space="preserve">
+    <value>Bằng cách đăng nhập, bạn đồng ý với </value>
+  </data>
+  <data name="PhoneAuth_Terms" xml:space="preserve">
+    <value>Điều khoản sử dụng</value>
+  </data>
+  <data name="PhoneAuth_And" xml:space="preserve">
+    <value> và </value>
+  </data>
+  <data name="PhoneAuth_Privacy" xml:space="preserve">
+    <value>Chính sách bảo mật</value>
+  </data>
+  <data name="PhoneAuth_PrivacySuffix" xml:space="preserve">
+    <value> của chúng tôi</value>
+  </data>
+  <data name="Main_ConnectionIssue" xml:space="preserve">
+    <value>⚠️ Lỗi kết nối - đang kết nối lại...</value>
+  </data>
+  <data name="Main_Reconnecting" xml:space="preserve">
+    <value>🔄 Đang kết nối lại máy chủ...</value>
+  </data>
+  <data name="Main_IncomingCall" xml:space="preserve">
+    <value>Phát hiện cuộc gọi đến...</value>
+  </data>
+</root>

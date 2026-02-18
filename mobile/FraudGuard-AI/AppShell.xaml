@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:FraudGuardAI"
+    xmlns:loc="clr-namespace:FraudGuardAI.Localization"
     Shell.FlyoutBehavior="Disabled"
     Shell.NavBarIsVisible="False"
     Shell.TabBarBackgroundColor="#0D1B2A"
@@ -21,7 +22,7 @@
 
     <TabBar>
         <ShellContent
-            Title="Protection"
+            Title="{loc:Translate Key=Tab_Protection}"
             ContentTemplate="{DataTemplate local:MainPage}"
             Route="MainPage">
             <ShellContent.Icon>
@@ -33,7 +34,7 @@
         </ShellContent>
 
         <ShellContent
-            Title="History"
+            Title="{loc:Translate Key=Tab_History}"
             ContentTemplate="{DataTemplate local:HistoryPage}"
             Route="HistoryPage">
             <ShellContent.Icon>
@@ -45,7 +46,7 @@
         </ShellContent>
 
         <ShellContent
-            Title="Settings"
+            Title="{loc:Translate Key=Tab_Settings}"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage">
             <ShellContent.Icon>
@@ -58,3 +59,4 @@
     </TabBar>
 
 </Shell>
+

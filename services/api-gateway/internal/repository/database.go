@@ -16,10 +16,10 @@ var DB *gorm.DB
 func InitSQLite() error {
 	var err error
 
-	// Open SQLite database with WAL mode for concurrent reads/writes
-	// cache=shared allows multiple goroutines to share the connection
-	// _journal_mode=WAL enables Write-Ahead Logging for better concurrency
-	DB, err = gorm.Open(sqlite.Open("fraud_guard.db?cache=shared&_journal_mode=WAL"), &gorm.Config{
+	// Open SQLite database with WAL mode for safe concurrent writes
+	// _journal_mode=WAL allows concurrent readers + single writer without corruption
+	// _busy_timeout=5000 waits 5s on lock instead of failing immediately
+	DB, err = gorm.Open(sqlite.Open("fraud_guard.db?_journal_mode=WAL&_busy_timeout=5000"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 
