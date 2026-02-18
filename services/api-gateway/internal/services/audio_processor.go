@@ -215,22 +215,28 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		result := detector.AnalyzeText(transcript)
 
 		// Boost risk score if deepfake detected
+		// Bug #4 fix: also update the session's AccumulatedScore so it persists across calls
 		if deepfakeScore > 70 {
-			result.RiskScore += 15
+			const deepfakeBoost = 15
+			result.RiskScore += deepfakeBoost
 			if result.RiskScore > 100 {
 				result.RiskScore = 100
 			}
 			result.Patterns = append(result.Patterns, fmt.Sprintf("DEEPFAKE: score=%d", deepfakeScore))
+			// Persist boost to session so future AnalyzeText calls reflect deepfake impact
+			detector.AddDeepfakeBoost(deepfakeBoost)
 			if !result.IsAlert && result.RiskScore >= 40 {
 				result.IsAlert = true
 				result.Action = "MEDIUM"
-				result.Message = fmt.Sprintf("🎭 CẢNH BÁO: Phát hiện giọng nói có thể là deepfake! (Điểm rủi ro: %d/100)", result.RiskScore)
+				result.Message = fmt.Sprintf("CANH BAO: Phat hien giong noi co the la deepfake! (Diem rui ro: %d/100)", result.RiskScore)
 			}
 		}
 
 		log.Printf("📊 [%s] Analysis complete - IsAlert: %v, Action: %s, RiskScore: %d, DeepfakeScore: %d",
 			deviceID, result.IsAlert, result.Action, result.RiskScore, deepfakeScore)
 
+		// Bug #3 fix: send LOW-level informational alert to mobile so it can display subtle UI cue
+		// result.IsAlert is false for LOW (no spam guard check needed), so we send unconditionally
 		if result.IsAlert {
 			alert := models.AlertMessage{
 				Type:          "alert",
@@ -243,6 +249,20 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 				DeepfakeScore: deepfakeScore,
 			}
 			log.Printf("[%s] FRAUD ALERT: %s (Risk: %d%%)", deviceID, result.Action, result.RiskScore)
+			sendAlert(alert)
+		} else if result.Action == "LOW" {
+			// LOW risk: send as informational alert (IsAlert=false in result, but mobile still notified)
+			alert := models.AlertMessage{
+				Type:          "alert",
+				AlertType:     "LOW",
+				Confidence:    float64(result.RiskScore) / 100.0,
+				Transcript:    transcript,
+				Keywords:      result.Patterns,
+				Timestamp:     time.Now().Unix(),
+				Message:       result.Message,
+				DeepfakeScore: deepfakeScore,
+			}
+			log.Printf("[%s] LOW RISK INFO: sending informational alert (Risk: %d%%)", deviceID, result.RiskScore)
 			sendAlert(alert)
 		}
 	}()
