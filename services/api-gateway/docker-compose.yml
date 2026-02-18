@@ -6,7 +6,8 @@ services:
     container_name: fraudguard-db
     environment:
       POSTGRES_USER: fraudguard
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      # DB_PASSWORD must be set via .env file or environment - no insecure default
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required. Create a .env file or export DB_PASSWORD=yourpassword}
       POSTGRES_DB: fraudguard_db
     ports:
       - "5433:5432"
@@ -54,7 +55,8 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: fraudguard
+      # GRAFANA_PASSWORD must be set via .env file or environment - no insecure default
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD env var is required. Create a .env file or export GRAFANA_PASSWORD=yourpassword}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:

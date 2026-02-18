@@ -10,6 +10,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	defaultMaxConns = 25
+	defaultMinConns = 2
+	maxAllowedConns = 100
+)
+
 // Pool is the global database connection pool
 var Pool *pgxpool.Pool
 
@@ -18,15 +24,35 @@ func Connect(cfg *config.DatabaseConfig) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Validate and clamp pool sizes to safe defaults
+	maxConns := cfg.MaxConns
+	if maxConns <= 0 {
+		log.Printf("⚠️  DB MaxConns=%d is invalid, using default %d", maxConns, defaultMaxConns)
+		maxConns = defaultMaxConns
+	} else if maxConns > maxAllowedConns {
+		log.Printf("⚠️  DB MaxConns=%d exceeds limit, clamping to %d", maxConns, maxAllowedConns)
+		maxConns = maxAllowedConns
+	}
+
+	minConns := cfg.MinConns
+	if minConns < 0 {
+		log.Printf("⚠️  DB MinConns=%d is invalid, using default %d", minConns, defaultMinConns)
+		minConns = defaultMinConns
+	}
+	if minConns > maxConns {
+		log.Printf("⚠️  DB MinConns=%d > MaxConns=%d, clamping MinConns to %d", minConns, maxConns, maxConns/2)
+		minConns = maxConns / 2
+	}
+
 	// Build connection config
 	poolConfig, err := pgxpool.ParseConfig(cfg.GetDSN())
 	if err != nil {
 		return fmt.Errorf("unable to parse database config: %w", err)
 	}
 
-	// Set pool size
-	poolConfig.MaxConns = int32(cfg.MaxConns)
-	poolConfig.MinConns = int32(cfg.MinConns)
+	// Set validated pool sizes
+	poolConfig.MaxConns = int32(maxConns)
+	poolConfig.MinConns = int32(minConns)
 
 	// Set connection timeouts
 	poolConfig.ConnConfig.ConnectTimeout = 5 * time.Second
@@ -44,7 +70,7 @@ func Connect(cfg *config.DatabaseConfig) error {
 	}
 
 	Pool = pool
-	log.Printf(" Database connection established (Max: %d, Min: %d)", cfg.MaxConns, cfg.MinConns)
+	log.Printf("✅ Database connection established (Max: %d, Min: %d)", maxConns, minConns)
 	return nil
 }
 

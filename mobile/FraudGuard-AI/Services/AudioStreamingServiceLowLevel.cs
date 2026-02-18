@@ -505,7 +505,7 @@ namespace FraudGuardAI.Services
 
         private int _reconnectAttempts = 0;
         private const int MAX_RECONNECT_ATTEMPTS = 5;
-        private static readonly Random _random = new Random();
+        
         
         private async Task ReconnectAsync()
         {
@@ -525,7 +525,7 @@ namespace FraudGuardAI.Services
                 int baseDelay = (int)Math.Pow(2, _reconnectAttempts - 1) * 1000;
                 
                 // Add jitter (0-1000ms) to prevent thundering herd
-                int jitter = _random.Next(0, 1000);
+                int jitter = Random.Shared.Next(0, 1000); // Random.Shared is thread-safe (.NET 6+)
                 int totalDelay = baseDelay + jitter;
                 
                 System.Diagnostics.Debug.WriteLine($"[AudioService] 🔄 Reconnect attempt {_reconnectAttempts}/{MAX_RECONNECT_ATTEMPTS}");

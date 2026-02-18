@@ -3,18 +3,39 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/fraudguard/api-gateway/internal/hub"
 	"github.com/gorilla/websocket"
 )
 
+// checkWebSocketOrigin validates the WebSocket origin against CORS_ALLOWED_ORIGIN env var.
+// If CORS_ALLOWED_ORIGIN is "*" or unset, all origins are allowed (development mode).
+// In production, set CORS_ALLOWED_ORIGIN to the exact allowed origin.
+func checkWebSocketOrigin(r *http.Request) bool {
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	if allowedOrigin == "" || allowedOrigin == "*" {
+		return true // Development: allow all
+	}
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true // No origin header: direct connection (non-browser)
+	}
+	// Support comma-separated list of allowed origins
+	for _, allowed := range strings.Split(allowedOrigin, ",") {
+		if strings.EqualFold(strings.TrimSpace(allowed), origin) {
+			return true
+		}
+	}
+	log.Printf("⚠️  WebSocket origin rejected: %s (allowed: %s)", origin, allowedOrigin)
+	return false
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// Allow all origins for development (restrict in production!)
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+	CheckOrigin:     checkWebSocketOrigin,
 }
 
 // ServeWs handles websocket requests from the peer

@@ -286,9 +286,9 @@ func sendOTPEmail(toEmail, otp string) error {
 	smtpPass := getEnv("SMTP_PASS", "")
 
 	if smtpUser == "" || smtpPass == "" {
-		// For demo/testing, just log the OTP
-		log.Printf("📧 [Demo Mode] OTP for %s: %s", toEmail, otp)
-		return nil // Return success for demo
+		// SMTP not configured: log that email was skipped (never log the OTP code itself)
+		log.Printf("⚠️  [Auth] SMTP not configured - OTP email skipped for %s", toEmail)
+		return fmt.Errorf("SMTP credentials not configured. Set SMTP_USER and SMTP_PASS environment variables")
 	}
 
 	// Create email message

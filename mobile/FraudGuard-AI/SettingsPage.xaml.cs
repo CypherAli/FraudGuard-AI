@@ -189,7 +189,10 @@ namespace FraudGuardAI
                 if (CurrentConfigLabel != null)
                     CurrentConfigLabel.Text = GetWebSocketUrl();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Unexpected error: {ex.Message}");
+            }
         }
 
         #endregion
@@ -277,7 +280,10 @@ namespace FraudGuardAI
                 UpdateConfigurationDisplay(url);
                 System.Diagnostics.Debug.WriteLine($"[Settings] Configuration saved: {url}");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Unexpected error: {ex.Message}");
+            }
         }
 
         #endregion
@@ -312,7 +318,10 @@ namespace FraudGuardAI
                 var displayURL = e.Value ? USB_URL : ServerIPEntry?.Text?.Trim() ?? DEFAULT_URL;
                 UpdateConfigurationDisplay(displayURL);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Unexpected error: {ex.Message}");
+            }
         }
 
         #endregion
@@ -333,7 +342,10 @@ namespace FraudGuardAI
                         : $"{protocol}://{cleanUrl}:8080/ws";
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Unexpected error: {ex.Message}");
+            }
         }
 
         #endregion

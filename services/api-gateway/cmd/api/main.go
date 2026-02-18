@@ -27,7 +27,13 @@ func main() {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf(" Failed to load configuration: %v", err)
+		log.Fatalf("❌ Failed to load configuration: %v", err)
+	}
+
+	// Validate configuration (logs warnings for missing optional values,
+	// returns an error only for settings that would cause a runtime failure)
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("❌ Invalid configuration: %v", err)
 	}
 
 	log.Println("🚀 Starting FraudGuard AI API Gateway...")
@@ -37,27 +43,27 @@ func main() {
 
 	// Initialize PostgreSQL database connection (optional - blacklist features)
 	if err := db.Connect(&cfg.Database); err != nil {
-		log.Printf("Warning: PostgreSQL unavailable: %v", err)
-		log.Println("Blacklist and database features will be disabled")
+		log.Printf("⚠️  Warning: PostgreSQL unavailable: %v", err)
+		log.Println("⚠️  Blacklist and database features will be disabled")
 	} else {
 		defer db.Close()
 		if err := db.AutoMigrate(); err != nil {
-			log.Printf("Warning: Failed to run migrations: %v", err)
+			log.Printf("⚠️  Warning: Failed to run migrations: %v", err)
 		}
 	}
 
 	// Initialize SQLite database (for call history logs)
 	if err := repository.InitSQLite(); err != nil {
-		log.Printf(" Warning: SQLite initialization failed: %v", err)
-		log.Println(" Call history logging will be disabled")
+		log.Printf("⚠️  Warning: SQLite initialization failed: %v", err)
+		log.Println("⚠️  Call history logging will be disabled")
 	}
 
 	// Initialize AI clients
 	if cfg.AI.DeepgramAPIKey != "" {
 		services.GlobalDeepgramClient = services.NewDeepgramClient(cfg.AI.DeepgramAPIKey)
-		log.Println(" Deepgram client initialized")
+		log.Println("✅ Deepgram client initialized")
 	} else {
-		log.Println(" Deepgram API key not configured")
+		log.Println("⚠️  Deepgram API key not configured")
 	}
 
 	// Initialize Gemini client for contextual AI fraud detection
@@ -65,12 +71,12 @@ func main() {
 		services.GlobalGeminiClient = services.NewGeminiClient(cfg.AI.GeminiAPIKey)
 		log.Println("🤖 Gemini AI client initialized - contextual fraud analysis ACTIVE")
 	} else {
-		log.Println("⚠️ Gemini API key not configured - using keyword-only detection")
+		log.Println("⚠️  Gemini API key not configured - using keyword-only detection")
 	}
 
 	// Initialize cache (in-memory, Redis-compatible interface)
 	if err := cache.Init(cfg.Redis.URL); err != nil {
-		log.Printf("⚠️ Cache initialization failed: %v", err)
+		log.Printf("⚠️  Cache initialization failed: %v", err)
 	} else {
 		defer cache.Close()
 		log.Println("📦 Cache system initialized")
@@ -86,7 +92,7 @@ func main() {
 	hubCtx, hubCancel := context.WithCancel(context.Background())
 	defer hubCancel()
 	go wsHub.Run(hubCtx)
-	log.Println(" WebSocket hub started")
+	log.Println("✅ WebSocket hub started")
 
 	// Setup HTTP router
 	r := chi.NewRouter()
@@ -183,8 +189,8 @@ func main() {
 	// Start server in a goroutine
 	serverErr := make(chan error, 1)
 	go func() {
-		log.Printf(" Server listening on %s", serverAddr)
-		log.Printf(" WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
+		log.Printf("✅ Server listening on %s", serverAddr)
+		log.Printf("🔌 WebSocket endpoint: ws://%s/ws?device_id=YOUR_DEVICE_ID", serverAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
@@ -196,7 +202,7 @@ func main() {
 	select {
 	case <-quit:
 	case err := <-serverErr:
-		log.Printf("Server failed to start: %v", err)
+		log.Printf("❌ Server failed to start: %v", err)
 	}
 
 	log.Println("🛑 Shutting down server...")
