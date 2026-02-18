@@ -261,12 +261,16 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	// Add to accumulated score (allow negative to reduce total)
 	fd.session.AccumulatedScore += score
 
-	// Clamp accumulated score to minimum 0 (can't go negative)
+	// Clamp accumulated score to [0, 100] range
 	// This is CRITICAL for database constraints and confidence_score calculation
 	if fd.session.AccumulatedScore < 0 {
 		log.Printf("✅ [%s] Accumulated score would be negative (%d), clamping to 0 (legitimate content)",
 			fd.deviceID, fd.session.AccumulatedScore)
 		fd.session.AccumulatedScore = 0
+	} else if fd.session.AccumulatedScore > 100 {
+		log.Printf("⚠️ [%s] Accumulated score exceeds 100 (%d), capping at 100",
+			fd.deviceID, fd.session.AccumulatedScore)
+		fd.session.AccumulatedScore = 100
 	}
 
 	fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patterns...)
@@ -283,15 +287,47 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		Patterns:  patterns,
 	}
 
-	// TODO: Integrate with OpenAI/Gemini for semantic analysis
-	// This would provide more sophisticated fraud detection beyond keywords
-	// Example:
-	// if GlobalGeminiClient != nil {
-	//     aiResult := GlobalGeminiClient.AnalyzeFraud(text)
-	//     if aiResult.IsFraud {
-	//         currentScore += aiResult.RiskScore
-	//     }
-	// }
+	// Gemini LLM semantic analysis - boost score if keyword score is suspicious enough
+	if GlobalGeminiClient != nil && GlobalGeminiClient.IsEnabled() && currentScore >= fd.config.MediumThreshold {
+		// Pass context EXCLUDING current text (already appended at line 250)
+		// to avoid duplication: current text is sent as main transcript, history as context
+		contextHistory := fd.session.TranscriptHistory
+		if len(contextHistory) > 1 {
+			contextHistory = contextHistory[:len(contextHistory)-1] // Exclude current text
+		} else {
+			contextHistory = nil // No prior context
+		}
+		geminiResult, err := GlobalGeminiClient.AnalyzeFraud(text, contextHistory)
+		if err != nil {
+			log.Printf("⚠️ [%s] Gemini analysis failed (using keyword score only): %v", fd.deviceID, err)
+		} else {
+			// Boost score based on Gemini confidence
+			if geminiResult.IsFraud && geminiResult.Confidence > 0.5 {
+				boost := int(geminiResult.Confidence * 20)
+				urgencyBoost := geminiResult.UrgencyScore / 5
+				fd.session.AccumulatedScore += boost + urgencyBoost
+				if fd.session.AccumulatedScore > 100 {
+					fd.session.AccumulatedScore = 100
+				}
+				currentScore = fd.session.AccumulatedScore
+
+				// Add AI-detected patterns
+				result.Patterns = append(result.Patterns, fmt.Sprintf("AI: %s (%.0f%%)", geminiResult.ScamType, geminiResult.Confidence*100))
+				if len(geminiResult.PressureTactics) > 0 {
+					for _, tactic := range geminiResult.PressureTactics {
+						result.Patterns = append(result.Patterns, fmt.Sprintf("PRESSURE: %s", tactic))
+					}
+				}
+				fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, result.Patterns...)
+
+				log.Printf("🤖 [%s] Gemini boost: +%d (confidence) +%d (urgency) = %d total, ScamType=%s",
+					fd.deviceID, boost, urgencyBoost, currentScore, geminiResult.ScamType)
+			} else {
+				log.Printf("🤖 [%s] Gemini: not fraud (confidence=%.2f)", fd.deviceID, geminiResult.Confidence)
+			}
+		}
+		result.RiskScore = currentScore
+	}
 
 	// Determine alert level based on accumulated score and config thresholds
 	if currentScore >= fd.config.CriticalThreshold {
@@ -598,6 +634,9 @@ func (fd *FraudDetector) EndSession() {
 	if len(evidenceStr) > 1000 {
 		evidenceStr = evidenceStr[:1000] + "..."
 	}
+
+	// Apply data masking before saving to database
+	evidenceStr = MaskSensitiveData(evidenceStr)
 
 	// Determine if call is fraudulent based on threshold
 	// Using 60 as threshold (configurable via fd.config.HighThreshold)

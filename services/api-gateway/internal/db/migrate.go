@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 )
 
@@ -9,6 +10,12 @@ import (
 // BREAKING CHANGE (v2): Migrates from UUID to SERIAL ID for blacklist table
 func AutoMigrate() error {
 	log.Println("🔄 Running database migrations...")
+
+	// Guard: Pool must be initialized before migration
+	if Pool == nil {
+		log.Println("⚠️ Database pool is nil, skipping migration")
+		return fmt.Errorf("database pool not initialized")
+	}
 
 	ctx := context.Background()
 

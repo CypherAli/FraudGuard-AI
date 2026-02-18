@@ -24,8 +24,9 @@ type OTPEntry struct {
 }
 
 var (
-	otpStore = make(map[string]*OTPEntry)
-	otpMutex sync.RWMutex
+	otpStore     = make(map[string]*OTPEntry)
+	otpMutex     sync.RWMutex
+	otpRateLimit = make(map[string]time.Time) // Rate limit: email -> last sent time
 )
 
 // SendOTPRequest is the request body for sending OTP
@@ -64,11 +65,23 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Rate limit: 60 seconds between OTP requests per email
+	otpMutex.RLock()
+	if lastSent, exists := otpRateLimit[email]; exists {
+		if time.Since(lastSent) < 60*time.Second {
+			otpMutex.RUnlock()
+			remaining := 60 - int(time.Since(lastSent).Seconds())
+			sendJSONError(w, fmt.Sprintf("Vui lòng đợi %d giây trước khi yêu cầu OTP mới", remaining), http.StatusTooManyRequests)
+			return
+		}
+	}
+	otpMutex.RUnlock()
+
 	// Generate OTP
 	otp := GenerateOTP()
 	expiresAt := time.Now().Add(5 * time.Minute) // OTP expires in 5 minutes
 
-	// Store OTP
+	// Store OTP and update rate limit
 	otpMutex.Lock()
 	otpStore[email] = &OTPEntry{
 		Code:      otp,
@@ -76,6 +89,7 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: expiresAt,
 		Verified:  false,
 	}
+	otpRateLimit[email] = time.Now()
 	otpMutex.Unlock()
 
 	// Send email
@@ -292,6 +306,12 @@ func CleanupExpiredOTPs(ctx context.Context) {
 			for email, entry := range otpStore {
 				if now.After(entry.ExpiresAt) {
 					delete(otpStore, email)
+				}
+			}
+			// Clean up old rate limit entries (older than 2 minutes)
+			for email, lastSent := range otpRateLimit {
+				if now.Sub(lastSent) > 2*time.Minute {
+					delete(otpRateLimit, email)
 				}
 			}
 			otpMutex.Unlock()

@@ -1,4 +1,4 @@
-# Environment variables (NEVER commit these!)
+# Environment variables — NEVER commit
 .env
 .env.local
 .env.*.local
@@ -16,7 +16,7 @@ bin/
 coverage.txt
 coverage.html
 
-# Dependency directories
+# Dependencies
 vendor/
 
 # IDE
@@ -31,12 +31,13 @@ vendor/
 *.log
 logs/
 
-# Database data (if local)
+# Database
 postgres_data/
 *.db
 *.sqlite
 
-# Temporary files
+# Temp
 tmp/
 temp/
 *.tmp
+build_output.txt

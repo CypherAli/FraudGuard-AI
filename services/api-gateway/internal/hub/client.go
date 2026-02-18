@@ -36,6 +36,9 @@ type Client struct {
 
 	// Device ID for this client
 	deviceID string
+
+	// Semaphore to limit concurrent audio processing goroutines
+	audioSem chan struct{}
 }
 
 // NewClient creates a new Client instance
@@ -45,6 +48,7 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 		conn:     conn,
 		send:     make(chan []byte, 256),
 		deviceID: deviceID,
+		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}
 }
 
@@ -58,6 +62,8 @@ func (c *Client) ReadPump() {
 		if detector := services.GetFraudDetector(c.deviceID); detector != nil {
 			detector.EndSession()
 		}
+		// Clean up detector from registry to prevent memory leak
+		services.RemoveFraudDetector(c.deviceID)
 
 		c.hub.Unregister <- c
 		c.conn.Close()
@@ -84,7 +90,17 @@ func (c *Client) ReadPump() {
 		case websocket.BinaryMessage:
 			// ✅ CORRECT: Process audio PRIVATELY for this client only
 			// DO NOT broadcast to other clients!
-			go services.ProcessAudioStream(c.deviceID, message, c.sendAlert)
+			// Use semaphore to limit concurrent goroutines (prevent goroutine leak)
+			select {
+			case c.audioSem <- struct{}{}:
+				go func(data []byte) {
+					defer func() { <-c.audioSem }()
+					services.ProcessAudioStream(c.deviceID, data, c.sendAlert)
+				}(message)
+			default:
+				// Semaphore full - drop this audio chunk to prevent goroutine explosion
+				log.Printf("⚠️ [%s] Audio processing backpressure - dropping chunk (%d bytes)", c.deviceID, len(message))
+			}
 
 		case websocket.TextMessage:
 			// Handle JSON commands (e.g., report fraud)

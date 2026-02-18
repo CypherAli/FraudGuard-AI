@@ -15,6 +15,7 @@ type Config struct {
 	Server    ServerConfig
 	WebSocket WebSocketConfig
 	AI        AIConfig
+	Redis     RedisConfig
 }
 
 // DatabaseConfig holds database connection settings
@@ -50,6 +51,11 @@ type AIConfig struct {
 	DeepgramAPIKey string
 	GeminiAPIKey   string
 	VectorDBURL    string
+}
+
+// RedisConfig holds Redis connection settings
+type RedisConfig struct {
+	URL string
 }
 
 // Load reads configuration from environment variables
@@ -106,6 +112,9 @@ func Load() (*Config, error) {
 			DeepgramAPIKey: getEnv("DEEPGRAM_API_KEY", ""),
 			GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
 			VectorDBURL:    getEnv("VECTOR_DB_URL", ""),
+		},
+		Redis: RedisConfig{
+			URL: getEnv("REDIS_URL", ""),
 		},
 	}
 

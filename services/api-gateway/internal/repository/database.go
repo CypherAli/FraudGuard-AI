@@ -16,8 +16,10 @@ var DB *gorm.DB
 func InitSQLite() error {
 	var err error
 
-	// Open SQLite database (creates fraud_guard.db file if it doesn't exist)
-	DB, err = gorm.Open(sqlite.Open("fraud_guard.db"), &gorm.Config{
+	// Open SQLite database with WAL mode for concurrent reads/writes
+	// cache=shared allows multiple goroutines to share the connection
+	// _journal_mode=WAL enables Write-Ahead Logging for better concurrency
+	DB, err = gorm.Open(sqlite.Open("fraud_guard.db?cache=shared&_journal_mode=WAL"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 

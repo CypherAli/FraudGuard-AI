@@ -12,5 +12,7 @@ namespace FraudGuardAI.Models
         public string Transcript { get; set; } = string.Empty;
         public string[] Keywords { get; set; } = Array.Empty<string>();
         public DateTime Timestamp { get; set; }
+        public int DeepfakeScore { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 }
