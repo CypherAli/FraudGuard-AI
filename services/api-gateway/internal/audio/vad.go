@@ -61,6 +61,11 @@ func NewVADProcessor(sampleRate int, aggressiveness int, frameDurationMs int) (*
 		return nil, fmt.Errorf("invalid aggressiveness: %d (must be 0-3)", aggressiveness)
 	}
 
+	// Validate frame duration — WebRTC VAD supports only 10, 20, or 30ms
+	if frameDurationMs != 10 && frameDurationMs != 20 && frameDurationMs != 30 {
+		return nil, fmt.Errorf("invalid frame duration: %dms (must be 10, 20, or 30ms)", frameDurationMs)
+	}
+
 	// Calculate frame size in bytes
 	// PCM16 = 2 bytes per sample
 	samplesPerFrame := (sampleRate * frameDurationMs) / 1000

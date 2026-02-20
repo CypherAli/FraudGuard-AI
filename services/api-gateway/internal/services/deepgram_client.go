@@ -117,7 +117,8 @@ func (d *DeepgramClient) TranscribeAudio(audioData []byte) (string, error) {
 
 		// Filter out low-confidence transcripts (noise, mumbling, background)
 		// Threshold 0.3 = very lenient, only rejects clearly garbage results
-		if confidence > 0 && confidence < 0.3 {
+		// Use >= 0 so that confidence=0.0 (completely uncertain) is also discarded
+		if confidence >= 0 && confidence < 0.3 {
 			log.Printf("⚠️ [Deepgram] Low confidence (%.2f < 0.3), discarding transcript: '%s'", confidence, transcript)
 			return "", nil // Treat as silence
 		}

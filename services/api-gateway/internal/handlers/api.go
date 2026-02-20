@@ -109,9 +109,9 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		dbError = err.Error()
 		log.Printf(" [HealthCheck] Database unhealthy: %v", err)
 
-		// Return 200 OK even if DB is down (service is running)
+		// Return 503 so Kubernetes/Docker health probes detect DB failure and can restart/alert.
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK) // Changed from 503 to 200
+		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "degraded",
 			"service":  "FraudGuard AI",

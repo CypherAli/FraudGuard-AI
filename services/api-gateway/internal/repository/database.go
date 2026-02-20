@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/fraudguard/api-gateway/internal/models"
@@ -62,8 +63,8 @@ func SaveCallLog(logEntry *models.CallLog) error {
 // Results are ordered by most recent first
 func GetHistory(deviceID string, limit int) ([]models.CallLog, error) {
 	if DB == nil {
-		log.Println("⚠️ Database not initialized")
-		return []models.CallLog{}, nil
+		log.Println("⚠️ [GetHistory] Database not initialized - cannot retrieve call history")
+		return nil, fmt.Errorf("database not initialized")
 	}
 
 	var logs []models.CallLog
@@ -101,8 +102,8 @@ func GetAllHistory(limit int) ([]models.CallLog, error) {
 // GetFraudCallsOnly retrieves only fraudulent calls
 func GetFraudCallsOnly(deviceID string, limit int) ([]models.CallLog, error) {
 	if DB == nil {
-		log.Println("⚠️ Database not initialized")
-		return []models.CallLog{}, nil
+		log.Println("⚠️ [GetFraudCallsOnly] Database not initialized - cannot retrieve fraud calls")
+		return nil, fmt.Errorf("database not initialized")
 	}
 
 	var logs []models.CallLog

@@ -66,12 +66,21 @@ func main() {
 		log.Println("⚠️  Deepgram API key not configured")
 	}
 
-	// Initialize Gemini client for contextual AI fraud detection
+	// Initialize Gemini Agentic AI client
 	if cfg.AI.GeminiAPIKey != "" {
 		services.GlobalGeminiClient = services.NewGeminiClient(cfg.AI.GeminiAPIKey)
-		log.Println("🤖 Gemini AI client initialized - contextual fraud analysis ACTIVE")
+		log.Println("🤖 Gemini AI Agent initialized - agentic fraud detection ACTIVE (tools: check_blacklist, get_fraud_stats, auto_report)")
 	} else {
 		log.Println("⚠️  Gemini API key not configured - using keyword-only detection")
+	}
+
+	// Initialize Amazon Transcribe client (AWS fallback STT)
+	transcribeClient := services.NewTranscribeClient()
+	if transcribeClient.IsEnabled() {
+		services.GlobalTranscribeClient = transcribeClient
+		log.Printf("☁️  Amazon Transcribe initialized - region=%s (fallback STT when Deepgram fails)", transcribeClient.Region)
+	} else {
+		log.Println("⚠️  AWS credentials not configured - Amazon Transcribe fallback disabled")
 	}
 
 	// Initialize cache (in-memory, Redis-compatible interface)
@@ -108,6 +117,9 @@ func main() {
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 	if allowedOrigin == "" {
 		allowedOrigin = "*" // Default to * for development
+		log.Println("⚠️  CORS_ALLOWED_ORIGIN not set — defaulting to '*' (allow all origins). Set this to your domain in production!")
+	} else {
+		log.Printf("🔒 CORS allowed origin: %s", allowedOrigin)
 	}
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

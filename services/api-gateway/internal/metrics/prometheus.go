@@ -12,12 +12,13 @@ var metricsEnabled = os.Getenv("FEATURE_METRICS") == "true"
 
 // Counters
 var (
-	FraudDetectionsTotal   atomic.Int64
-	AlertsSentTotal        atomic.Int64
+	FraudDetectionsTotal    atomic.Int64
+	AlertsSentTotal         atomic.Int64
 	DeepfakeDetectionsTotal atomic.Int64
-	WebSocketConnections   atomic.Int64 // gauge (inc/dec)
-	GeminiRequestsTotal    atomic.Int64
-	DeepgramRequestsTotal  atomic.Int64
+	WebSocketConnections    atomic.Int64 // gauge (inc/dec)
+	GeminiRequestsTotal     atomic.Int64
+	DeepgramRequestsTotal   atomic.Int64
+	TranscribeRequestsTotal atomic.Int64 // Amazon Transcribe fallback STT requests
 )
 
 // Severity counters
@@ -35,8 +36,9 @@ type latencyTracker struct {
 }
 
 var (
-	DeepgramLatency = &latencyTracker{}
-	GeminiLatency   = &latencyTracker{}
+	DeepgramLatency   = &latencyTracker{}
+	GeminiLatency     = &latencyTracker{}
+	TranscribeLatency = &latencyTracker{} // Amazon Transcribe fallback STT latency
 )
 
 func init() {
@@ -79,6 +81,14 @@ func RecordDeepfakeDetection() {
 		return
 	}
 	DeepfakeDetectionsTotal.Add(1)
+}
+
+// RecordTranscribeRequest increments Amazon Transcribe request counter
+func RecordTranscribeRequest() {
+	if !metricsEnabled {
+		return
+	}
+	TranscribeRequestsTotal.Add(1)
 }
 
 // RecordWebSocketConnect increments active connections gauge
@@ -130,6 +140,7 @@ func MetricsHandler() http.HandlerFunc {
 		writeMetric(w, "deepfake_detections_total", "counter", DeepfakeDetectionsTotal.Load())
 		writeMetric(w, "gemini_requests_total", "counter", GeminiRequestsTotal.Load())
 		writeMetric(w, "deepgram_requests_total", "counter", DeepgramRequestsTotal.Load())
+		writeMetric(w, "transcribe_requests_total", "counter", TranscribeRequestsTotal.Load())
 
 		// Gauges
 		writeMetric(w, "active_websocket_connections", "gauge", WebSocketConnections.Load())
@@ -149,6 +160,10 @@ func MetricsHandler() http.HandlerFunc {
 		gmCount, gmAvg := GeminiLatency.GetStats()
 		writeMetric(w, "gemini_requests_count", "counter", gmCount)
 		writeMetricFloat(w, "gemini_avg_latency_ms", "gauge", gmAvg)
+
+		tcCount, tcAvg := TranscribeLatency.GetStats()
+		writeMetric(w, "transcribe_requests_count", "counter", tcCount)
+		writeMetricFloat(w, "transcribe_avg_latency_ms", "gauge", tcAvg)
 	}
 }
 

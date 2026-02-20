@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"cd E:\\\\FraudGuard-AI\\\\services\\\\api-gateway; go test ./... -v 2>&1 | Select-String -Pattern ''\\(PASS|FAIL|ok|---\\)'' | Select-Object -Last 60\")"
+    ]
+  }
+}

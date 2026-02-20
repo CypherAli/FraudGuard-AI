@@ -53,6 +53,10 @@ type AIConfig struct {
 	DeepgramAPIKey string
 	GeminiAPIKey   string
 	VectorDBURL    string
+	// AWS Amazon Transcribe — fallback STT khi Deepgram circuit breaker open
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
+	AWSRegion          string
 }
 
 // RedisConfig holds Redis connection settings
@@ -111,9 +115,12 @@ func Load() (*Config, error) {
 			PongTimeout:     getEnvAsDuration("WS_PONG_TIMEOUT", 10*time.Second),
 		},
 		AI: AIConfig{
-			DeepgramAPIKey: getEnv("DEEPGRAM_API_KEY", ""),
-			GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
-			VectorDBURL:    getEnv("VECTOR_DB_URL", ""),
+			DeepgramAPIKey:     getEnv("DEEPGRAM_API_KEY", ""),
+			GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
+			VectorDBURL:        getEnv("VECTOR_DB_URL", ""),
+			AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
+			AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
+			AWSRegion:          getEnv("AWS_REGION", "ap-southeast-1"),
 		},
 		Redis: RedisConfig{
 			URL: getEnv("REDIS_URL", ""),

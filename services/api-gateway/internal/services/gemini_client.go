@@ -176,7 +176,11 @@ Trả lời CHÍNH XÁC theo format JSON sau (không thêm bất kỳ text nào 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Printf("❌ [Gemini] Failed to read response body: %v", readErr)
+		return nil, fmt.Errorf("failed to read gemini response: %w", readErr)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("❌ [Gemini] API error (status %d): %s", resp.StatusCode, string(body))

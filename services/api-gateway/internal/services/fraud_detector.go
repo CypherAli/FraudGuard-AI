@@ -187,70 +187,80 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		Patterns:  patterns,
 	}
 
-	// Gemini AI contextual analysis (async with circuit breaker + panic recovery)
+	// Gemini Agentic AI — tự dùng tools (check_blacklist, auto_report) rồi ra quyết định
 	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
 		alertCallback := fd.sendAlert
 		sessionID := fd.session.SessionID
-		// Copy slice to avoid race: goroutine runs after lock is released
+		// Copy slice để tránh race condition với goroutine
 		historyCopy := make([]string, len(fd.session.TranscriptHistory))
 		copy(historyCopy, fd.session.TranscriptHistory)
 
 		go func(deviceID string, txt string, history []string) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("[%s] Recovered panic in Gemini analysis: %v", deviceID, r)
+					log.Printf("[%s] Recovered panic in Gemini Agent: %v", deviceID, r)
 				}
 			}()
 
-			aiResult, err := GlobalGeminiClient.AnalyzeFraudContext(txt, history)
+			// Dùng Agentic loop thay vì classify đơn thuần
+			agentResult, err := GlobalGeminiClient.RunFraudDetectionAgent(txt, history)
 			if err != nil {
-				log.Printf("[%s] Gemini analysis error: %v", deviceID, err)
+				log.Printf("[%s] Gemini Agent error: %v", deviceID, err)
 				GeminiCircuitBreaker.RecordFailure()
 				return
 			}
 			GeminiCircuitBreaker.RecordSuccess()
 
-			if aiResult == nil || !aiResult.IsFraud || aiResult.RiskScore <= 30 {
+			if agentResult == nil || !agentResult.IsFraud || agentResult.RiskScore <= 30 {
 				return
 			}
 
-			log.Printf("[%s] Gemini fraud detected: Type=%s, Score=%d, Confidence=%s",
-				deviceID, aiResult.FraudType, aiResult.RiskScore, aiResult.Confidence)
+			log.Printf("[%s] Gemini Agent fraud detected: Type=%s, Score=%d, Confidence=%s, Tools=%v, AutoReported=%v",
+				deviceID, agentResult.FraudType, agentResult.RiskScore, agentResult.Confidence,
+				agentResult.ToolsUsed, agentResult.AutoReported)
 
-			geminiBoost := aiResult.RiskScore / 2
+			geminiBoost := agentResult.RiskScore / 2
 			fd.mu.Lock()
 			if fd.session.SessionID == sessionID {
 				fd.session.AccumulatedScore += geminiBoost
-				// Clamp so AccumulatedScore never exceeds 100
 				if fd.session.AccumulatedScore > 100 {
 					fd.session.AccumulatedScore = 100
 				}
-				fd.session.DetectedPatterns = append(fd.session.DetectedPatterns,
-					fmt.Sprintf("AI: %s (+%d, confidence=%s)", aiResult.FraudType, geminiBoost, aiResult.Confidence))
+				patternNote := fmt.Sprintf("Agent: %s (+%d, confidence=%s, tools=%v)",
+					agentResult.FraudType, geminiBoost, agentResult.Confidence, agentResult.ToolsUsed)
+				if agentResult.AutoReported {
+					patternNote += " [AUTO-REPORTED]"
+				}
+				fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patternNote)
 			}
 			fd.mu.Unlock()
 
 			if alertCallback != nil {
-				// Use current AccumulatedScore (not stale capturedScore) for alertType decision
 				fd.mu.RLock()
 				currentAccumulated := fd.session.AccumulatedScore
 				fd.mu.RUnlock()
 
 				alertType := "MEDIUM"
-				if currentAccumulated >= 80 || aiResult.RiskScore >= 80 {
+				if currentAccumulated >= 80 || agentResult.RiskScore >= 80 {
 					alertType = "CRITICAL"
-				} else if currentAccumulated >= 60 || aiResult.RiskScore >= 60 {
+				} else if currentAccumulated >= 60 || agentResult.RiskScore >= 60 {
 					alertType = "HIGH"
+				}
+
+				msg := fmt.Sprintf("AI Agent phát hiện: %s - %s (Độ tin cậy: %s)",
+					agentResult.FraudType, agentResult.Explanation, agentResult.Confidence)
+				if agentResult.AutoReported {
+					msg += " | Đã tự động báo cáo vào blacklist"
 				}
 
 				alert := models.AlertMessage{
 					Type:       "alert",
 					AlertType:  alertType,
-					Confidence: float64(aiResult.RiskScore) / 100.0,
+					Confidence: float64(agentResult.RiskScore) / 100.0,
 					Transcript: txt,
-					Keywords:   []string{fmt.Sprintf("AI: %s (%s)", aiResult.FraudType, aiResult.Confidence)},
+					Keywords:   []string{fmt.Sprintf("Agent: %s (%s)", agentResult.FraudType, agentResult.Confidence)},
 					Timestamp:  time.Now().Unix(),
-					Message:    fmt.Sprintf("AI phát hiện: %s - %s (Độ tin cậy: %s)", aiResult.FraudType, aiResult.Explanation, aiResult.Confidence),
+					Message:    msg,
 				}
 				alertCallback(alert)
 			}
