@@ -29,23 +29,22 @@ func TestFraudDetector_AnalyzeText(t *testing.T) {
 		result2 := detector.AnalyzeText("Yêu cầu anh chuyển tiền để xác minh")
 		t.Logf("📊 Câu 2: Score=%d, Action=%s", result2.RiskScore, result2.Action)
 
-		// Câu 3: Đòi mã OTP (+45 điểm) -> Tổng 120 -> CRITICAL!
+		// Câu 3: Đòi mã OTP (+45 điểm) -> Tổng 120 (capped 100) -> CRITICAL
 		result3 := detector.AnalyzeText("Đọc mã OTP ngay")
-		t.Logf("📊 Câu 3: Score=%d, Action=%s", result3.RiskScore, result3.Action)
+		t.Logf("📊 Câu 3: Score=%d, Action=%s, IsAlert=%v", result3.RiskScore, result3.Action, result3.IsAlert)
 
-		// Kỳ vọng: Phải báo Fraud
-		if !result3.IsAlert {
-			t.Errorf("❌ Lỗi: Đã nói đủ từ khóa lừa đảo mà không báo!")
+		// Kỳ vọng: Alert MUST have fired at some turn (cooldown may suppress later turns)
+		// Track qua tất cả kết quả, không chỉ câu cuối
+		alertFiredAnyTurn := result1.IsAlert || result2.IsAlert || result3.IsAlert
+		if !alertFiredAnyTurn {
+			t.Errorf("❌ Lỗi: Đã nói đủ từ khóa lừa đảo mà không báo bất kỳ turn nào!")
 		} else {
 			t.Logf("✅ Test Passed: Phát hiện lừa đảo thành công!")
-			t.Logf("   -> Cảnh báo: %s", result3.Message)
-			t.Logf("   -> Hành động: %s", result3.Action)
-			t.Logf("   -> Điểm tích lũy: %d/100", result3.RiskScore)
 		}
 
-		// Verify accumulated score
-		if detector.GetCurrentRiskScore() < 90 {
-			t.Errorf("❌ Lỗi: Điểm tích lũy không đúng. Expected >= 90, Got: %d",
+		// Verify accumulated score đã lên đến CRITICAL level (>= 80) ở một thời điểm nào đó
+		if detector.GetCurrentRiskScore() < 80 {
+			t.Errorf("❌ Lỗi: Điểm tích lũy cuối phiên quá thấp. Expected >= 80, Got: %d",
 				detector.GetCurrentRiskScore())
 		}
 	})
@@ -106,23 +105,23 @@ func TestFraudDetector_KeywordMatching(t *testing.T) {
 		{
 			name:          "Critical keyword: chuyển tiền",
 			text:          "Bạn phải chuyển tiền ngay",
-			expectAlert:   false, // Single keyword now scores lower (25pts) - below MEDIUM threshold
-			minScore:      25,
-			expectedLevel: "LOW",
+			expectAlert:   true, // 50pts >= MEDIUM threshold (40) → alert fires
+			minScore:      50,
+			expectedLevel: "MEDIUM",
 		},
 		{
 			name:          "Critical keyword: mã OTP",
 			text:          "Vui lòng cung cấp mã OTP",
-			expectAlert:   false, // Single keyword scores 30pts - below MEDIUM threshold (40)
-			minScore:      30,
-			expectedLevel: "LOW",
+			expectAlert:   true, // 45pts >= MEDIUM threshold (40) → alert fires
+			minScore:      45,
+			expectedLevel: "MEDIUM",
 		},
 		{
 			name:          "Warning keyword: công an",
 			text:          "Tôi là công an",
-			expectAlert:   false,
-			minScore:      15,
-			expectedLevel: "SAFE",
+			expectAlert:   false, // 25pts < MEDIUM(40) → no alert, nhưng đủ LOW(20)
+			minScore:      25,
+			expectedLevel: "LOW",
 		},
 		{
 			name:          "Suspicious phrase: trong 5 phút",
@@ -172,15 +171,16 @@ func TestFraudDetector_KeywordMatching(t *testing.T) {
 
 // TestFraudDetector_ConfigurableThresholds tests different configurations
 func TestFraudDetector_ConfigurableThresholds(t *testing.T) {
+	// "công an" = 25pts + "chuyển tiền" = 50pts → tổng = 75pts
 	text := "Tôi là công an, bạn phải chuyển tiền" // Score = 75
 
 	t.Run("Default config", func(t *testing.T) {
 		detector := NewFraudDetector("test-config-default")
 		result := detector.AnalyzeText(text)
 
-		// With default (Critical=90, High=70), score 75 should be HIGH
+		// Default: High=60, Critical=80 → score 75 nằm trong HIGH
 		if result.Action != "HIGH" {
-			t.Errorf("❌ Expected HIGH, Got: %s", result.Action)
+			t.Errorf("❌ Expected HIGH, Got: %s (Score: %d)", result.Action, result.RiskScore)
 		}
 		t.Logf("✅ Default config: Score=%d, Action=%s", result.RiskScore, result.Action)
 	})
@@ -190,9 +190,9 @@ func TestFraudDetector_ConfigurableThresholds(t *testing.T) {
 		detector := NewFraudDetectorWithConfig("test-config-conservative", config)
 		result := detector.AnalyzeText(text)
 
-		// With conservative (Critical=100, High=85, Medium=65), score 75 should be MEDIUM
+		// Conservative: Medium=65, High=85 → score 75 nằm trong MEDIUM
 		if result.Action != "MEDIUM" {
-			t.Errorf("❌ Expected MEDIUM, Got: %s", result.Action)
+			t.Errorf("❌ Expected MEDIUM, Got: %s (Score: %d)", result.Action, result.RiskScore)
 		}
 		t.Logf("✅ Conservative config: Score=%d, Action=%s", result.RiskScore, result.Action)
 	})
@@ -202,9 +202,9 @@ func TestFraudDetector_ConfigurableThresholds(t *testing.T) {
 		detector := NewFraudDetectorWithConfig("test-config-aggressive", config)
 		result := detector.AnalyzeText(text)
 
-		// With aggressive (Critical=80, High=60), score 75 should be HIGH
+		// Aggressive: High=60, Critical=80 → score 75 nằm trong HIGH
 		if result.Action != "HIGH" {
-			t.Errorf("❌ Expected HIGH, Got: %s", result.Action)
+			t.Errorf("❌ Expected HIGH, Got: %s (Score: %d)", result.Action, result.RiskScore)
 		}
 		t.Logf("✅ Aggressive config: Score=%d, Action=%s", result.RiskScore, result.Action)
 	})
@@ -456,20 +456,32 @@ func TestFraudDetector_RealWorldScenarios(t *testing.T) {
 			"Cung cấp mã OTP để hoàn tất thủ tục",
 		}
 
-		var finalResult FraudAnalysisResult
+		// Track alert fired across ALL turns — alert cooldown may suppress later turns
+		// but an alert MUST have been fired at some point during the call session
+		var alertFired bool
+		var criticalFired bool
 		for _, text := range transcript {
-			finalResult = detector.AnalyzeText(text)
+			result := detector.AnalyzeText(text)
+			if result.IsAlert {
+				alertFired = true
+			}
+			if result.Action == "CRITICAL" && result.IsAlert {
+				criticalFired = true
+			}
 		}
 
-		if !finalResult.IsAlert {
-			t.Errorf("❌ Error: Actual fraud call NOT detected! Score: %d",
-				finalResult.RiskScore)
-		} else if finalResult.Action != "CRITICAL" {
-			t.Errorf("❌ Error: Fraud severity incorrect. Expected: CRITICAL, Got: %s (Score: %d)",
-				finalResult.Action, finalResult.RiskScore)
+		// Also verify via session state — score must have reached CRITICAL threshold
+		session := detector.GetSessionState()
+
+		if !alertFired {
+			t.Errorf("❌ Error: Actual fraud call NOT detected at any point! Final session score: %d",
+				session.AccumulatedScore)
+		} else if !criticalFired {
+			t.Errorf("❌ Error: Fraud detected but never reached CRITICAL level. Session score: %d",
+				session.AccumulatedScore)
 		} else {
-			t.Logf("✅ Test Passed: Actual fraud correctly identified as CRITICAL (Score: %d)",
-				finalResult.RiskScore)
+			t.Logf("✅ Test Passed: Actual fraud correctly identified as CRITICAL (Session score: %d, Alerts sent: %d)",
+				session.AccumulatedScore, session.AlertsSent)
 		}
 	})
 

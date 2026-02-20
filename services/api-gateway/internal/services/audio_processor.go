@@ -148,8 +148,9 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 	log.Printf("[%s] Flushing audio buffer: %d bytes (%.1fs accumulated)", deviceID, len(flushData), timeSinceFlush.Seconds())
 
-	if !DeepgramCircuitBreaker.Allow() {
-		log.Printf("[%s] Deepgram circuit breaker OPEN - skipping request", deviceID)
+	// Fast-path: nếu cả 2 STT đều OPEN thì skip ngay (dùng IsOpen để không consume HalfOpen slot)
+	if DeepgramCircuitBreaker.IsOpen() && (GlobalTranscribeClient == nil || !GlobalTranscribeClient.IsEnabled() || TranscribeCircuitBreaker.IsOpen()) {
+		log.Printf("[%s] Both STT circuit breakers OPEN - skipping request", deviceID)
 		return
 	}
 
@@ -169,12 +170,19 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		// Timeout must cover worst-case pipeline:
+		//   STT (Deepgram/Transcribe): ~10s
+		//   Gemini agent (4 iters × 8s): ~32s
+		//   DB calls + overhead: ~5s
+		// Total worst-case: ~47s → use 50s to be safe
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 		defer cancel()
 
 		log.Printf("🔄 [%s] Starting async transcription...", deviceID)
 
 		// Run deepfake analysis in parallel with transcription
+		// Use flushData (the safely copied buffer) instead of audioData (the raw parameter)
+		// to avoid potential aliasing issues if the caller reuses the underlying array.
 		var deepfakeScore int
 		var deepfakeDone chan struct{}
 		if audio.IsEnabled() {
@@ -182,7 +190,7 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			go func() {
 				defer close(deepfakeDone)
 				dd := GetDeepfakeDetector(deviceID)
-				analysis := dd.AnalyzeChunk(audioData)
+				analysis := dd.AnalyzeChunk(flushData)
 				deepfakeScore = dd.GetRollingScore() // Use rolling average for stability
 				if analysis.IsLikelyFake {
 					log.Printf("🎭 [%s] Deepfake detected! Score=%d (chunk=%d)",
@@ -191,14 +199,48 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			}()
 		}
 
-		// Step 1: Transcribe audio using Deepgram
-		transcript, err := GlobalDeepgramClient.TranscribeAudio(flushData)
-		if err != nil || ctx.Err() != nil {
-			log.Printf("❌ [%s] Deepgram transcription error: %v", deviceID, err)
-			DeepgramCircuitBreaker.RecordFailure()
-			return
+		// Step 1: Transcribe audio — Deepgram primary, Amazon Transcribe fallback
+		var transcript string
+		var transcribeErr error
+
+		if DeepgramCircuitBreaker.Allow() {
+			transcript, transcribeErr = GlobalDeepgramClient.TranscribeAudio(flushData)
+			if transcribeErr != nil || ctx.Err() != nil {
+				log.Printf("❌ [%s] Deepgram error: %v — trying Amazon Transcribe fallback", deviceID, transcribeErr)
+				DeepgramCircuitBreaker.RecordFailure()
+				transcribeErr = nil // reset để thử fallback
+
+				if GlobalTranscribeClient != nil && GlobalTranscribeClient.IsEnabled() && TranscribeCircuitBreaker.Allow() {
+					log.Printf("🔄 [%s] Switching to Amazon Transcribe...", deviceID)
+					transcript, transcribeErr = GlobalTranscribeClient.TranscribeAudio(flushData)
+					if transcribeErr != nil {
+						log.Printf("❌ [%s] Amazon Transcribe also failed: %v", deviceID, transcribeErr)
+						TranscribeCircuitBreaker.RecordFailure()
+						return
+					}
+					TranscribeCircuitBreaker.RecordSuccess()
+					log.Printf("✅ [%s] Amazon Transcribe fallback succeeded", deviceID)
+				} else {
+					return
+				}
+			} else {
+				DeepgramCircuitBreaker.RecordSuccess()
+			}
+		} else {
+			// Deepgram OPEN — nhảy thẳng sang Amazon Transcribe
+			if GlobalTranscribeClient != nil && GlobalTranscribeClient.IsEnabled() && TranscribeCircuitBreaker.Allow() {
+				log.Printf("🔄 [%s] Deepgram OPEN, using Amazon Transcribe directly", deviceID)
+				transcript, transcribeErr = GlobalTranscribeClient.TranscribeAudio(flushData)
+				if transcribeErr != nil {
+					log.Printf("❌ [%s] Amazon Transcribe failed: %v", deviceID, transcribeErr)
+					TranscribeCircuitBreaker.RecordFailure()
+					return
+				}
+				TranscribeCircuitBreaker.RecordSuccess()
+			} else {
+				return
+			}
 		}
-		DeepgramCircuitBreaker.RecordSuccess()
 
 		// Wait for deepfake analysis to complete
 		if deepfakeDone != nil {

@@ -99,8 +99,9 @@ func ImportBlacklist(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// checkConsensusVerification checks if a phone number has enough reports to auto-verify
-// Consensus threshold: 3 unique reports = verified
+// checkConsensusVerification checks if a phone number has enough reports to auto-verify.
+// Consensus threshold: 3+ unique reports → confidence_score elevated to 0.95 (verified).
+// Uses existing schema columns: reported_count and confidence_score (no 'verified' column).
 func checkConsensusVerification(phoneNumber string) bool {
 	if db.Pool == nil {
 		return false
@@ -110,33 +111,33 @@ func checkConsensusVerification(phoneNumber string) bool {
 	defer cancel()
 
 	var reportedCount int
-	var isVerified bool
+	var confidenceScore float64
 
 	err := db.Pool.QueryRow(ctx,
-		`SELECT reported_count, COALESCE(verified, false) FROM blacklist WHERE phone_number = $1`,
+		`SELECT reported_count, confidence_score FROM blacklist WHERE phone_number = $1`,
 		phoneNumber,
-	).Scan(&reportedCount, &isVerified)
+	).Scan(&reportedCount, &confidenceScore)
 
 	if err != nil {
 		return false
 	}
 
-	// Already verified
-	if isVerified {
+	// Already at high-confidence (auto-verified previously)
+	if confidenceScore >= 0.95 {
 		return true
 	}
 
-	// Check consensus threshold (3+ reports)
+	// Check consensus threshold (3+ reports = high confidence / verified)
 	if reportedCount >= 3 {
 		_, err := db.Pool.Exec(ctx,
-			`UPDATE blacklist SET verified = true, confidence_score = 0.95, updated_at = NOW() WHERE phone_number = $1`,
+			`UPDATE blacklist SET confidence_score = 0.95, updated_at = NOW() WHERE phone_number = $1`,
 			phoneNumber,
 		)
 		if err != nil {
 			log.Printf("⚠️ Failed to auto-verify %s: %v", phoneNumber, err)
 			return false
 		}
-		log.Printf("✅ Auto-verified %s (consensus: %d reports)", phoneNumber, reportedCount)
+		log.Printf("✅ Auto-verified %s (consensus: %d reports, confidence → 0.95)", phoneNumber, reportedCount)
 		return true
 	}
 
