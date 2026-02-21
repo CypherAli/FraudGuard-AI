@@ -10,6 +10,28 @@ import (
 
 var deepfakeEnabled = os.Getenv("FEATURE_DEEPFAKE") == "true"
 
+// dftSize is the fixed DFT window size used by calculateSpectralFlatness.
+const dftSize = 512
+
+// Precomputed DFT trig tables: dftCos[k][n] = cos(2π·k·n/N), dftSin[k][n] = sin(2π·k·n/N).
+// Only the first N/2 frequency bins are needed (positive spectrum).
+// Computed once at package init — eliminates math.Cos/Sin from the hot path.
+var (
+	dftCos [dftSize / 2][dftSize]float32
+	dftSin [dftSize / 2][dftSize]float32
+)
+
+func init() {
+	twoPiOverN := 2.0 * math.Pi / float64(dftSize)
+	for k := 0; k < dftSize/2; k++ {
+		for n := 0; n < dftSize; n++ {
+			angle := twoPiOverN * float64(k) * float64(n)
+			dftCos[k][n] = float32(math.Cos(angle))
+			dftSin[k][n] = float32(math.Sin(angle))
+		}
+	}
+}
+
 // DeepfakeAnalysis holds the result of deepfake voice analysis
 type DeepfakeAnalysis struct {
 	Score           int     `json:"score"`            // 0-100, higher = more likely deepfake
@@ -210,30 +232,31 @@ func detectBreathingGaps(samples []float64) float64 {
 // calculateSpectralFlatness measures how "flat" the frequency spectrum is
 // AI-generated audio tends to have a flatter spectrum than natural speech
 func calculateSpectralFlatness(samples []float64) float64 {
-	const fftSize = 512
-	if len(samples) < fftSize {
+	if len(samples) < dftSize {
 		return 0.5
 	}
 
-	// Use simple DFT on a windowed frame (Hamming window)
-	windowed := make([]float64, fftSize)
-	for i := 0; i < fftSize; i++ {
-		hamming := 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(fftSize-1))
-		windowed[i] = samples[i] * hamming
+	// Apply Hamming window and cast to float32 for table-lookup DFT
+	windowed := make([]float32, dftSize)
+	for i := 0; i < dftSize; i++ {
+		hamming := 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(dftSize-1))
+		windowed[i] = float32(samples[i] * hamming)
 	}
 
-	// Compute power spectrum using DFT (simplified, only magnitudes needed)
-	halfN := fftSize / 2
+	// Compute power spectrum using precomputed trig tables — O(N²/2) multiply-adds,
+	// but no transcendental function calls in the inner loop (all lookups).
+	halfN := dftSize / 2
 	powerSpectrum := make([]float64, halfN)
 	for k := 0; k < halfN; k++ {
-		realPart := 0.0
-		imagPart := 0.0
-		for n := 0; n < fftSize; n++ {
-			angle := 2 * math.Pi * float64(k) * float64(n) / float64(fftSize)
-			realPart += windowed[n] * math.Cos(angle)
-			imagPart -= windowed[n] * math.Sin(angle)
+		var re, im float32
+		cosRow := &dftCos[k]
+		sinRow := &dftSin[k]
+		for n := 0; n < dftSize; n++ {
+			w := windowed[n]
+			re += w * cosRow[n]
+			im -= w * sinRow[n]
 		}
-		powerSpectrum[k] = realPart*realPart + imagPart*imagPart
+		powerSpectrum[k] = float64(re)*float64(re) + float64(im)*float64(im)
 	}
 
 	// Spectral flatness = geometric mean / arithmetic mean of power spectrum

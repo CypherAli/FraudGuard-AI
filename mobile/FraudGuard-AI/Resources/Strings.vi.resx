@@ -578,4 +578,183 @@ Lần thử: {1}/{2}</value>
   <data name="Main_IncomingCall" xml:space="preserve">
     <value>Phát hiện cuộc gọi đến...</value>
   </data>
+  <data name="Common_Error" xml:space="preserve">
+    <value>Lỗi</value>
+  </data>
+
+  <!-- Feature 1: Chi tiết cuộc gọi -->
+  <data name="Detail_Title" xml:space="preserve">
+    <value>Chi tiết cuộc gọi</value>
+  </data>
+  <data name="Detail_NotFound" xml:space="preserve">
+    <value>Không tìm thấy bản ghi cuộc gọi</value>
+  </data>
+  <data name="Detail_RiskScore" xml:space="preserve">
+    <value>Điểm rủi ro</value>
+  </data>
+  <data name="Detail_Duration" xml:space="preserve">
+    <value>Thời lượng</value>
+  </data>
+  <data name="Detail_Time" xml:space="preserve">
+    <value>Thời gian</value>
+  </data>
+  <data name="Detail_Deepfake" xml:space="preserve">
+    <value>Deepfake</value>
+  </data>
+  <data name="Detail_Transcript" xml:space="preserve">
+    <value>Bản ghi âm</value>
+  </data>
+  <data name="Detail_TranscriptDesc" xml:space="preserve">
+    <value>Nội dung cuộc hội thoại</value>
+  </data>
+  <data name="Detail_Keywords" xml:space="preserve">
+    <value>Mẫu phát hiện</value>
+  </data>
+  <data name="Detail_KeywordsDesc" xml:space="preserve">
+    <value>Các dấu hiệu lừa đảo được tìm thấy</value>
+  </data>
+  <data name="Detail_Evidence" xml:space="preserve">
+    <value>Bằng chứng</value>
+  </data>
+  <data name="Detail_EvidenceDesc" xml:space="preserve">
+    <value>Chi tiết phân tích</value>
+  </data>
+  <data name="Detail_Share" xml:space="preserve">
+    <value>Chia sẻ báo cáo</value>
+  </data>
+  <data name="Detail_Back" xml:space="preserve">
+    <value>Quay lại</value>
+  </data>
+
+  <!-- Feature 2: Quản lý whitelist -->
+  <data name="Whitelist_Title" xml:space="preserve">
+    <value>Danh sách tin cậy</value>
+  </data>
+  <data name="Whitelist_Subtitle" xml:space="preserve">
+    <value>Liên hệ tin cậy sẽ không bị phát hiện lừa đảo</value>
+  </data>
+  <data name="Whitelist_CountFormat" xml:space="preserve">
+    <value>{0} liên hệ</value>
+  </data>
+  <data name="Whitelist_Search" xml:space="preserve">
+    <value>Tìm liên hệ...</value>
+  </data>
+  <data name="Whitelist_AddNumber" xml:space="preserve">
+    <value>Thêm số</value>
+  </data>
+  <data name="Whitelist_ImportContacts" xml:space="preserve">
+    <value>Nhập danh bạ</value>
+  </data>
+  <data name="Whitelist_ClearAll" xml:space="preserve">
+    <value>Xóa tất cả</value>
+  </data>
+  <data name="Whitelist_EmptyTitle" xml:space="preserve">
+    <value>Chưa có liên hệ tin cậy</value>
+  </data>
+  <data name="Whitelist_EmptySubtitle" xml:space="preserve">
+    <value>Thêm số tin cậy để bỏ qua phát hiện lừa đảo</value>
+  </data>
+  <data name="Whitelist_AddPromptTitle" xml:space="preserve">
+    <value>Thêm số điện thoại</value>
+  </data>
+  <data name="Whitelist_AddPromptMessage" xml:space="preserve">
+    <value>Nhập số điện thoại tin cậy:</value>
+  </data>
+  <data name="Whitelist_AddButton" xml:space="preserve">
+    <value>Thêm</value>
+  </data>
+  <data name="Whitelist_ClearConfirmTitle" xml:space="preserve">
+    <value>Xóa danh sách</value>
+  </data>
+  <data name="Whitelist_ClearConfirmMessage" xml:space="preserve">
+    <value>Xóa tất cả liên hệ tin cậy?</value>
+  </data>
+  <data name="Whitelist_ClearConfirmButton" xml:space="preserve">
+    <value>Xóa tất cả</value>
+  </data>
+  <data name="Whitelist_Removed" xml:space="preserve">
+    <value>Đã xóa khỏi danh sách tin cậy</value>
+  </data>
+  <data name="Whitelist_Added" xml:space="preserve">
+    <value>Đã thêm vào danh sách tin cậy</value>
+  </data>
+  <data name="Whitelist_ImportedFormat" xml:space="preserve">
+    <value>Đã nhập {0} liên hệ</value>
+  </data>
+
+  <!-- Feature 2: Mục whitelist trong Settings -->
+  <data name="Settings_Whitelist" xml:space="preserve">
+    <value>Quản lý danh sách tin cậy</value>
+  </data>
+  <data name="Settings_WhitelistDesc" xml:space="preserve">
+    <value>Quản lý các liên hệ tin cậy</value>
+  </data>
+
+  <!-- Feature 3: Onboarding -->
+  <data name="Onboarding_Skip" xml:space="preserve">
+    <value>Bỏ qua</value>
+  </data>
+  <data name="Onboarding_Next" xml:space="preserve">
+    <value>Tiếp</value>
+  </data>
+  <data name="Onboarding_GetStarted" xml:space="preserve">
+    <value>Bắt đầu</value>
+  </data>
+  <data name="Onboarding_Slide1_Title" xml:space="preserve">
+    <value>Chào mừng đến FraudGuard AI</value>
+  </data>
+  <data name="Onboarding_Slide1_Desc" xml:space="preserve">
+    <value>Lá chắn thông minh bảo vệ bạn khỏi các cuộc gọi lừa đảo</value>
+  </data>
+  <data name="Onboarding_Slide2_Title" xml:space="preserve">
+    <value>Phát hiện thời gian thực</value>
+  </data>
+  <data name="Onboarding_Slide2_Desc" xml:space="preserve">
+    <value>Phân tích cuộc hội thoại theo thời gian thực và cảnh báo ngay khi phát hiện lừa đảo</value>
+  </data>
+  <data name="Onboarding_Slide3_Title" xml:space="preserve">
+    <value>Bảo vệ bằng AI</value>
+  </data>
+  <data name="Onboarding_Slide3_Desc" xml:space="preserve">
+    <value>Phát hiện giọng nói giả mạo, phân tích Gemini AI, và danh sách đen cộng đồng</value>
+  </data>
+  <data name="Onboarding_Slide4_Title" xml:space="preserve">
+    <value>Sẵn sàng bảo vệ</value>
+  </data>
+  <data name="Onboarding_Slide4_Desc" xml:space="preserve">
+    <value>Cấp quyền để FraudGuard có thể giám sát cuộc gọi và bảo vệ bạn</value>
+  </data>
+
+  <!-- Feature 5: Tự chặn cuộc gọi -->
+  <data name="Settings_AutoReject" xml:space="preserve">
+    <value>Tự chặn số lừa đảo</value>
+  </data>
+  <data name="Settings_AutoRejectDesc" xml:space="preserve">
+    <value>Tự động từ chối cuộc gọi từ số đã bị gắn cờ</value>
+  </data>
+  <data name="Settings_AutoRejectEnabled" xml:space="preserve">
+    <value>Đã đồng bộ danh sách đen. Cuộc gọi lừa đảo sẽ bị tự động từ chối.</value>
+  </data>
+
+  <!-- Feature 6: Phát hiện SMS lừa đảo -->
+  <data name="Settings_SmsDetection" xml:space="preserve">
+    <value>Phát hiện SMS lừa đảo</value>
+  </data>
+  <data name="Settings_SmsDetectionDesc" xml:space="preserve">
+    <value>Quét tin nhắn đến để tìm dấu hiệu lừa đảo</value>
+  </data>
+
+  <!-- Feature 7: Khôi phục tài khoản -->
+  <data name="Login_ForgotAccess" xml:space="preserve">
+    <value>Không thể truy cập tài khoản?</value>
+  </data>
+  <data name="Login_RecoverTitle" xml:space="preserve">
+    <value>Khôi phục tài khoản</value>
+  </data>
+  <data name="Login_RecoverPrompt" xml:space="preserve">
+    <value>Nhập email đã đăng ký để nhận mã OTP khôi phục:</value>
+  </data>
+  <data name="Login_RecoverSend" xml:space="preserve">
+    <value>Gửi OTP</value>
+  </data>
 </root>

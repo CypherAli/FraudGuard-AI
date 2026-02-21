@@ -12,9 +12,10 @@ type CallLog struct {
 	EndTime   time.Time `json:"end_time"`
 	Duration  int64     `json:"duration_seconds"`          // Duration in seconds
 	RiskScore int       `json:"risk_score"`                // Accumulated risk score
-	IsFraud   bool      `json:"is_fraud"`                  // True if risk score >= threshold
-	Evidence  string    `gorm:"type:text" json:"evidence"` // Transcript snippets or detected keywords
-	CreatedAt time.Time `json:"created_at"`
+	IsFraud    bool      `json:"is_fraud"`                     // True if risk score >= threshold
+	Evidence   string    `gorm:"type:text" json:"evidence"`    // Transcript snippets or detected keywords
+	Transcript string    `gorm:"type:text" json:"transcript"`  // Full masked transcript of the call
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // TableName specifies the table name for GORM

@@ -578,4 +578,183 @@ Attempt: {1}/{2}</value>
   <data name="Main_IncomingCall" xml:space="preserve">
     <value>Incoming call detected...</value>
   </data>
+  <data name="Common_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+
+  <!-- Feature 1: Call Detail Page -->
+  <data name="Detail_Title" xml:space="preserve">
+    <value>Call Details</value>
+  </data>
+  <data name="Detail_NotFound" xml:space="preserve">
+    <value>Call record not found</value>
+  </data>
+  <data name="Detail_RiskScore" xml:space="preserve">
+    <value>Risk Score</value>
+  </data>
+  <data name="Detail_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Detail_Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Detail_Deepfake" xml:space="preserve">
+    <value>Deepfake</value>
+  </data>
+  <data name="Detail_Transcript" xml:space="preserve">
+    <value>Transcript</value>
+  </data>
+  <data name="Detail_TranscriptDesc" xml:space="preserve">
+    <value>Full conversation text</value>
+  </data>
+  <data name="Detail_Keywords" xml:space="preserve">
+    <value>Detected Patterns</value>
+  </data>
+  <data name="Detail_KeywordsDesc" xml:space="preserve">
+    <value>Fraud indicators found</value>
+  </data>
+  <data name="Detail_Evidence" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="Detail_EvidenceDesc" xml:space="preserve">
+    <value>Analysis details</value>
+  </data>
+  <data name="Detail_Share" xml:space="preserve">
+    <value>Share Report</value>
+  </data>
+  <data name="Detail_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+
+  <!-- Feature 2: Whitelist Management -->
+  <data name="Whitelist_Title" xml:space="preserve">
+    <value>Whitelist</value>
+  </data>
+  <data name="Whitelist_Subtitle" xml:space="preserve">
+    <value>Trusted contacts are never flagged</value>
+  </data>
+  <data name="Whitelist_CountFormat" xml:space="preserve">
+    <value>{0} contacts</value>
+  </data>
+  <data name="Whitelist_Search" xml:space="preserve">
+    <value>Search contacts...</value>
+  </data>
+  <data name="Whitelist_AddNumber" xml:space="preserve">
+    <value>Add Number</value>
+  </data>
+  <data name="Whitelist_ImportContacts" xml:space="preserve">
+    <value>Import Contacts</value>
+  </data>
+  <data name="Whitelist_ClearAll" xml:space="preserve">
+    <value>Clear All</value>
+  </data>
+  <data name="Whitelist_EmptyTitle" xml:space="preserve">
+    <value>No whitelisted contacts</value>
+  </data>
+  <data name="Whitelist_EmptySubtitle" xml:space="preserve">
+    <value>Add trusted numbers to skip fraud detection</value>
+  </data>
+  <data name="Whitelist_AddPromptTitle" xml:space="preserve">
+    <value>Add phone number</value>
+  </data>
+  <data name="Whitelist_AddPromptMessage" xml:space="preserve">
+    <value>Enter phone number to whitelist:</value>
+  </data>
+  <data name="Whitelist_AddButton" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Whitelist_ClearConfirmTitle" xml:space="preserve">
+    <value>Clear whitelist</value>
+  </data>
+  <data name="Whitelist_ClearConfirmMessage" xml:space="preserve">
+    <value>Remove all whitelisted contacts?</value>
+  </data>
+  <data name="Whitelist_ClearConfirmButton" xml:space="preserve">
+    <value>Clear All</value>
+  </data>
+  <data name="Whitelist_Removed" xml:space="preserve">
+    <value>Removed from whitelist</value>
+  </data>
+  <data name="Whitelist_Added" xml:space="preserve">
+    <value>Added to whitelist</value>
+  </data>
+  <data name="Whitelist_ImportedFormat" xml:space="preserve">
+    <value>Imported {0} contacts</value>
+  </data>
+
+  <!-- Feature 2: Settings whitelist entry -->
+  <data name="Settings_Whitelist" xml:space="preserve">
+    <value>Whitelist Management</value>
+  </data>
+  <data name="Settings_WhitelistDesc" xml:space="preserve">
+    <value>Manage trusted contacts</value>
+  </data>
+
+  <!-- Feature 3: Onboarding -->
+  <data name="Onboarding_Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Onboarding_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Onboarding_GetStarted" xml:space="preserve">
+    <value>Get Started</value>
+  </data>
+  <data name="Onboarding_Slide1_Title" xml:space="preserve">
+    <value>Welcome to FraudGuard AI</value>
+  </data>
+  <data name="Onboarding_Slide1_Desc" xml:space="preserve">
+    <value>Your intelligent shield against phone scams and fraud calls</value>
+  </data>
+  <data name="Onboarding_Slide2_Title" xml:space="preserve">
+    <value>Real-time Detection</value>
+  </data>
+  <data name="Onboarding_Slide2_Desc" xml:space="preserve">
+    <value>Analyzes conversations in real-time and alerts you instantly when fraud is detected</value>
+  </data>
+  <data name="Onboarding_Slide3_Title" xml:space="preserve">
+    <value>AI-Powered Protection</value>
+  </data>
+  <data name="Onboarding_Slide3_Desc" xml:space="preserve">
+    <value>Deepfake voice detection, Gemini AI analysis, and community-powered blacklist</value>
+  </data>
+  <data name="Onboarding_Slide4_Title" xml:space="preserve">
+    <value>Ready to Protect</value>
+  </data>
+  <data name="Onboarding_Slide4_Desc" xml:space="preserve">
+    <value>Grant permissions so FraudGuard can monitor calls and keep you safe</value>
+  </data>
+
+  <!-- Feature 5: Auto-Reject -->
+  <data name="Settings_AutoReject" xml:space="preserve">
+    <value>Auto-reject blacklisted</value>
+  </data>
+  <data name="Settings_AutoRejectDesc" xml:space="preserve">
+    <value>Automatically reject calls from known scam numbers</value>
+  </data>
+  <data name="Settings_AutoRejectEnabled" xml:space="preserve">
+    <value>Blacklist synced. Scam calls will be auto-rejected.</value>
+  </data>
+
+  <!-- Feature 6: SMS Detection -->
+  <data name="Settings_SmsDetection" xml:space="preserve">
+    <value>SMS fraud detection</value>
+  </data>
+  <data name="Settings_SmsDetectionDesc" xml:space="preserve">
+    <value>Scan incoming SMS for scam patterns</value>
+  </data>
+
+  <!-- Feature 7: Account Recovery -->
+  <data name="Login_ForgotAccess" xml:space="preserve">
+    <value>Can't access your account?</value>
+  </data>
+  <data name="Login_RecoverTitle" xml:space="preserve">
+    <value>Account recovery</value>
+  </data>
+  <data name="Login_RecoverPrompt" xml:space="preserve">
+    <value>Enter your registered email to receive a recovery OTP:</value>
+  </data>
+  <data name="Login_RecoverSend" xml:space="preserve">
+    <value>Send OTP</value>
+  </data>
 </root>

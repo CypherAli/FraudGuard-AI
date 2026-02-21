@@ -96,6 +96,9 @@
                                            Radius="12"
                                            Offset="0,4"/>
                                 </Border.Shadow>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCallLogTapped" CommandParameter="{Binding .}"/>
+                                </Border.GestureRecognizers>
 
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                     

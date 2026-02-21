@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
+             x:Class="FraudGuardAI.Pages.OnboardingPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D1B2A">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="0">
+
+        <!-- Skip Button -->
+        <Label x:Name="SkipLabel" Grid.Row="0"
+               Text="{loc:Translate Key=Onboarding_Skip}"
+               FontSize="15" TextColor="#8B9CAF"
+               HorizontalOptions="End"
+               Margin="0,52,24,0">
+            <Label.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnSkipClicked"/>
+            </Label.GestureRecognizers>
+        </Label>
+
+        <!-- Carousel -->
+        <CarouselView x:Name="OnboardingCarousel" Grid.Row="1"
+                      IndicatorView="PageIndicator"
+                      Loop="False"
+                      CurrentItemChanged="OnCurrentItemChanged">
+            <CarouselView.ItemsSource>
+                <x:Array Type="{x:Type x:String}">
+                    <x:String>slide0</x:String>
+                    <x:String>slide1</x:String>
+                    <x:String>slide2</x:String>
+                    <x:String>slide3</x:String>
+                </x:Array>
+            </CarouselView.ItemsSource>
+            <CarouselView.ItemTemplate>
+                <DataTemplate>
+                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
+                                        Spacing="24" Padding="32,0">
+                        <!-- Icon -->
+                        <Border x:Name="SlideIcon" WidthRequest="120" HeightRequest="120"
+                               BackgroundColor="#1B2838" StrokeThickness="0"
+                               HorizontalOptions="Center">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="60"/></Border.StrokeShape>
+                            <Label FontSize="56" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <!-- Title -->
+                        <Label FontSize="26" FontAttributes="Bold" TextColor="#E0E6ED"
+                               HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+                        <!-- Description -->
+                        <Label FontSize="16" TextColor="#8B9CAF"
+                               HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+
+        <!-- Indicators -->
+        <IndicatorView x:Name="PageIndicator" Grid.Row="2"
+                       IndicatorColor="#2A3F54"
+                       SelectedIndicatorColor="#14B8A6"
+                       IndicatorSize="8"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,24"/>
+
+        <!-- Get Started Button -->
+        <Button x:Name="GetStartedButton" Grid.Row="3"
+                Text="{loc:Translate Key=Onboarding_Next}"
+                BackgroundColor="#14B8A6" TextColor="White"
+                CornerRadius="16" FontSize="17" FontAttributes="Bold"
+                Padding="0,16" Margin="24,0,24,40"
+                Clicked="OnActionClicked"/>
+    </Grid>
+</ContentPage>

@@ -66,6 +66,12 @@
     <!-- Read contacts (whitelist import) -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
+    <!-- Answer/reject phone calls (auto-reject blacklisted) -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+
+    <!-- Receive SMS (SMS fraud detection) -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
     <!-- Khai báo audio recording feature -->
     <uses-feature
         android:name="android.hardware.microphone"

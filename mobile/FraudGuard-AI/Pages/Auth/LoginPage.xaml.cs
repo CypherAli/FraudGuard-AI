@@ -143,6 +143,53 @@ namespace FraudGuardAI.Pages.Auth
             }
         }
 
+        private async void OnForgotAccessClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_authService == null)
+                {
+                    ShowError("Dịch vụ đăng nhập chưa sẵn sàng. Vui lòng thử lại.");
+                    return;
+                }
+
+                string email = await Application.Current.MainPage.DisplayPromptAsync(
+                    Localization.LocalizationResourceManager.Instance["Login_RecoverTitle"],
+                    Localization.LocalizationResourceManager.Instance["Login_RecoverPrompt"],
+                    Localization.LocalizationResourceManager.Instance["Login_RecoverSend"],
+                    Localization.LocalizationResourceManager.Instance["Common_Cancel"],
+                    placeholder: "example@gmail.com",
+                    keyboard: Keyboard.Email);
+
+                if (string.IsNullOrWhiteSpace(email))
+                    return;
+
+                if (!IsValidEmail(email))
+                {
+                    ShowError("Email không hợp lệ");
+                    return;
+                }
+
+                SetLoading(true);
+                Debug.WriteLine($"[LoginPage] Account recovery for: {email}");
+
+                // Reuse the login OTP flow for account recovery
+                var verificationId = await _authService.LoginAsync(email);
+                Debug.WriteLine($"[LoginPage] Recovery OTP sent. Verification ID: {verificationId}");
+
+                await Navigation.PushAsync(new OtpVerificationPage(verificationId, email));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoginPage] Recovery error: {ex.Message}");
+                ShowError(ex.Message);
+            }
+            finally
+            {
+                SetLoading(false);
+            }
+        }
+
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
             if (_authService == null)

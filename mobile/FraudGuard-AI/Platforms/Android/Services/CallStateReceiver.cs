@@ -1,7 +1,10 @@
 using Android.App;
 using Android.Content;
+using Android.Telecom;
 using Android.Telephony;
+using FraudGuardAI.Services;
 using System.Diagnostics;
+using System.Threading;
 
 namespace FraudGuardAI.Platforms.Android.Services
 {
@@ -14,8 +17,13 @@ namespace FraudGuardAI.Platforms.Android.Services
     [IntentFilter(new[] { TelephonyManager.ActionPhoneStateChanged })]
     public class CallStateReceiver : BroadcastReceiver
     {
-        private static bool _isCallActive = false;
-        private static bool _wasProtectionAutoStarted = false;
+        private static volatile bool _isCallActive = false;
+        private static volatile bool _wasProtectionAutoStarted = false;
+
+        // Debounce IDLE events: speakerphone toggle / audio re-route cũng fire IDLE,
+        // cần chờ 1.5s để xác nhận cuộc gọi thực sự kết thúc (không phải chỉ đổi audio route)
+        private static CancellationTokenSource? _idleDebounceToken;
+        private static readonly object _idleLock = new object();
 
         /// <summary>
         /// Event để thông báo cho MainPage khi trạng thái cuộc gọi thay đổi
@@ -43,12 +51,41 @@ namespace FraudGuardAI.Platforms.Android.Services
                 {
                     // Cuộc gọi đến đang rung
                     Debug.WriteLine($"[CallReceiver] 📞 INCOMING CALL from: {phoneNumber}");
+
+                    // Auto-reject if number is blacklisted
+                    bool autoReject = Preferences.Get("AutoRejectBlacklisted", false);
+                    if (autoReject && phoneNumber != "Unknown")
+                    {
+                        try
+                        {
+                            if (BlacklistCacheService.Instance.IsBlacklisted(phoneNumber))
+                            {
+                                Debug.WriteLine($"[CallReceiver] 🚫 BLACKLISTED — auto-rejecting: {phoneNumber}");
+                                RejectCall(context);
+                                ShowRejectionNotification(context, phoneNumber);
+                                return; // Don't process further
+                            }
+                        }
+                        catch (Exception bex)
+                        {
+                            Debug.WriteLine($"[CallReceiver] Blacklist check error: {bex.Message}");
+                        }
+                    }
+
                     OnCallStateChanged(CallState.Ringing, phoneNumber);
                 }
                 else if (stateStr == TelephonyManager.ExtraStateOffhook)
                 {
-                    // Cuộc gọi đã được nhấc máy
-                    Debug.WriteLine($"[CallReceiver] 📱 CALL ANSWERED: {phoneNumber}");
+                    // Cuộc gọi đã được nhấc máy (hoặc đang gọi đi)
+                    Debug.WriteLine($"[CallReceiver] 📱 CALL ANSWERED/OFFHOOK: {phoneNumber}");
+
+                    // Hủy debounce IDLE nếu đang chờ — cuộc gọi vẫn còn active
+                    lock (_idleLock)
+                    {
+                        _idleDebounceToken?.Cancel();
+                        _idleDebounceToken = null;
+                    }
+
                     _isCallActive = true;
                     OnCallStateChanged(CallState.Active, phoneNumber);
 
@@ -57,20 +94,36 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 else if (stateStr == TelephonyManager.ExtraStateIdle)
                 {
-                    // Cuộc gọi đã kết thúc
-                    Debug.WriteLine($"[CallReceiver] 📴 CALL ENDED");
-
+                    // IDLE có thể do: (1) cuộc gọi thực sự kết thúc, hoặc (2) speakerphone toggle / audio re-route
+                    // Dùng debounce 1.5s: nếu sau 1.5s không có OFFHOOK mới → cuộc gọi thực sự ended
                     if (_isCallActive)
                     {
-                        _isCallActive = false;
-                        OnCallStateChanged(CallState.Ended, phoneNumber);
+                        Debug.WriteLine($"[CallReceiver] 📴 IDLE received — debouncing 1.5s to confirm call ended...");
 
-                        // Tự động tắt nếu đã tự động bật
-                        if (_wasProtectionAutoStarted)
+                        CancellationTokenSource thisCts;
+                        lock (_idleLock)
                         {
-                            AutoStopProtection();
-                            _wasProtectionAutoStarted = false;
+                            _idleDebounceToken?.Cancel();
+                            thisCts = new CancellationTokenSource();
+                            _idleDebounceToken = thisCts;
                         }
+
+                        var capturedPhone = phoneNumber;
+                        _ = Task.Delay(1500, thisCts.Token).ContinueWith(t =>
+                        {
+                            if (t.IsCanceled) return; // OFFHOOK came in → bỏ qua
+
+                            Debug.WriteLine($"[CallReceiver] 📴 CALL CONFIRMED ENDED after debounce");
+                            _isCallActive = false;
+                            OnCallStateChanged(CallState.Ended, capturedPhone);
+
+                            // Tự động tắt protection nếu đã tự động bật
+                            if (_wasProtectionAutoStarted)
+                            {
+                                AutoStopProtection();
+                                _wasProtectionAutoStarted = false;
+                            }
+                        }, TaskScheduler.Default);
                     }
                 }
             }
@@ -158,6 +211,52 @@ namespace FraudGuardAI.Platforms.Android.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"[CallReceiver] AutoStopProtection error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Reject an incoming call using TelecomManager (Android 9+)
+        /// </summary>
+        private void RejectCall(Context context)
+        {
+            try
+            {
+                if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.P)
+                {
+                    var telecomManager = (TelecomManager)context.GetSystemService(Context.TelecomService);
+                    if (telecomManager != null)
+                    {
+                        bool ended = telecomManager.EndCall();
+                        Debug.WriteLine($"[CallReceiver] EndCall result: {ended}");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("[CallReceiver] EndCall requires Android 9+ (API 28)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] RejectCall error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Show notification that a blacklisted call was rejected
+        /// </summary>
+        private void ShowRejectionNotification(Context context, string phoneNumber)
+        {
+            try
+            {
+                AlertNotificationHelper.ShowFraudAlert(
+                    context,
+                    "BLOCKED",
+                    100.0,
+                    $"Auto-rejected blacklisted number: {phoneNumber}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] Notification error: {ex.Message}");
             }
         }
 

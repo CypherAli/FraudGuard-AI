@@ -117,15 +117,20 @@ var fraudDetectionTools = []AgentTool{
 			},
 			{
 				Name:        "get_fraud_stats",
-				Description: "Lấy thống kê lừa đảo gần đây từ blacklist: tổng số, tỷ lệ, loại phổ biến nhất. Dùng để đánh giá mức độ nguy hiểm của cuộc gọi.",
+				Description: "Lấy thống kê lừa đảo từ blacklist theo từ khóa cụ thể. Dùng để đánh giá mức độ nguy hiểm của từ khóa/cụm từ xuất hiện trong cuộc gọi.",
 				Parameters: FunctionParams{
-					Type:       "object",
-					Properties: map[string]Property{},
-					Required:   []string{},
+					Type: "object",
+					Properties: map[string]Property{
+						"keyword": {
+							Type:        "string",
+							Description: "Từ khóa hoặc cụm từ cần tra cứu tần suất lừa đảo (ví dụ: 'chuyển tiền', 'công an', 'OTP'). Để trống để lấy thống kê tổng quát.",
+						},
+					},
+					Required: []string{},
 				},
 			},
 			{
-				Name:        "auto_report_fraud",
+				Name:        "auto_report",
 				Description: "Tự động báo cáo số điện thoại lừa đảo vào blacklist cộng đồng khi có bằng chứng rõ ràng (độ tin cậy cao). Chỉ gọi khi CHẮC CHẮN là lừa đảo.",
 				Parameters: FunctionParams{
 					Type: "object",
@@ -134,16 +139,12 @@ var fraudDetectionTools = []AgentTool{
 							Type:        "string",
 							Description: "Số điện thoại cần report",
 						},
-						"fraud_type": {
+						"reason": {
 							Type:        "string",
-							Description: "Loại lừa đảo phát hiện (ví dụ: giả mạo công an, lừa chuyển tiền, deepfake...)",
-						},
-						"evidence": {
-							Type:        "string",
-							Description: "Bằng chứng ngắn gọn từ transcript (tối đa 200 ký tự)",
+							Description: "Lý do báo cáo: bao gồm loại lừa đảo và bằng chứng ngắn gọn từ transcript (ví dụ: 'Giả mạo công an, yêu cầu chuyển tiền 50 triệu để giải quyết vụ án')",
 						},
 					},
-					Required: []string{"phone_number", "fraud_type", "evidence"},
+					Required: []string{"phone_number", "reason"},
 				},
 			},
 		},
@@ -158,9 +159,9 @@ func executeTool(toolName string, args map[string]interface{}) map[string]interf
 	case "check_blacklist":
 		return executeCheckBlacklist(args)
 	case "get_fraud_stats":
-		return executeGetFraudStats()
-	case "auto_report_fraud":
-		return executeAutoReportFraud(args)
+		return executeGetFraudStats(args)
+	case "auto_report":
+		return executeAutoReport(args)
 	default:
 		return map[string]interface{}{
 			"error": fmt.Sprintf("unknown tool: %s", toolName),
@@ -202,53 +203,102 @@ func executeCheckBlacklist(args map[string]interface{}) map[string]interface{} {
 	}
 }
 
-// executeGetFraudStats lấy thống kê blacklist
-func executeGetFraudStats() map[string]interface{} {
+// executeGetFraudStats lấy thống kê blacklist, có thể lọc theo keyword
+func executeGetFraudStats(args map[string]interface{}) map[string]interface{} {
 	if db.Pool == nil {
 		return map[string]interface{}{
 			"error": "Database không khả dụng",
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	keyword, _ := args["keyword"].(string)
+	keyword = strings.TrimSpace(keyword)
 
 	var totalCount int
 	var highConfidenceCount int
-	err := db.Pool.QueryRow(ctx,
+
+	// Tổng số active trong blacklist — context riêng cho mỗi query để tránh shared-timeout race
+	ctx1, cancel1 := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel1()
+	err := db.Pool.QueryRow(ctx1,
 		`SELECT COUNT(*) FROM blacklist WHERE status = 'active'`,
 	).Scan(&totalCount)
 	if err != nil {
 		return map[string]interface{}{"error": err.Error()}
 	}
 
-	err = db.Pool.QueryRow(ctx,
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel2()
+	err = db.Pool.QueryRow(ctx2,
 		`SELECT COUNT(*) FROM blacklist WHERE status = 'active' AND confidence_score >= 0.80`,
 	).Scan(&highConfidenceCount)
 	if err != nil {
 		highConfidenceCount = 0
 	}
 
-	log.Printf("📊 [Agent:get_fraud_stats] total=%d, high_confidence=%d", totalCount, highConfidenceCount)
-
-	return map[string]interface{}{
+	result := map[string]interface{}{
 		"total_blacklisted":       totalCount,
 		"high_confidence_numbers": highConfidenceCount,
-		"message":                 fmt.Sprintf("Hệ thống đang theo dõi %d số điện thoại lừa đảo, trong đó %d có độ tin cậy cao", totalCount, highConfidenceCount),
 	}
+
+	// Nếu có keyword, tra thêm tần suất xuất hiện trong reason của blacklist
+	if keyword != "" {
+		var keywordCount int
+		ctx3, cancel3 := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel3()
+		err = db.Pool.QueryRow(ctx3,
+			`SELECT COUNT(*) FROM blacklist WHERE status = 'active' AND reason ILIKE $1`,
+			"%"+keyword+"%",
+		).Scan(&keywordCount)
+		if err != nil {
+			keywordCount = 0
+		}
+
+		var severity string
+		switch {
+		case keywordCount >= 50:
+			severity = "very_high"
+		case keywordCount >= 20:
+			severity = "high"
+		case keywordCount >= 5:
+			severity = "medium"
+		case keywordCount >= 1:
+			severity = "low"
+		default:
+			severity = "none"
+		}
+
+		result["keyword"] = keyword
+		result["keyword_fraud_count"] = keywordCount
+		result["keyword_severity"] = severity
+		result["message"] = fmt.Sprintf("Từ khóa '%s' xuất hiện trong %d ca lừa đảo (mức: %s). Tổng blacklist: %d số, %d có độ tin cậy cao",
+			keyword, keywordCount, severity, totalCount, highConfidenceCount)
+
+		log.Printf("📊 [Agent:get_fraud_stats] keyword='%s' count=%d severity=%s total=%d",
+			keyword, keywordCount, severity, totalCount)
+	} else {
+		result["message"] = fmt.Sprintf("Hệ thống đang theo dõi %d số điện thoại lừa đảo, trong đó %d có độ tin cậy cao",
+			totalCount, highConfidenceCount)
+		log.Printf("📊 [Agent:get_fraud_stats] total=%d, high_confidence=%d", totalCount, highConfidenceCount)
+	}
+
+	return result
 }
 
-// executeAutoReportFraud tự động báo cáo số điện thoại lừa đảo
-func executeAutoReportFraud(args map[string]interface{}) map[string]interface{} {
+// executeAutoReport tự động báo cáo số điện thoại lừa đảo vào blacklist cộng đồng.
+// Params theo PDF spec: phone_number + reason (gộp loại lừa đảo + bằng chứng).
+func executeAutoReport(args map[string]interface{}) map[string]interface{} {
 	phone, _ := args["phone_number"].(string)
-	fraudType, _ := args["fraud_type"].(string)
-	evidence, _ := args["evidence"].(string)
+	reason, _ := args["reason"].(string)
 
 	if phone == "" {
 		return map[string]interface{}{
 			"success": false,
 			"message": "Thiếu số điện thoại",
 		}
+	}
+	if reason == "" {
+		reason = "[AI Auto-Report] Phát hiện dấu hiệu lừa đảo"
 	}
 	if db.Pool == nil {
 		return map[string]interface{}{
@@ -257,9 +307,9 @@ func executeAutoReportFraud(args map[string]interface{}) map[string]interface{} 
 		}
 	}
 
-	reason := fmt.Sprintf("[AI Auto-Report] %s | Evidence: %s", fraudType, evidence)
-	if len(reason) > 500 {
-		reason = reason[:500]
+	fullReason := "[AI Auto-Report] " + reason
+	if len(fullReason) > 500 {
+		fullReason = fullReason[:500]
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -274,7 +324,7 @@ func executeAutoReportFraud(args map[string]interface{}) map[string]interface{} 
 		     reason = EXCLUDED.reason,
 		     last_reported_at = NOW(),
 		     updated_at = NOW()`,
-		phone, reason,
+		phone, fullReason,
 	)
 	if err != nil {
 		log.Printf("❌ [Agent:auto_report] Failed to report %s: %v", phone, err)
@@ -284,11 +334,11 @@ func executeAutoReportFraud(args map[string]interface{}) map[string]interface{} 
 		}
 	}
 
-	log.Printf("✅ [Agent:auto_report] Auto-reported %s as fraud (%s)", phone, fraudType)
+	log.Printf("✅ [Agent:auto_report] Auto-reported %s: %s", phone, reason)
 	return map[string]interface{}{
 		"success":      true,
 		"phone_number": phone,
-		"fraud_type":   fraudType,
+		"reason":       reason,
 		"message":      fmt.Sprintf("Đã tự động báo cáo %s vào blacklist cộng đồng", phone),
 	}
 }
@@ -321,7 +371,7 @@ NHIỆM VỤ của bạn:
 1. Phân tích transcript để tìm dấu hiệu lừa đảo
 2. Nếu phát hiện SỐ ĐIỆN THOẠI trong transcript → gọi tool check_blacklist ngay
 3. Gọi get_fraud_stats nếu cần thêm context về mức độ lừa đảo hiện tại
-4. Nếu CHẮC CHẮN là lừa đảo (confidence=high) VÀ có số điện thoại rõ ràng → gọi auto_report_fraud
+4. Nếu CHẮC CHẮN là lừa đảo (confidence=high) VÀ có số điện thoại rõ ràng → gọi auto_report
 5. Sau khi dùng tools, đưa ra kết quả JSON cuối cùng
 
 Các dạng lừa đảo phổ biến tại VN:
@@ -374,7 +424,7 @@ Kết quả cuối cùng phải là JSON:
 				result.ToolsUsed = append(result.ToolsUsed, toolName)
 
 				// Track auto_report
-				if toolName == "auto_report_fraud" {
+				if toolName == "auto_report" {
 					result.AutoReported = true
 				}
 
