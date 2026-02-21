@@ -1,6 +1,8 @@
 using Android.App;
 using Android.Content;
+using Android.Telecom;
 using Android.Telephony;
+using FraudGuardAI.Services;
 using System.Diagnostics;
 using System.Threading;
 
@@ -49,6 +51,27 @@ namespace FraudGuardAI.Platforms.Android.Services
                 {
                     // Cuộc gọi đến đang rung
                     Debug.WriteLine($"[CallReceiver] 📞 INCOMING CALL from: {phoneNumber}");
+
+                    // Auto-reject if number is blacklisted
+                    bool autoReject = Preferences.Get("AutoRejectBlacklisted", false);
+                    if (autoReject && phoneNumber != "Unknown")
+                    {
+                        try
+                        {
+                            if (BlacklistCacheService.Instance.IsBlacklisted(phoneNumber))
+                            {
+                                Debug.WriteLine($"[CallReceiver] 🚫 BLACKLISTED — auto-rejecting: {phoneNumber}");
+                                RejectCall(context);
+                                ShowRejectionNotification(context, phoneNumber);
+                                return; // Don't process further
+                            }
+                        }
+                        catch (Exception bex)
+                        {
+                            Debug.WriteLine($"[CallReceiver] Blacklist check error: {bex.Message}");
+                        }
+                    }
+
                     OnCallStateChanged(CallState.Ringing, phoneNumber);
                 }
                 else if (stateStr == TelephonyManager.ExtraStateOffhook)
@@ -188,6 +211,52 @@ namespace FraudGuardAI.Platforms.Android.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"[CallReceiver] AutoStopProtection error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Reject an incoming call using TelecomManager (Android 9+)
+        /// </summary>
+        private void RejectCall(Context context)
+        {
+            try
+            {
+                if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.P)
+                {
+                    var telecomManager = (TelecomManager)context.GetSystemService(Context.TelecomService);
+                    if (telecomManager != null)
+                    {
+                        bool ended = telecomManager.EndCall();
+                        Debug.WriteLine($"[CallReceiver] EndCall result: {ended}");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("[CallReceiver] EndCall requires Android 9+ (API 28)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] RejectCall error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Show notification that a blacklisted call was rejected
+        /// </summary>
+        private void ShowRejectionNotification(Context context, string phoneNumber)
+        {
+            try
+            {
+                AlertNotificationHelper.ShowFraudAlert(
+                    context,
+                    "BLOCKED",
+                    100.0,
+                    $"Auto-rejected blacklisted number: {phoneNumber}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] Notification error: {ex.Message}");
             }
         }
 

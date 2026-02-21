@@ -99,6 +99,19 @@ func GetAllHistory(limit int) ([]models.CallLog, error) {
 	return GetHistory("", limit)
 }
 
+// GetCallLogByID retrieves a single call log entry by ID
+func GetCallLogByID(id uint) (*models.CallLog, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	var log models.CallLog
+	result := DB.First(&log, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &log, nil
+}
+
 // GetFraudCallsOnly retrieves only fraudulent calls
 func GetFraudCallsOnly(deviceID string, limit int) ([]models.CallLog, error) {
 	if DB == nil {

@@ -108,6 +108,21 @@ namespace FraudGuardAI.Helpers
             {
                 // Notification permission might not be available on older Android versions
             }
+
+            // Request SMS permission for SMS fraud detection
+            try
+            {
+                var smsStatus = await Permissions.CheckStatusAsync<Permissions.Sms>();
+                if (smsStatus != PermissionStatus.Granted)
+                {
+                    smsStatus = await Permissions.RequestAsync<Permissions.Sms>();
+                    System.Diagnostics.Debug.WriteLine($"[PermissionManager] SMS permission: {smsStatus}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PermissionManager] SMS permission error: {ex.Message}");
+            }
             #endif
 
             return true;

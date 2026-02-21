@@ -148,6 +148,7 @@ func main() {
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
 		r.Get("/history", handlers.GetHistory)
+		r.Get("/call/{id}", handlers.GetCallDetail)
 		r.Post("/call-summary", handlers.GenerateCallSummary)
 		r.Post("/report", handlers.ReportFraud)
 		r.Post("/blacklist/import", handlers.ImportBlacklist)

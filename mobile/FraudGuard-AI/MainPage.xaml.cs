@@ -373,7 +373,7 @@ namespace FraudGuardAI
 
         #region Audio Service Event Handlers
 
-        private void OnAlertReceived(object sender, AlertEventArgs e)
+        private void OnAlertReceived(object sender, Services.AlertEventArgs e)
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
@@ -422,13 +422,13 @@ namespace FraudGuardAI
             });
         }
 
-        private void OnConnectionStatusChanged(object sender, ConnectionStatusEventArgs e)
+        private void OnConnectionStatusChanged(object sender, Services.ConnectionStatusEventArgs e)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.IsConnected} - {e.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Connection: {e.IsConnected} - {e.Status}");
 
                     if (e.IsConnected)
                     {
@@ -496,4 +496,97 @@ namespace FraudGuardAI
             if (_lastBannerAlertId == thisAlertId && AlertBanner.IsVisible)
                 AlertBanner.IsVisible = false;
         }
+
+        #endregion
+
+        #region UI Animation & Feedback
+
+        private async Task AnimateToActiveState()
+        {
+            try
+            {
+                if (ShieldBorder != null)
+                    await ShieldBorder.ScaleTo(1.1, 200, Easing.CubicOut);
+                if (ShieldBorder != null)
+                    await ShieldBorder.ScaleTo(1.0, 150, Easing.CubicIn);
+            }
+            catch { }
+        }
+
+        private async Task AnimateToDangerState()
+        {
+            try
+            {
+                if (ShieldBorder != null)
+                {
+                    await ShieldBorder.ScaleTo(1.3, 150, Easing.CubicOut);
+                    await ShieldBorder.ScaleTo(1.0, 100, Easing.CubicIn);
+                }
+            }
+            catch { }
+        }
+
+        private async Task PulseAnimation(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    if (ShieldBorder != null)
+                    {
+                        await ShieldBorder.ScaleTo(1.05, 1000, Easing.SinInOut);
+                        await ShieldBorder.ScaleTo(1.0, 1000, Easing.SinInOut);
+                    }
+                    await Task.Delay(500, token);
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch { }
+        }
+
+        private void TriggerVibration()
+        {
+            try
+            {
+                Vibration.Default.Vibrate(TimeSpan.FromMilliseconds(500));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Vibration error: {ex.Message}");
+            }
+        }
+
+        private void ShowAlertBanner(AlertData alert, double riskScore, bool isHighRisk)
+        {
+            try
+            {
+                if (AlertBanner == null) return;
+
+                AlertBanner.BackgroundColor = isHighRisk
+                    ? Color.FromArgb("#DC2626")
+                    : Color.FromArgb("#F59E0B");
+
+                if (AlertTypeLabel != null)
+                    AlertTypeLabel.Text = alert.AlertType ?? (isHighRisk ? "HIGH RISK" : "SUSPICIOUS");
+                if (AlertConfidenceLabel != null)
+                    AlertConfidenceLabel.Text = $"{riskScore:F0}%";
+                if (AlertMessageLabel != null)
+                    AlertMessageLabel.Text = alert.Transcript ?? alert.Message ?? "";
+
+                AlertBanner.IsVisible = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] ShowAlertBanner error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Localization Helper
+
+        private static string T(string key) => Localization.LocalizationResourceManager.Instance[key];
+
+        #endregion
+    }
 }

@@ -83,6 +83,31 @@ namespace FraudGuardAI.Services
         }
 
         /// <summary>
+        /// Get detailed call log by ID
+        /// </summary>
+        public async Task<CallLog> GetCallDetailAsync(int callId)
+        {
+            try
+            {
+                string baseUrl = SettingsPage.GetAPIBaseUrl();
+                var url = $"{baseUrl}/api/call/{callId}";
+
+                System.Diagnostics.Debug.WriteLine($"[HistoryService] Fetching detail: {url}");
+
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadFromJsonAsync<CallDetailResponse>();
+                return result?.Data;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HistoryService] Detail error: {ex.Message}");
+                throw new Exception($"Error loading call detail: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
         /// Get only fraudulent calls
         /// </summary>
         public async Task<List<CallLog>> GetFraudCallsOnlyAsync(string deviceId = null, int limit = 20)

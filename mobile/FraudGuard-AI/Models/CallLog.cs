@@ -23,9 +23,39 @@ namespace FraudGuardAI.Models
         public bool IsFraud { get; set; }
         
         public string Evidence { get; set; }
-        
+
+        public string Transcript { get; set; }
+
         public DateTime CreatedAt { get; set; }
-        
+
+        // Computed: parse detected keywords from Evidence field
+        public List<string> DetectedKeywords
+        {
+            get
+            {
+                var keywords = new List<string>();
+                if (string.IsNullOrEmpty(Evidence)) return keywords;
+                // Evidence format: "Patterns: CRITICAL: keyword (+50); WARNING: keyword (+25) | Transcript: ..."
+                var parts = Evidence.Split('|');
+                if (parts.Length > 0 && parts[0].Contains("Patterns:"))
+                {
+                    var patternSection = parts[0].Replace("Patterns:", "").Trim();
+                    foreach (var p in patternSection.Split(';'))
+                    {
+                        var trimmed = p.Trim();
+                        if (!string.IsNullOrEmpty(trimmed))
+                            keywords.Add(trimmed);
+                    }
+                }
+                return keywords;
+            }
+        }
+
+        public string AlertTypeDisplay => RiskScore >= 80 ? "CRITICAL"
+            : RiskScore >= 60 ? "HIGH"
+            : RiskScore >= 40 ? "MEDIUM"
+            : RiskScore >= 15 ? "LOW" : "SAFE";
+
         // Additional properties for stats calculation
         /// <summary>
         /// Confidence score from 0.0 to 1.0 (e.g., 0.85 = 85%)
@@ -78,7 +108,13 @@ namespace FraudGuardAI.Models
     public class HistoryResponse
     {
         public bool Success { get; set; }
-        
+
         public CallLog[] Data { get; set; }
+    }
+
+    public class CallDetailResponse
+    {
+        public bool Success { get; set; }
+        public CallLog Data { get; set; }
     }
 }

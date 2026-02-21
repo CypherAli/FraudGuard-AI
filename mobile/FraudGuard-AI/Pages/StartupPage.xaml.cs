@@ -29,6 +29,14 @@ namespace FraudGuardAI.Pages
                 StatusLabel.Text = T("Startup_Status_InitializingApp");
                 await Task.Delay(500); // Give UI time to render
 
+                // Step 0.5: Check onboarding (first launch)
+                if (!Preferences.Get("OnboardingCompleted", false))
+                {
+                    Debug.WriteLine("[StartupPage] First launch — showing onboarding");
+                    Application.Current.MainPage = new OnboardingPage();
+                    return;
+                }
+
                 // Step 1: Check MauiContext
                 Debug.WriteLine("[StartupPage] Checking MauiContext...");
                 StatusLabel.Text = T("Startup_Status_CheckingEnvironment");

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
+             x:Class="FraudGuardAI.Pages.WhitelistPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20,48,20,20">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,16">
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="←" FontSize="24" TextColor="{DynamicResource TextPrimary}">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackClicked"/>
+                    </Label.GestureRecognizers>
+                </Label>
+                <Label Text="{loc:Translate Key=Whitelist_Title}"
+                       FontSize="22" FontAttributes="Bold"
+                       TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center"/>
+                <Border x:Name="CountBadge" BackgroundColor="#14B8A6" Padding="8,4" StrokeThickness="0"
+                        VerticalOptions="Center" Margin="8,0,0,0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                    <Label x:Name="CountLabel" Text="0" FontSize="12" FontAttributes="Bold" TextColor="White"/>
+                </Border>
+            </HorizontalStackLayout>
+            <Label Text="{loc:Translate Key=Whitelist_Subtitle}"
+                   FontSize="14" TextColor="{DynamicResource TextSecondary}"/>
+        </VerticalStackLayout>
+
+        <!-- Search -->
+        <SearchBar x:Name="SearchBar" Grid.Row="1"
+                   Placeholder="{loc:Translate Key=Whitelist_SearchPlaceholder}"
+                   TextChanged="OnSearchTextChanged"
+                   BackgroundColor="{DynamicResource InputBg}"
+                   TextColor="{DynamicResource TextPrimary}"
+                   PlaceholderColor="{DynamicResource TextSecondary}"
+                   Margin="0,0,0,12"/>
+
+        <!-- Empty State -->
+        <VerticalStackLayout x:Name="EmptyStateView" Grid.Row="2"
+                            IsVisible="False"
+                            VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
+            <Border WidthRequest="80" HeightRequest="80"
+                   BackgroundColor="{DynamicResource CardBackground}"
+                   StrokeThickness="0" HorizontalOptions="Center">
+                <Border.StrokeShape><RoundRectangle CornerRadius="40"/></Border.StrokeShape>
+                <Label Text="📇" FontSize="36" HorizontalOptions="Center" VerticalOptions="Center"/>
+            </Border>
+            <Label Text="{loc:Translate Key=Whitelist_EmptyTitle}"
+                   FontSize="18" FontAttributes="Bold"
+                   TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
+            <Label Text="{loc:Translate Key=Whitelist_EmptySubtitle}"
+                   FontSize="14" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+
+        <!-- List -->
+        <CollectionView x:Name="WhitelistCollectionView" Grid.Row="2" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="{loc:Translate Key=Whitelist_Delete}"
+                                          BackgroundColor="#EF4444"
+                                          Invoked="OnDeleteSwiped"/>
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <Border BackgroundColor="{DynamicResource CardBg}"
+                               StrokeThickness="0" Padding="16,14">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Label Text="📱" FontSize="18" VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="{Binding .}"
+                                       FontSize="16" TextColor="{DynamicResource TextPrimary}"
+                                       VerticalOptions="Center" Margin="12,0,0,0"/>
+                                <Label Grid.Column="2" Text="✓" FontSize="16"
+                                       TextColor="#14B8A6" VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Action Buttons -->
+        <VerticalStackLayout Grid.Row="3" Spacing="10" Margin="0,12,0,0">
+            <Button Text="{loc:Translate Key=Whitelist_AddNumber}"
+                    BackgroundColor="#14B8A6" TextColor="White"
+                    CornerRadius="12" FontSize="15" FontAttributes="Bold"
+                    Padding="0,14" Clicked="OnAddNumberClicked"/>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="{loc:Translate Key=Whitelist_ImportContacts}"
+                        BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource TextPrimary}"
+                        CornerRadius="12" FontSize="13" Padding="0,12"
+                        Clicked="OnImportContactsClicked"/>
+                <Button Grid.Column="1"
+                        Text="{loc:Translate Key=Whitelist_ClearAll}"
+                        BackgroundColor="#7F1D1D" TextColor="#F87171"
+                        CornerRadius="12" FontSize="13" Padding="0,12"
+                        Clicked="OnClearAllClicked"/>
+            </Grid>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

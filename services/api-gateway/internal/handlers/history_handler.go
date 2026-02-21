@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/fraudguard/api-gateway/internal/repository"
+	"github.com/go-chi/chi/v5"
 )
 
 // GetHistory handles GET /api/history requests
@@ -66,4 +67,37 @@ func GetHistory(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf(" Error encoding response: %v", err)
 	}
+}
+
+// GetCallDetail handles GET /api/call/{id} requests
+// Returns detailed information for a single call log entry
+func GetCallDetail(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Invalid call ID",
+		})
+		return
+	}
+
+	callLog, err := repository.GetCallLogByID(uint(id))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Call not found",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data":    callLog,
+	})
 }

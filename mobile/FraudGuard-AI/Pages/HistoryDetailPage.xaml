@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:loc="clr-namespace:FraudGuardAI.Localization"
+             x:Class="FraudGuardAI.Pages.HistoryDetailPage"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,48,20,20" Spacing="16">
+
+            <!-- Back Button -->
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="←" FontSize="24" TextColor="{DynamicResource TextPrimary}">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackClicked"/>
+                    </Label.GestureRecognizers>
+                </Label>
+                <Label Text="{loc:Translate Key=Detail_Title}"
+                       FontSize="22" FontAttributes="Bold"
+                       TextColor="{DynamicResource TextPrimary}"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <!-- Loading -->
+            <ActivityIndicator x:Name="LoadingIndicator"
+                              IsRunning="False" IsVisible="False"
+                              Color="{StaticResource PrimaryBlue}"
+                              VerticalOptions="Center" HorizontalOptions="Center"
+                              WidthRequest="48" HeightRequest="48"/>
+
+            <!-- Risk Score Card -->
+            <Border x:Name="RiskCard" IsVisible="False"
+                   BackgroundColor="{DynamicResource CardBg}"
+                   StrokeThickness="0" Padding="24">
+                <Border.StrokeShape><RoundRectangle CornerRadius="20"/></Border.StrokeShape>
+                <Border.Shadow><Shadow Brush="#000000" Opacity="0.2" Radius="12" Offset="0,4"/></Border.Shadow>
+
+                <VerticalStackLayout Spacing="16" HorizontalOptions="Center">
+                    <!-- Risk Score Circle -->
+                    <Border x:Name="RiskCircle"
+                           WidthRequest="100" HeightRequest="100"
+                           StrokeThickness="4" Padding="0"
+                           HorizontalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="50"/></Border.StrokeShape>
+                        <Label x:Name="RiskScoreLabel"
+                               FontSize="32" FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Border>
+
+                    <!-- Alert Type Badge -->
+                    <Border x:Name="AlertBadge" Padding="16,8" StrokeThickness="0" HorizontalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                        <Label x:Name="AlertTypeLabel" FontSize="14" FontAttributes="Bold" TextColor="White"/>
+                    </Border>
+
+                    <!-- Info Row -->
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label Text="{loc:Translate Key=Detail_Duration}"
+                                   FontSize="11" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
+                            <Label x:Name="DurationLabel" FontSize="15" FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label Text="{loc:Translate Key=Detail_Timestamp}"
+                                   FontSize="11" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
+                            <Label x:Name="TimestampLabel" FontSize="15" FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label Text="{loc:Translate Key=Detail_DeepfakeScore}"
+                                   FontSize="11" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
+                            <Label x:Name="DeepfakeLabel" FontSize="15" FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Transcript Section -->
+            <Border x:Name="TranscriptCard" IsVisible="False"
+                   BackgroundColor="{DynamicResource CardBg}"
+                   StrokeThickness="0" Padding="16">
+                <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{loc:Translate Key=Detail_Transcript}"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{DynamicResource TextSecondary}"/>
+                    <Label x:Name="TranscriptLabel"
+                           FontSize="14" TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Keywords Section -->
+            <Border x:Name="KeywordsCard" IsVisible="False"
+                   BackgroundColor="{DynamicResource CardBg}"
+                   StrokeThickness="0" Padding="16">
+                <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{loc:Translate Key=Detail_Keywords}"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{DynamicResource TextSecondary}"/>
+                    <FlexLayout x:Name="KeywordsContainer"
+                               Wrap="Wrap" Direction="Row"
+                               JustifyContent="Start" AlignItems="Start"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Evidence Section -->
+            <Border x:Name="EvidenceCard" IsVisible="False"
+                   BackgroundColor="{DynamicResource CardBg}"
+                   StrokeThickness="0" Padding="16">
+                <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{loc:Translate Key=Detail_Evidence}"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{DynamicResource TextSecondary}"/>
+                    <Label x:Name="EvidenceLabel"
+                           FontSize="13" TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Share Button -->
+            <Button x:Name="ShareButton" IsVisible="False"
+                    Text="{loc:Translate Key=Detail_Share}"
+                    BackgroundColor="{StaticResource AccentBlue}"
+                    TextColor="White"
+                    CornerRadius="12"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    Padding="0,14"
+                    Clicked="OnShareClicked"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

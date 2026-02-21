@@ -207,11 +207,21 @@ namespace FraudGuardAI
                 bool usbMode = Preferences.Get(PREF_USB_MODE, false);
                 if (UsbModeSwitch != null)
                     UsbModeSwitch.IsToggled = usbMode;
-                
+
                 // Load Auto Protection preference
                 bool autoProtection = Preferences.Get(PREF_AUTO_PROTECTION, true);  // Default to enabled
                 if (AutoProtectionSwitch != null)
                     AutoProtectionSwitch.IsToggled = autoProtection;
+
+                // Load Auto-Reject preference
+                bool autoReject = Preferences.Get("AutoRejectBlacklisted", false);
+                if (AutoRejectSwitch != null)
+                    AutoRejectSwitch.IsToggled = autoReject;
+
+                // Load SMS Detection preference
+                bool smsDetection = Preferences.Get("SmsDetectionEnabled", false);
+                if (SmsDetectionSwitch != null)
+                    SmsDetectionSwitch.IsToggled = smsDetection;
 
                 bool lightThemeUserSet = Preferences.Get(PREF_LIGHT_THEME_USER_SET, false);
                 bool lightThemeEnabled = lightThemeUserSet && Preferences.Get(PREF_LIGHT_THEME, false);
@@ -274,6 +284,15 @@ namespace FraudGuardAI
                         System.Diagnostics.Debug.WriteLine("[Settings] Invalid URL or IP format");
                         return;
                     }
+                }
+
+                // Auto-upgrade to HTTPS for known production domains
+                if (url.StartsWith("http://") &&
+                    (url.Contains("onrender.com") || url.Contains("railway.app") || url.Contains("herokuapp.com")))
+                {
+                    url = "https://" + url.Substring("http://".Length);
+                    ServerIPEntry.Text = url;
+                    System.Diagnostics.Debug.WriteLine($"[Settings] Auto-upgraded to HTTPS for production domain");
                 }
 
                 Preferences.Set(PREF_SERVER_URL, url);
@@ -551,6 +570,40 @@ namespace FraudGuardAI
                 T("Settings_Security_Message"),
                 T("Common_OK")
             );
+        }
+
+        private async void OnWhitelistClicked(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("WhitelistPage");
+        }
+
+        private async void OnAutoRejectToggled(object sender, ToggledEventArgs e)
+        {
+            Preferences.Set("AutoRejectBlacklisted", e.Value);
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Auto-reject blacklisted: {e.Value}");
+
+            if (e.Value)
+            {
+                // Sync blacklist from server when enabling
+                try
+                {
+                    await BlacklistCacheService.Instance.SyncFromServerAsync();
+                    await DisplayAlert(
+                        T("Settings_AutoReject"),
+                        T("Settings_AutoRejectEnabled"),
+                        T("Common_OK"));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SettingsPage] Blacklist sync error: {ex.Message}");
+                }
+            }
+        }
+
+        private void OnSmsDetectionToggled(object sender, ToggledEventArgs e)
+        {
+            Preferences.Set("SmsDetectionEnabled", e.Value);
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] SMS detection: {e.Value}");
         }
 
         private async void OnHelpClicked(object sender, EventArgs e)

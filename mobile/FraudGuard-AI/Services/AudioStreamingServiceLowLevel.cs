@@ -1,3 +1,4 @@
+#if ANDROID
 using System;
 using System.Net.WebSockets;
 using System.Text;
@@ -80,7 +81,15 @@ namespace FraudGuardAI.Services
                 // Get WebSocket URL dynamically from Settings
                 string webSocketUrl = SettingsPage.GetWebSocketUrl();
                 string deviceId = SettingsPage.GetDeviceID();
-                
+
+                // Enforce WSS for known production domains (prevent accidental plain WS)
+                if (webSocketUrl.StartsWith("ws://") &&
+                    (webSocketUrl.Contains("onrender.com") || webSocketUrl.Contains("railway.app") || webSocketUrl.Contains("herokuapp.com")))
+                {
+                    webSocketUrl = "wss://" + webSocketUrl.Substring("ws://".Length);
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ⚠️ Auto-upgraded to WSS for production: {webSocketUrl}");
+                }
+
                 // Add device_id query parameter
                 string fullUrl = $"{webSocketUrl}?device_id={Uri.EscapeDataString(deviceId)}";
                 
@@ -653,3 +662,4 @@ namespace FraudGuardAI.Services
         }
     }
 }
+#endif

@@ -588,18 +588,28 @@ func (fd *FraudDetector) EndSession() {
 	// Apply data masking before saving to database
 	evidenceStr = MaskSensitiveData(evidenceStr)
 
+	// Build full transcript (masked) for detail view
+	fullTranscript := ""
+	if len(session.TranscriptHistory) > 0 {
+		fullTranscript = MaskSensitiveData(strings.Join(session.TranscriptHistory, " "))
+		if len(fullTranscript) > 5000 {
+			fullTranscript = fullTranscript[:5000] + "..."
+		}
+	}
+
 	// Determine if call is fraudulent using configurable threshold
 	isFraud := session.AccumulatedScore >= fd.config.HighThreshold
 
 	callLog := &models.CallLog{
-		DeviceID:  fd.deviceID,
-		StartTime: session.StartTime,
-		EndTime:   endTime,
-		Duration:  duration,
-		RiskScore: session.AccumulatedScore,
-		IsFraud:   isFraud,
-		Evidence:  evidenceStr,
-		CreatedAt: time.Now(),
+		DeviceID:   fd.deviceID,
+		StartTime:  session.StartTime,
+		EndTime:    endTime,
+		Duration:   duration,
+		RiskScore:  session.AccumulatedScore,
+		IsFraud:    isFraud,
+		Evidence:   evidenceStr,
+		Transcript: fullTranscript,
+		CreatedAt:  time.Now(),
 	}
 
 	log.Printf("[%s] Session ended - Duration: %ds, RiskScore: %d, IsFraud: %v, Alerts: %d",

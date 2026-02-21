@@ -184,6 +184,14 @@ namespace FraudGuardAI
             await LoadHistoryAsync();
         }
 
+        private async void OnCallLogTapped(object sender, EventArgs e)
+        {
+            if (sender is BindableObject bindable && bindable.BindingContext is CallLog log)
+            {
+                await Shell.Current.GoToAsync($"HistoryDetailPage?id={log.Id}");
+            }
+        }
+
         private async Task RefreshAsync()
         {
             IsRefreshing = true;

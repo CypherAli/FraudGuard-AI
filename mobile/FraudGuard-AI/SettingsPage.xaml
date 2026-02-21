@@ -290,6 +290,74 @@
                                VerticalOptions="Center"/>
                     </Grid>
                 </Border>
+
+                <!-- Whitelist Management -->
+                <Border BackgroundColor="{DynamicResource CardBg}"
+                       StrokeThickness="0" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnWhitelistClicked"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
+                        <Border WidthRequest="36" HeightRequest="36"
+                               BackgroundColor="#14B8A620" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                            <Label Text="📇" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
+                            <Label FontSize="15" TextColor="#14B8A6"
+                                   Text="{loc:Translate Key=Settings_Whitelist}"/>
+                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                                   Text="{loc:Translate Key=Settings_WhitelistDesc}"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text="›" FontSize="20"
+                               TextColor="{DynamicResource TextSecondary}" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Auto-Reject Blacklisted Calls -->
+                <Border BackgroundColor="{DynamicResource CardBg}"
+                       StrokeThickness="0" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
+                        <Border WidthRequest="36" HeightRequest="36"
+                               BackgroundColor="#EF444420" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                            <Label Text="🚫" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
+                            <Label FontSize="15" TextColor="{DynamicResource TextPrimary}"
+                                   Text="{loc:Translate Key=Settings_AutoReject}"/>
+                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                                   Text="{loc:Translate Key=Settings_AutoRejectDesc}"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="AutoRejectSwitch" Grid.Column="2"
+                                OnColor="#EF4444" Toggled="OnAutoRejectToggled"
+                                VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- SMS Fraud Detection -->
+                <Border BackgroundColor="{DynamicResource CardBg}"
+                       StrokeThickness="0" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
+                        <Border WidthRequest="36" HeightRequest="36"
+                               BackgroundColor="#FBBF2420" StrokeThickness="0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                            <Label Text="💬" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
+                            <Label FontSize="15" TextColor="{DynamicResource TextPrimary}"
+                                   Text="{loc:Translate Key=Settings_SmsDetection}"/>
+                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                                   Text="{loc:Translate Key=Settings_SmsDetectionDesc}"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="SmsDetectionSwitch" Grid.Column="2"
+                                OnColor="#FBBF24" Toggled="OnSmsDetectionToggled"
+                                VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
             </VerticalStackLayout>
 
             <!-- KẾT NỐI Section -->
