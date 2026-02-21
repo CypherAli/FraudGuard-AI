@@ -2,6 +2,7 @@ using Android.App;
 using Android.Content;
 using Android.Telephony;
 using System.Diagnostics;
+using System.Threading;
 
 namespace FraudGuardAI.Platforms.Android.Services
 {
@@ -14,8 +15,13 @@ namespace FraudGuardAI.Platforms.Android.Services
     [IntentFilter(new[] { TelephonyManager.ActionPhoneStateChanged })]
     public class CallStateReceiver : BroadcastReceiver
     {
-        private static bool _isCallActive = false;
-        private static bool _wasProtectionAutoStarted = false;
+        private static volatile bool _isCallActive = false;
+        private static volatile bool _wasProtectionAutoStarted = false;
+
+        // Debounce IDLE events: speakerphone toggle / audio re-route cũng fire IDLE,
+        // cần chờ 1.5s để xác nhận cuộc gọi thực sự kết thúc (không phải chỉ đổi audio route)
+        private static CancellationTokenSource? _idleDebounceToken;
+        private static readonly object _idleLock = new object();
 
         /// <summary>
         /// Event để thông báo cho MainPage khi trạng thái cuộc gọi thay đổi
@@ -47,8 +53,16 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 else if (stateStr == TelephonyManager.ExtraStateOffhook)
                 {
-                    // Cuộc gọi đã được nhấc máy
-                    Debug.WriteLine($"[CallReceiver] 📱 CALL ANSWERED: {phoneNumber}");
+                    // Cuộc gọi đã được nhấc máy (hoặc đang gọi đi)
+                    Debug.WriteLine($"[CallReceiver] 📱 CALL ANSWERED/OFFHOOK: {phoneNumber}");
+
+                    // Hủy debounce IDLE nếu đang chờ — cuộc gọi vẫn còn active
+                    lock (_idleLock)
+                    {
+                        _idleDebounceToken?.Cancel();
+                        _idleDebounceToken = null;
+                    }
+
                     _isCallActive = true;
                     OnCallStateChanged(CallState.Active, phoneNumber);
 
@@ -57,20 +71,36 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 else if (stateStr == TelephonyManager.ExtraStateIdle)
                 {
-                    // Cuộc gọi đã kết thúc
-                    Debug.WriteLine($"[CallReceiver] 📴 CALL ENDED");
-
+                    // IDLE có thể do: (1) cuộc gọi thực sự kết thúc, hoặc (2) speakerphone toggle / audio re-route
+                    // Dùng debounce 1.5s: nếu sau 1.5s không có OFFHOOK mới → cuộc gọi thực sự ended
                     if (_isCallActive)
                     {
-                        _isCallActive = false;
-                        OnCallStateChanged(CallState.Ended, phoneNumber);
+                        Debug.WriteLine($"[CallReceiver] 📴 IDLE received — debouncing 1.5s to confirm call ended...");
 
-                        // Tự động tắt nếu đã tự động bật
-                        if (_wasProtectionAutoStarted)
+                        CancellationTokenSource thisCts;
+                        lock (_idleLock)
                         {
-                            AutoStopProtection();
-                            _wasProtectionAutoStarted = false;
+                            _idleDebounceToken?.Cancel();
+                            thisCts = new CancellationTokenSource();
+                            _idleDebounceToken = thisCts;
                         }
+
+                        var capturedPhone = phoneNumber;
+                        _ = Task.Delay(1500, thisCts.Token).ContinueWith(t =>
+                        {
+                            if (t.IsCanceled) return; // OFFHOOK came in → bỏ qua
+
+                            Debug.WriteLine($"[CallReceiver] 📴 CALL CONFIRMED ENDED after debounce");
+                            _isCallActive = false;
+                            OnCallStateChanged(CallState.Ended, capturedPhone);
+
+                            // Tự động tắt protection nếu đã tự động bật
+                            if (_wasProtectionAutoStarted)
+                            {
+                                AutoStopProtection();
+                                _wasProtectionAutoStarted = false;
+                            }
+                        }, TaskScheduler.Default);
                     }
                 }
             }

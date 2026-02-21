@@ -126,11 +126,9 @@ namespace FraudGuardAI
                 _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
                 _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD);
 
-                // Protection efficiency: percentage of calls analyzed where threats were detected and blocked
-                if (allCalls.Count > 0 && fraudCalls.Count > 0)
-                    _stats.ProtectionEfficiency = Math.Min(100, ((allCalls.Count - fraudCalls.Count) / (double)allCalls.Count) * 100);
-                else if (allCalls.Count > 0)
-                    _stats.ProtectionEfficiency = 100; // All calls safe = 100% protection
+                // Protection efficiency: percentage of analyzed calls where fraud was detected and blocked
+                if (allCalls.Count > 0)
+                    _stats.ProtectionEfficiency = Math.Min(100, (fraudCalls.Count / (double)allCalls.Count) * 100);
                 else
                     _stats.ProtectionEfficiency = 0;
             }

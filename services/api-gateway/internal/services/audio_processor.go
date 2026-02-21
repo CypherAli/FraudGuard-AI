@@ -15,10 +15,60 @@ import (
 var (
 	detectorRegistry         = make(map[string]*FraudDetector)
 	detectorMutex            sync.RWMutex
+	detectorLastSeen         = make(map[string]time.Time)
 	deepfakeRegistry         = make(map[string]*audio.DeepfakeDetector)
 	deepfakeMutex            sync.RWMutex
 	audioProcessingSemaphore = make(chan struct{}, 50) // Max 50 concurrent goroutines
 )
+
+const detectorTTL = 30 * time.Minute
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			evictStaleDetectors()
+		}
+	}()
+}
+
+// evictStaleDetectors removes detectors that haven't been used in detectorTTL.
+// Prevents unbounded memory growth when many unique deviceIDs connect over time.
+func evictStaleDetectors() {
+	cutoff := time.Now().Add(-detectorTTL)
+
+	// Collect stale device IDs under the detector lock
+	detectorMutex.Lock()
+	var stale []string
+	for deviceID, lastSeen := range detectorLastSeen {
+		if lastSeen.Before(cutoff) {
+			stale = append(stale, deviceID)
+			delete(detectorRegistry, deviceID)
+			delete(detectorLastSeen, deviceID)
+		}
+	}
+	detectorMutex.Unlock()
+
+	if len(stale) == 0 {
+		return
+	}
+
+	// Clean up associated registries for evicted devices
+	deepfakeMutex.Lock()
+	for _, deviceID := range stale {
+		delete(deepfakeRegistry, deviceID)
+	}
+	deepfakeMutex.Unlock()
+
+	audioBufferMutex.Lock()
+	for _, deviceID := range stale {
+		delete(audioBufferRegistry, deviceID)
+	}
+	audioBufferMutex.Unlock()
+
+	log.Printf("🗑️ Evicted %d stale detector(s) (TTL=%v): %v", len(stale), detectorTTL, stale)
+}
 
 // Audio buffer registry - accumulates audio chunks before sending to Deepgram
 var (
@@ -65,6 +115,7 @@ func GetOrCreateFraudDetector(deviceID string, sendAlert func(models.AlertMessag
 	defer detectorMutex.Unlock()
 
 	if detector, exists := detectorRegistry[deviceID]; exists {
+		detectorLastSeen[deviceID] = time.Now()
 		if sendAlert != nil {
 			detector.SetAlertCallback(sendAlert)
 		}
@@ -76,6 +127,7 @@ func GetOrCreateFraudDetector(deviceID string, sendAlert func(models.AlertMessag
 		detector.SetAlertCallback(sendAlert)
 	}
 	detectorRegistry[deviceID] = detector
+	detectorLastSeen[deviceID] = time.Now()
 	log.Printf("[%s] Created new fraud detector", deviceID)
 	return detector
 }
@@ -89,6 +141,7 @@ func GetFraudDetector(deviceID string) *FraudDetector {
 func RemoveFraudDetector(deviceID string) {
 	detectorMutex.Lock()
 	delete(detectorRegistry, deviceID)
+	delete(detectorLastSeen, deviceID)
 	detectorMutex.Unlock()
 
 	deepfakeMutex.Lock()

@@ -59,12 +59,14 @@ type KeywordMatcher struct {
 	negativeScores    []int
 }
 
-// NewFraudDetector creates a new fraud detector for a session
+// NewFraudDetector creates a new fraud detector for a session.
+// Sử dụng GetKeywordMatcher() để luôn nhận keyword list mới nhất (hot-reload).
 func NewFraudDetector(deviceID string) *FraudDetector {
+	ensureKeywordWatcher()
 	return &FraudDetector{
 		deviceID:  deviceID,
 		session:   newSessionState(deviceID),
-		keywords:  initializeKeywordMatcher(),
+		keywords:  GetKeywordMatcher(),
 		startTime: time.Now(),
 		config:    LoadFromEnvironment(),
 	}
@@ -72,13 +74,23 @@ func NewFraudDetector(deviceID string) *FraudDetector {
 
 // NewFraudDetectorWithConfig creates a fraud detector with custom config
 func NewFraudDetectorWithConfig(deviceID string, config *FraudDetectionConfig) *FraudDetector {
+	ensureKeywordWatcher()
 	return &FraudDetector{
 		deviceID:  deviceID,
 		session:   newSessionState(deviceID),
-		keywords:  initializeKeywordMatcher(),
+		keywords:  GetKeywordMatcher(),
 		startTime: time.Now(),
 		config:    config,
 	}
+}
+
+// ensureKeywordWatcher khởi tạo watcher nếu chưa có (idempotent)
+var keywordWatcherOnce sync.Once
+
+func ensureKeywordWatcher() {
+	keywordWatcherOnce.Do(func() {
+		initKeywordWatcher(defaultKeywordConfigPath())
+	})
 }
 
 // SetAlertCallback sets the callback function for sending alerts to mobile client
@@ -162,6 +174,9 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	fd.session.TranscriptHistory = append(fd.session.TranscriptHistory, text)
 	fd.session.LastUpdateTime = time.Now()
 
+	// Refresh keyword matcher để nhận hot-reload updates
+	fd.keywords = GetKeywordMatcher()
+
 	normalizedText := strings.ToLower(text)
 	score, patterns := fd.calculateRiskScore(normalizedText)
 
@@ -187,10 +202,14 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 		Patterns:  patterns,
 	}
 
-	// Gemini Agentic AI — tự dùng tools (check_blacklist, auto_report) rồi ra quyết định
+	// Gemini Agentic AI — tự dùng tools (check_blacklist, auto_report) rồi ra quyết định.
+	// Chạy async để không block pipeline real-time; kết quả là weighted input vào session score.
 	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
 		alertCallback := fd.sendAlert
 		sessionID := fd.session.SessionID
+		// Capture config thresholds trước khi release lock để dùng an toàn trong goroutine
+		criticalThresh := fd.config.CriticalThreshold
+		highThresh := fd.config.HighThreshold
 		// Copy slice để tránh race condition với goroutine
 		historyCopy := make([]string, len(fd.session.TranscriptHistory))
 		copy(historyCopy, fd.session.TranscriptHistory)
@@ -202,10 +221,31 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 				}
 			}()
 
-			// Dùng Agentic loop thay vì classify đơn thuần
-			agentResult, err := GlobalGeminiClient.RunFraudDetectionAgent(txt, history)
-			if err != nil {
-				log.Printf("[%s] Gemini Agent error: %v", deviceID, err)
+			// Timeout tổng bao phủ toàn bộ agentic loop (4 iter × ~8s + DB overhead)
+			ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+			defer cancel()
+
+			type agentOutcome struct {
+				result *AgentAnalysisResult
+				err    error
+			}
+			ch := make(chan agentOutcome, 1)
+			go func() {
+				r, e := GlobalGeminiClient.RunFraudDetectionAgent(txt, history)
+				ch <- agentOutcome{r, e}
+			}()
+
+			var agentResult *AgentAnalysisResult
+			select {
+			case out := <-ch:
+				if out.err != nil {
+					log.Printf("[%s] Gemini Agent error: %v", deviceID, out.err)
+					GeminiCircuitBreaker.RecordFailure()
+					return
+				}
+				agentResult = out.result
+			case <-ctx.Done():
+				log.Printf("[%s] Gemini Agent timed out after 35s", deviceID)
 				GeminiCircuitBreaker.RecordFailure()
 				return
 			}
@@ -220,30 +260,34 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 				agentResult.ToolsUsed, agentResult.AutoReported)
 
 			geminiBoost := agentResult.RiskScore / 2
+			var currentAccumulated int
 			fd.mu.Lock()
-			if fd.session.SessionID == sessionID {
-				fd.session.AccumulatedScore += geminiBoost
-				if fd.session.AccumulatedScore > 100 {
-					fd.session.AccumulatedScore = 100
-				}
-				patternNote := fmt.Sprintf("Agent: %s (+%d, confidence=%s, tools=%v)",
-					agentResult.FraudType, geminiBoost, agentResult.Confidence, agentResult.ToolsUsed)
-				if agentResult.AutoReported {
-					patternNote += " [AUTO-REPORTED]"
-				}
-				fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patternNote)
+			if fd.session.SessionID != sessionID {
+				// Session đã reset trong lúc agent chạy — bỏ qua, không ghi vào session mới
+				fd.mu.Unlock()
+				return
 			}
+			fd.session.AccumulatedScore += geminiBoost
+			if fd.session.AccumulatedScore > 100 {
+				fd.session.AccumulatedScore = 100
+			}
+			if fd.session.AccumulatedScore < 0 {
+				fd.session.AccumulatedScore = 0
+			}
+			currentAccumulated = fd.session.AccumulatedScore // đọc trong lock, tránh race
+			patternNote := fmt.Sprintf("Agent: %s (+%d, confidence=%s, tools=%v)",
+				agentResult.FraudType, geminiBoost, agentResult.Confidence, agentResult.ToolsUsed)
+			if agentResult.AutoReported {
+				patternNote += " [AUTO-REPORTED]"
+			}
+			fd.session.DetectedPatterns = append(fd.session.DetectedPatterns, patternNote)
 			fd.mu.Unlock()
 
 			if alertCallback != nil {
-				fd.mu.RLock()
-				currentAccumulated := fd.session.AccumulatedScore
-				fd.mu.RUnlock()
-
 				alertType := "MEDIUM"
-				if currentAccumulated >= 80 || agentResult.RiskScore >= 80 {
+				if currentAccumulated >= criticalThresh || agentResult.RiskScore >= 80 {
 					alertType = "CRITICAL"
-				} else if currentAccumulated >= 60 || agentResult.RiskScore >= 60 {
+				} else if currentAccumulated >= highThresh || agentResult.RiskScore >= 60 {
 					alertType = "HIGH"
 				}
 
@@ -269,7 +313,8 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	// Determine alert level based on accumulated score
 
-	// Spam guards: respect MaxAlertsPerSession and AlertCooldown
+	// Spam guards: cooldown áp dụng cho MEDIUM/HIGH, nhưng CRITICAL luôn được gửi
+	// (kẻ lừa đảo có thể lợi dụng cooldown để che khuất alert thứ 3+)
 	alertsExhausted := fd.session.AlertsSent >= fd.config.MaxAlertsPerSession
 	cooldownActive := fd.config.AlertCooldownMs > 0 &&
 		!fd.session.LastAlertTime.IsZero() &&
@@ -278,14 +323,15 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	case currentScore >= fd.config.CriticalThreshold:
 		result.Action = "CRITICAL"
 		result.Message = fmt.Sprintf("CẢNH BÁO NGHIÊM TRỌNG: Phát hiện dấu hiệu lừa đảo rất cao! (Điểm rủi ro: %d/100)", currentScore)
-		if !alertsExhausted && !cooldownActive {
+		// CRITICAL không bị cooldown suppress — chỉ bị cap bởi MaxAlertsPerSession
+		if !alertsExhausted {
 			result.IsAlert = true
 			fd.session.AlertsSent++
 			fd.session.LastAlertTime = time.Now()
 			fd.alertCount++
 			log.Printf("[%s] CRITICAL ALERT: Score=%d, Patterns=%v", fd.deviceID, currentScore, patterns)
 		} else {
-			log.Printf("[%s] CRITICAL suppressed (exhausted=%v cooldown=%v)", fd.deviceID, alertsExhausted, cooldownActive)
+			log.Printf("[%s] CRITICAL suppressed (alerts exhausted: %d/%d)", fd.deviceID, fd.session.AlertsSent, fd.config.MaxAlertsPerSession)
 		}
 
 	case currentScore >= fd.config.HighThreshold:

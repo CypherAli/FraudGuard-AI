@@ -351,7 +351,7 @@ namespace FraudGuardAI.Services
                             bool isSilence = true;
                             double energy = 0;
                             int sampleCount = bytesRead / BYTES_PER_SAMPLE;
-                            for (int i = 0; i < bytesRead - 1; i += BYTES_PER_SAMPLE)
+                            for (int i = 0; i < bytesRead; i += BYTES_PER_SAMPLE)
                             {
                                 short sample = (short)(buffer[i] | (buffer[i + 1] << 8));
                                 energy += Math.Abs(sample);
@@ -437,7 +437,11 @@ namespace FraudGuardAI.Services
 
         private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
         {
+            // Buffer large enough for the receive chunk; messages larger than this
+            // are assembled across multiple ReceiveAsync calls via messageBuffer.
             var buffer = new byte[8192];
+            // Accumulator for multi-frame messages (result.EndOfMessage == false)
+            var messageBuffer = new System.IO.MemoryStream(8192);
 
             try
             {
@@ -459,14 +463,28 @@ namespace FraudGuardAI.Services
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        var message = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        ProcessServerMessage(message);
+                        // Accumulate this frame's data
+                        messageBuffer.Write(buffer, 0, result.Count);
+
+                        if (result.EndOfMessage)
+                        {
+                            // Full message assembled — process it
+                            var message = System.Text.Encoding.UTF8.GetString(
+                                messageBuffer.GetBuffer(), 0, (int)messageBuffer.Length);
+                            messageBuffer.SetLength(0); // Reset for next message
+                            ProcessServerMessage(message);
+                        }
+                        // else: more frames coming — keep accumulating
                     }
                 }
             }
             catch (Exception ex)
             {
                 OnError($"Receive error: {ex.Message}", ex);
+            }
+            finally
+            {
+                messageBuffer.Dispose();
             }
         }
 
@@ -544,4 +562,94 @@ namespace FraudGuardAI.Services
                 OnError($"Message processing error: {ex.Message}", ex);
             }
         }
+
+        private async Task ReconnectAsync()
+        {
+            try
+            {
+                if (!_isConnected)
+                {
+                    Log.Info(TAG, "[AudioService] Attempting reconnect...");
+                    await ConnectAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(TAG, $"[AudioService] Reconnect failed: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Event Helpers
+
+        protected virtual void OnAlertReceived(AlertData alert)
+        {
+            AlertReceived?.Invoke(this, new AlertEventArgs(alert));
+        }
+
+        protected virtual void OnError(string message, Exception? ex)
+        {
+            Log.Error(TAG, $"[AudioService] Error: {message}");
+            ErrorOccurred?.Invoke(this, new ErrorEventArgs(message, ex));
+        }
+
+        protected virtual void OnConnectionStatusChanged(bool isConnected, string status)
+        {
+            ConnectionStatusChanged?.Invoke(this, new ConnectionStatusEventArgs(isConnected, status));
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        private bool _disposed = false;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+            if (disposing)
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+
+                try { _audioRecord?.Release(); } catch { }
+                try { _audioRecord?.Dispose(); } catch { }
+                _audioRecord = null;
+
+                try { _webSocket?.Dispose(); } catch { }
+                _webSocket = null;
+
+                _startStopLock.Dispose();
+            }
+            _disposed = true;
+        }
+
+        #endregion
+    }
+
+    // ─── Event Arg Types ────────────────────────────────────────────────────
+
+    public class AlertEventArgs : EventArgs
+    {
+        public AlertData Alert { get; }
+        public AlertEventArgs(AlertData alert) => Alert = alert;
+    }
+
+    public class ConnectionStatusEventArgs : EventArgs
+    {
+        public bool IsConnected { get; }
+        public string Status { get; }
+        public ConnectionStatusEventArgs(bool isConnected, string status)
+        {
+            IsConnected = isConnected;
+            Status = status;
+        }
+    }
 }
