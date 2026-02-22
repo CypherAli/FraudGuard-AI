@@ -18,6 +18,6 @@ public class DashboardStats
     public string BlockedTodayDisplay => BlockedToday.ToString();
     public string ThreatsDisplay => SeriousThreats.ToString();
     public string EfficiencyDisplay => $"{ProtectionEfficiency:F1}%";
-    public string WeeklyChangeDisplay => $"+{WeeklyChange} tuần này";
+    public string WeeklyChangeDisplay => $"+{WeeklyChange} this week";
     public string EfficiencyChangeDisplay => $"+{EfficiencyChange:F1}%";
 }

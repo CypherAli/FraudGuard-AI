@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:FraudGuardAI.Models"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
-             x:Class="FraudGuardAI.HistoryPage"
+             x:Class="FraudGuardAI.Pages.HistoryPage"
              Title="{loc:Translate Key=Tab_History}"
              Shell.NavBarIsVisible="False">
 

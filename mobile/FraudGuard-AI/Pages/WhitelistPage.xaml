@@ -30,7 +30,7 @@
 
         <!-- Search -->
         <SearchBar x:Name="SearchBar" Grid.Row="1"
-                   Placeholder="{loc:Translate Key=Whitelist_SearchPlaceholder}"
+                   Placeholder="{loc:Translate Key=Whitelist_Search}"
                    TextChanged="OnSearchTextChanged"
                    BackgroundColor="{DynamicResource InputBg}"
                    TextColor="{DynamicResource TextPrimary}"

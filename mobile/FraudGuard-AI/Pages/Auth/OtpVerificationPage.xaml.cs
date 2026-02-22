@@ -1,4 +1,5 @@
 using FraudGuardAI.Services;
+using FraudGuardAI.Localization;
 using System.Diagnostics;
 
 namespace FraudGuardAI.Pages.Auth
@@ -187,7 +188,7 @@ namespace FraudGuardAI.Pages.Auth
                 StartResendCountdown();
 
                 // Show success message
-                await DisplayAlert("Thành công", "Mã OTP mới đã được gửi", "OK");
+                await DisplayAlert(T("Common_OK"), LocalizationResourceManager.Instance["Otp_ResendSuccess"], T("Common_OK"));
             }
             catch (Exception ex)
             {
@@ -265,5 +266,7 @@ namespace FraudGuardAI.Pages.Auth
             _resendTimer?.Stop();
             _resendTimer?.Dispose();
         }
+
+        private static string T(string key) => LocalizationResourceManager.Instance[key];
     }
 }

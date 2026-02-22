@@ -4,20 +4,20 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using FraudGuardAI;                  // App, AppConstants
 using FraudGuardAI.Constants;
 using FraudGuardAI.Services;
 using FraudGuardAI.Pages.Auth;
 using FraudGuardAI.Localization;
 using System.Globalization;
 
-namespace FraudGuardAI
+namespace FraudGuardAI.Pages
 {
     public partial class SettingsPage : ContentPage
     {
         #region Constants
 
         private const string PREF_SERVER_URL = "ServerURL";  // Changed from ServerIP to support full URLs
-        private const string PREF_DEVICE_ID = "DeviceID";
         private const string PREF_USB_MODE = "UsbMode";
         private const string PREF_AUTO_PROTECTION = "AutoProtection";  // Enable/Disable auto protection
         private const string PREF_LIGHT_THEME = "LightThemeEnabled";
@@ -26,37 +26,30 @@ namespace FraudGuardAI
         private const string PREF_AVATAR_PATH = "AvatarImagePath";
         private const string DEFAULT_URL = AppConstants.PRODUCTION_SERVER_URL;  // Use production by default
         private const string USB_URL = AppConstants.USB_SERVER_URL; // For emulator
-        private const string DEFAULT_DEVICE_ID = "android_device";
         
         // Legacy support for migration
         private const string LEGACY_PREF_SERVER_IP = "ServerIP";
 
         private readonly Color SuccessColor = Color.FromArgb("#34D399");
-        private readonly Color ErrorColor = Color.FromArgb("#F87171");
         private readonly IAuthenticationService? _authService;
 
         #endregion
 
         #region Constructor
 
-        public SettingsPage()
+        public SettingsPage(IAuthenticationService? authService = null)
         {
             try
             {
                 InitializeComponent();
-                
-                // Get authentication service from DI (null-safe)
-                _authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
-                
+                _authService = authService;
+
                 if (_authService == null)
-                {
                     System.Diagnostics.Debug.WriteLine("[SettingsPage] WARNING: AuthService is null");
-                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Constructor Error: {ex.Message}");
-                // Log but don't crash - UI will initialize on appearing
             }
         }
 
@@ -186,8 +179,9 @@ namespace FraudGuardAI
         {
             try
             {
-                if (CurrentConfigLabel != null)
-                    CurrentConfigLabel.Text = GetWebSocketUrl();
+                bool usbMode = Preferences.Get(PREF_USB_MODE, false);
+                string baseUrl = usbMode ? USB_URL : Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
+                UpdateConfigurationDisplay(baseUrl);
             }
             catch (Exception ex)
             {
@@ -265,11 +259,17 @@ namespace FraudGuardAI
             }
         }
 
-        private void SaveServerIP()
+        private async void SaveServerIP()
         {
             try
             {
-                string url = ServerIPEntry.Text?.Trim();
+                string url = ServerIPEntry?.Text?.Trim();
+
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    await DisplayAlert(T("Common_Error"), T("Settings_Test_Error_EmptyUrl"), T("Common_OK"));
+                    return;
+                }
 
                 // Accept both full URLs and IP addresses
                 if (!url.StartsWith("http://") && !url.StartsWith("https://"))
@@ -281,7 +281,7 @@ namespace FraudGuardAI
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("[Settings] Invalid URL or IP format");
+                        await DisplayAlert(T("Common_Error"), T("Settings_Save_InvalidUrl"), T("Common_OK"));
                         return;
                     }
                 }
@@ -291,7 +291,8 @@ namespace FraudGuardAI
                     (url.Contains("onrender.com") || url.Contains("railway.app") || url.Contains("herokuapp.com")))
                 {
                     url = "https://" + url.Substring("http://".Length);
-                    ServerIPEntry.Text = url;
+                    if (ServerIPEntry != null)
+                        ServerIPEntry.Text = url;
                     System.Diagnostics.Debug.WriteLine($"[Settings] Auto-upgraded to HTTPS for production domain");
                 }
 
@@ -302,6 +303,7 @@ namespace FraudGuardAI
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Unexpected error: {ex.Message}");
+                await DisplayAlert(T("Common_Error"), string.Format(T("Settings_Test_Error_Generic"), ex.Message), T("Common_OK"));
             }
         }
 
@@ -376,11 +378,11 @@ namespace FraudGuardAI
             try
             {
                 bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-                string serverUrl = isUsbMode ? USB_URL : ServerIPEntry.Text?.Trim();
+                string serverUrl = isUsbMode ? USB_URL : ServerIPEntry?.Text?.Trim();
 
                 if (string.IsNullOrWhiteSpace(serverUrl))
                 {
-                    await DisplayAlert("Lỗi", "Vui lòng nhập URL server", "OK");
+                    await DisplayAlert(T("Common_Error"), T("Settings_Test_Error_EmptyUrl"), T("Common_OK"));
                     return;
                 }
 
@@ -391,13 +393,16 @@ namespace FraudGuardAI
                         testUrl = $"http://{testUrl}:8080";
                     else
                     {
-                        await DisplayAlert("Lỗi", "Định dạng URL không hợp lệ", "OK");
+                        await DisplayAlert(T("Common_Error"), T("Settings_Test_Error_InvalidUrl"), T("Common_OK"));
                         return;
                     }
                 }
 
-                TestButton.IsEnabled = false;
-                TestButton.Text = "Testing...";
+                if (TestButton != null)
+                {
+                    TestButton.IsEnabled = false;
+                    TestButton.Text = T("Settings_Test_Testing");
+                }
 
                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
                 var healthUrl = testUrl.TrimEnd('/') + "/health";
@@ -405,31 +410,44 @@ namespace FraudGuardAI
 
                 if (response.IsSuccessStatusCode)
                 {
-                    await DisplayAlert("✅ Thành công", $"Đã kết nối đến server!\n\n{testUrl}", "OK");
+                    await DisplayAlert(
+                        T("Settings_Test_Success_Title"),
+                        string.Format(T("Settings_Test_Success_Detail"), testUrl),
+                        T("Common_OK"));
                 }
                 else
                 {
-                    await DisplayAlert("Lỗi", $"Server trả về lỗi: {response.StatusCode}", "OK");
+                    await DisplayAlert(
+                        T("Common_Error"),
+                        string.Format(T("Settings_Test_Error_Server"), response.StatusCode),
+                        T("Common_OK"));
                 }
             }
             catch (HttpRequestException ex)
             {
-                await DisplayAlert("❌ Kết nối thất bại",
-                    $"Không thể kết nối đến server.\n\nLỗi: {ex.Message}\n\nKiểm tra:\n• URL đúng chưa\n• Server đang chạy\n• Kết nối mạng", "OK");
+                await DisplayAlert(
+                    T("Settings_Test_Error_Connection_Title"),
+                    string.Format(T("Settings_Test_Error_Connection_Detail"), ex.Message),
+                    T("Common_OK"));
             }
             catch (TaskCanceledException)
             {
-                await DisplayAlert("⏱️ Hết thời gian",
-                    "Kết nối đã hết thời gian.\n\nServer có thể:\n• Không chạy\n• Bị firewall chặn\n• URL sai", "OK");
+                await DisplayAlert(
+                    T("Settings_Test_Error_Timeout_Title"),
+                    T("Settings_Test_Error_Timeout_Detail"),
+                    T("Common_OK"));
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Lỗi", $"Lỗi: {ex.Message}", "OK");
+                await DisplayAlert(T("Common_Error"), string.Format(T("Settings_Test_Error_Generic"), ex.Message), T("Common_OK"));
             }
             finally
             {
-                TestButton.IsEnabled = true;
-                TestButton.Text = "Test";
+                if (TestButton != null)
+                {
+                    TestButton.IsEnabled = true;
+                    TestButton.Text = T("Settings_Test_Done");
+                }
             }
         }
 
@@ -705,36 +723,5 @@ namespace FraudGuardAI
 
         #endregion
 
-        #region Public Static Helpers
-
-        public static string GetServerURL()
-        {
-            bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            return isUsbMode ? USB_URL : Preferences.Get(PREF_SERVER_URL, DEFAULT_URL);
-        }
-
-        public static string GetDeviceID() => Preferences.Get(PREF_DEVICE_ID, DEFAULT_DEVICE_ID);
-        
-        public static bool IsAutoProtectionEnabled() => Preferences.Get(PREF_AUTO_PROTECTION, true);
-
-        public static string GetWebSocketUrl()
-        {
-            var baseUrl = Preferences.Get(PREF_USB_MODE, false) ? USB_URL : GetServerURL();
-            
-            if (baseUrl.StartsWith("https://"))
-                return baseUrl.Replace("https://", "wss://") + "/ws";
-            if (baseUrl.StartsWith("http://"))
-                return baseUrl.Replace("http://", "ws://") + "/ws";
-            
-            return $"ws://{baseUrl}:8080/ws";
-        }
-
-        public static string GetAPIBaseUrl()
-        {
-            bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-            return isUsbMode ? USB_URL : GetServerURL();
-        }
-
-        #endregion
     }
 }

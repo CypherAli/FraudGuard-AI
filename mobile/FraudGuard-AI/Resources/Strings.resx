@@ -446,6 +446,9 @@ Attempt: {1}/{2}</value>
   <data name="Login_InfoSingleLogin" xml:space="preserve">
     <value>Sign in once, use forever</value>
   </data>
+  <data name="Register_OtpInfo" xml:space="preserve">
+    <value>We'll send a 6-digit OTP to verify your number. No password needed!</value>
+  </data>
   <data name="Register_Back" xml:space="preserve">
     <value>← Back</value>
   </data>
@@ -654,6 +657,9 @@ Attempt: {1}/{2}</value>
   <data name="Whitelist_EmptySubtitle" xml:space="preserve">
     <value>Add trusted numbers to skip fraud detection</value>
   </data>
+  <data name="Whitelist_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
   <data name="Whitelist_AddPromptTitle" xml:space="preserve">
     <value>Add phone number</value>
   </data>
@@ -756,5 +762,118 @@ Attempt: {1}/{2}</value>
   </data>
   <data name="Login_RecoverSend" xml:space="preserve">
     <value>Send OTP</value>
+  </data>
+
+  <!-- Settings: Test Connection -->
+  <data name="Settings_Test_Testing" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
+  <data name="Settings_Test_Done" xml:space="preserve">
+    <value>🔍 Test</value>
+  </data>
+  <data name="Settings_Test_Error_EmptyUrl" xml:space="preserve">
+    <value>Please enter a server URL</value>
+  </data>
+  <data name="Settings_Test_Error_InvalidUrl" xml:space="preserve">
+    <value>Invalid URL or IP format</value>
+  </data>
+  <data name="Settings_Test_Success_Title" xml:space="preserve">
+    <value>✅ Connected</value>
+  </data>
+  <data name="Settings_Test_Success_Detail" xml:space="preserve">
+    <value>Successfully connected to server!
+
+{0}</value>
+  </data>
+  <data name="Settings_Test_Error_Server" xml:space="preserve">
+    <value>Server returned error: {0}</value>
+  </data>
+  <data name="Settings_Test_Error_Timeout_Title" xml:space="preserve">
+    <value>⏱️ Connection timed out</value>
+  </data>
+  <data name="Settings_Test_Error_Timeout_Detail" xml:space="preserve">
+    <value>Connection timed out.
+
+Server may be:
+• Not running
+• Blocked by firewall
+• Wrong URL</value>
+  </data>
+  <data name="Settings_Test_Error_Connection_Title" xml:space="preserve">
+    <value>❌ Connection failed</value>
+  </data>
+  <data name="Settings_Test_Error_Connection_Detail" xml:space="preserve">
+    <value>Cannot connect to server.
+
+Error: {0}
+
+Check:
+• Correct URL
+• Server is running
+• Network connection</value>
+  </data>
+  <data name="Settings_Test_Error_Generic" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Settings_Save_InvalidUrl" xml:space="preserve">
+    <value>Invalid URL or IP format. Please enter a valid address.</value>
+  </data>
+  <data name="Settings_Save_Success" xml:space="preserve">
+    <value>Server address saved</value>
+  </data>
+
+  <!-- History: dynamic strings -->
+  <data name="History_AnalyzedCallsFormat" xml:space="preserve">
+    <value>{0} analyzed calls</value>
+  </data>
+  <data name="History_TimeoutError" xml:space="preserve">
+    <value>Server did not respond after 8 seconds</value>
+  </data>
+
+  <!-- Register: placeholders -->
+  <data name="Register_PasswordPlaceholder" xml:space="preserve">
+    <value>Enter password</value>
+  </data>
+  <data name="Register_ConfirmPasswordPlaceholder" xml:space="preserve">
+    <value>Re-enter password</value>
+  </data>
+
+  <!-- Whitelist: validation -->
+  <data name="Whitelist_InvalidNumber" xml:space="preserve">
+    <value>Invalid phone number format. Please enter digits only (e.g. 0912345678).</value>
+  </data>
+  <data name="Whitelist_DuplicateNumber" xml:space="preserve">
+    <value>This number is already in the whitelist.</value>
+  </data>
+
+  <!-- OTP: resend -->
+  <data name="Otp_ResendSuccess" xml:space="preserve">
+    <value>A new OTP has been sent</value>
+  </data>
+
+  <!-- Register: validation messages -->
+  <data name="Register_Error_ServiceNotReady" xml:space="preserve">
+    <value>Authentication service not ready. Please restart the app.</value>
+  </data>
+  <data name="Register_Error_PhoneRequired" xml:space="preserve">
+    <value>Please enter your phone number</value>
+  </data>
+  <data name="Register_Error_PasswordTooShort" xml:space="preserve">
+    <value>Password must be at least 6 characters</value>
+  </data>
+  <data name="Register_Error_PasswordMismatch" xml:space="preserve">
+    <value>Passwords do not match</value>
+  </data>
+  <data name="Register_Error_AcceptTerms" xml:space="preserve">
+    <value>Please accept the Terms of Service and Privacy Policy</value>
+  </data>
+  <data name="Register_Password_Weak" xml:space="preserve">
+    <value>Weak password</value>
+  </data>
+  <data name="Register_Password_Medium" xml:space="preserve">
+    <value>Medium strength</value>
+  </data>
+  <data name="Register_Password_Strong" xml:space="preserve">
+    <value>Strong password</value>
   </data>
 </root>
