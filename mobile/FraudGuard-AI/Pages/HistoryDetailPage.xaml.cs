@@ -14,7 +14,7 @@ namespace FraudGuardAI.Pages
     {
         private int _callLogId;
         private CallLog _callLog;
-        private HistoryService _historyService;
+        private readonly IHistoryService _historyService;
 
         public int CallLogId
         {
@@ -26,10 +26,10 @@ namespace FraudGuardAI.Pages
             }
         }
 
-        public HistoryDetailPage()
+        public HistoryDetailPage(IHistoryService historyService)
         {
             InitializeComponent();
-            _historyService = new HistoryService();
+            _historyService = historyService;
         }
 
         private async Task LoadDetailAsync()
@@ -100,9 +100,9 @@ namespace FraudGuardAI.Pages
                 KeywordsContainer.Children.Clear();
                 foreach (var kw in keywords)
                 {
-                    var badgeColor = kw.StartsWith("CRITICAL") ? Color.FromArgb("#D32F2F")
-                        : kw.StartsWith("WARNING") ? Color.FromArgb("#FF9800")
-                        : kw.StartsWith("SUSPICIOUS") ? Color.FromArgb("#FBBF24")
+                    var badgeColor = kw.StartsWith("CRITICAL")  ? Color.FromArgb("#D32F2F")
+                        : kw.StartsWith("WARNING")              ? Color.FromArgb("#FF9800")
+                        : kw.StartsWith("SUSPICIOUS")           ? Color.FromArgb("#FBBF24")
                         : Color.FromArgb("#4CAF50");
 
                     var badge = new Border
@@ -135,9 +135,7 @@ namespace FraudGuardAI.Pages
         }
 
         private async void OnBackClicked(object sender, EventArgs e)
-        {
-            await Shell.Current.GoToAsync("..");
-        }
+            => await Shell.Current.GoToAsync("..");
 
         private async void OnShareClicked(object sender, EventArgs e)
         {

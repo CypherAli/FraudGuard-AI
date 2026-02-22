@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="FraudGuardAI.SettingsPage"
+             x:Class="FraudGuardAI.Pages.SettingsPage"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              Title="{loc:Translate Key=Settings_Title}"
              Shell.NavBarIsVisible="False">

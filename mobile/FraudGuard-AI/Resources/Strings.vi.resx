@@ -446,6 +446,9 @@ Lần thử: {1}/{2}</value>
   <data name="Login_InfoSingleLogin" xml:space="preserve">
     <value>Đăng nhập 1 lần, dùng mãi mãi</value>
   </data>
+  <data name="Register_OtpInfo" xml:space="preserve">
+    <value>Chúng tôi sẽ gửi mã OTP 6 chữ số để xác minh số điện thoại. Không cần mật khẩu!</value>
+  </data>
   <data name="Register_Back" xml:space="preserve">
     <value>← Quay lại</value>
   </data>
@@ -654,6 +657,9 @@ Lần thử: {1}/{2}</value>
   <data name="Whitelist_EmptySubtitle" xml:space="preserve">
     <value>Thêm số tin cậy để bỏ qua phát hiện lừa đảo</value>
   </data>
+  <data name="Whitelist_Delete" xml:space="preserve">
+    <value>Xóa</value>
+  </data>
   <data name="Whitelist_AddPromptTitle" xml:space="preserve">
     <value>Thêm số điện thoại</value>
   </data>
@@ -756,5 +762,118 @@ Lần thử: {1}/{2}</value>
   </data>
   <data name="Login_RecoverSend" xml:space="preserve">
     <value>Gửi OTP</value>
+  </data>
+
+  <!-- Settings: Kiểm tra kết nối -->
+  <data name="Settings_Test_Testing" xml:space="preserve">
+    <value>Đang kiểm tra...</value>
+  </data>
+  <data name="Settings_Test_Done" xml:space="preserve">
+    <value>🔍 Test</value>
+  </data>
+  <data name="Settings_Test_Error_EmptyUrl" xml:space="preserve">
+    <value>Vui lòng nhập URL server</value>
+  </data>
+  <data name="Settings_Test_Error_InvalidUrl" xml:space="preserve">
+    <value>Định dạng URL hoặc IP không hợp lệ</value>
+  </data>
+  <data name="Settings_Test_Success_Title" xml:space="preserve">
+    <value>✅ Thành công</value>
+  </data>
+  <data name="Settings_Test_Success_Detail" xml:space="preserve">
+    <value>Đã kết nối đến server!
+
+{0}</value>
+  </data>
+  <data name="Settings_Test_Error_Server" xml:space="preserve">
+    <value>Server trả về lỗi: {0}</value>
+  </data>
+  <data name="Settings_Test_Error_Timeout_Title" xml:space="preserve">
+    <value>⏱️ Hết thời gian kết nối</value>
+  </data>
+  <data name="Settings_Test_Error_Timeout_Detail" xml:space="preserve">
+    <value>Kết nối đã hết thời gian chờ.
+
+Server có thể:
+• Không chạy
+• Bị firewall chặn
+• URL sai</value>
+  </data>
+  <data name="Settings_Test_Error_Connection_Title" xml:space="preserve">
+    <value>❌ Kết nối thất bại</value>
+  </data>
+  <data name="Settings_Test_Error_Connection_Detail" xml:space="preserve">
+    <value>Không thể kết nối đến server.
+
+Lỗi: {0}
+
+Kiểm tra:
+• URL đúng chưa
+• Server đang chạy
+• Kết nối mạng</value>
+  </data>
+  <data name="Settings_Test_Error_Generic" xml:space="preserve">
+    <value>Lỗi: {0}</value>
+  </data>
+  <data name="Settings_Save_InvalidUrl" xml:space="preserve">
+    <value>Định dạng URL hoặc IP không hợp lệ. Vui lòng nhập địa chỉ hợp lệ.</value>
+  </data>
+  <data name="Settings_Save_Success" xml:space="preserve">
+    <value>Đã lưu địa chỉ server</value>
+  </data>
+
+  <!-- Lịch sử: chuỗi động -->
+  <data name="History_AnalyzedCallsFormat" xml:space="preserve">
+    <value>{0} cuộc gọi đã phân tích</value>
+  </data>
+  <data name="History_TimeoutError" xml:space="preserve">
+    <value>Server không phản hồi sau 8 giây</value>
+  </data>
+
+  <!-- Đăng ký: placeholder -->
+  <data name="Register_PasswordPlaceholder" xml:space="preserve">
+    <value>Nhập mật khẩu</value>
+  </data>
+  <data name="Register_ConfirmPasswordPlaceholder" xml:space="preserve">
+    <value>Nhập lại mật khẩu</value>
+  </data>
+
+  <!-- Whitelist: validation -->
+  <data name="Whitelist_InvalidNumber" xml:space="preserve">
+    <value>Định dạng số điện thoại không hợp lệ. Vui lòng chỉ nhập chữ số (vd: 0912345678).</value>
+  </data>
+  <data name="Whitelist_DuplicateNumber" xml:space="preserve">
+    <value>Số điện thoại này đã có trong danh sách tin cậy.</value>
+  </data>
+
+  <!-- OTP: gửi lại -->
+  <data name="Otp_ResendSuccess" xml:space="preserve">
+    <value>Mã OTP mới đã được gửi</value>
+  </data>
+
+  <!-- Đăng ký: thông báo validation -->
+  <data name="Register_Error_ServiceNotReady" xml:space="preserve">
+    <value>Dịch vụ xác thực chưa sẵn sàng. Vui lòng khởi động lại ứng dụng.</value>
+  </data>
+  <data name="Register_Error_PhoneRequired" xml:space="preserve">
+    <value>Vui lòng nhập số điện thoại</value>
+  </data>
+  <data name="Register_Error_PasswordTooShort" xml:space="preserve">
+    <value>Mật khẩu phải có ít nhất 6 ký tự</value>
+  </data>
+  <data name="Register_Error_PasswordMismatch" xml:space="preserve">
+    <value>Mật khẩu xác nhận không khớp</value>
+  </data>
+  <data name="Register_Error_AcceptTerms" xml:space="preserve">
+    <value>Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật</value>
+  </data>
+  <data name="Register_Password_Weak" xml:space="preserve">
+    <value>Mật khẩu yếu</value>
+  </data>
+  <data name="Register_Password_Medium" xml:space="preserve">
+    <value>Mật khẩu trung bình</value>
+  </data>
+  <data name="Register_Password_Strong" xml:space="preserve">
+    <value>Mật khẩu mạnh</value>
   </data>
 </root>

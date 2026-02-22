@@ -8,9 +8,9 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="30" Spacing="20">
-            
+
             <!-- Back Button -->
-                <Button Text="{loc:Translate Key=Register_Back}"
+            <Button Text="{loc:Translate Key=Register_Back}"
                     BackgroundColor="Transparent"
                     TextColor="#34D399"
                     FontSize="16"
@@ -20,90 +20,67 @@
 
             <!-- Title -->
             <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
-                  <Label Text="{loc:Translate Key=Register_Title}" 
-                       FontSize="32" 
+                <Label Text="{loc:Translate Key=Register_Title}"
+                       FontSize="32"
                        FontAttributes="Bold"
                        TextColor="#E0E6ED"
                        HorizontalOptions="Center"/>
-                  <Label FontSize="16" 
-                      TextColor="#8B95A5"
-                      HorizontalOptions="Center"
-                      Text="{loc:Translate Key=Register_Subtitle}"/>
+                <Label Text="{loc:Translate Key=Register_Subtitle}"
+                       FontSize="16"
+                       TextColor="#8B95A5"
+                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
+
+            <!-- OTP Info Banner -->
+            <Border BackgroundColor="#0F2D1F"
+                    StrokeThickness="1"
+                    Stroke="#34D399"
+                    Padding="16,12">
+                <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="✉️" FontSize="20" VerticalOptions="Center"/>
+                    <Label Text="{loc:Translate Key=Register_OtpInfo}"
+                           FontSize="13"
+                           TextColor="#34D399"
+                           VerticalOptions="Center"
+                           LineBreakMode="WordWrap"/>
+                </HorizontalStackLayout>
+            </Border>
 
             <!-- Phone Number Input -->
             <VerticalStackLayout Spacing="8">
-                  <Label TextColor="#E0E6ED" 
-                      FontSize="14"
-                      FontAttributes="Bold"
-                      Text="{loc:Translate Key=Register_Phone}"/>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
+                <Label TextColor="#E0E6ED"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       Text="{loc:Translate Key=Register_Phone}"/>
+                <Frame BackgroundColor="#1B2838"
+                       BorderColor="#2D3E50"
+                       CornerRadius="12"
                        Padding="0"
                        HasShadow="False">
-                    <Entry x:Name="PhoneEntry"
-                           Placeholder="+84 xxx xxx xxx"
-                           PlaceholderColor="#5C6B7A"
-                           TextColor="#E0E6ED"
-                           Keyboard="Telephone"
-                           FontSize="16"
-                           Margin="15,10"/>
-                </Frame>
-            </VerticalStackLayout>
-
-            <!-- Password Input -->
-            <VerticalStackLayout Spacing="8">
-                  <Label TextColor="#E0E6ED" 
-                      FontSize="14"
-                      FontAttributes="Bold"
-                      Text="{loc:Translate Key=Register_PasswordOptional}"/>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       HasShadow="False">
-                    <Entry x:Name="PasswordEntry"
-                           Placeholder="Nhập mật khẩu"
-                           PlaceholderColor="#5C6B7A"
-                           TextColor="#E0E6ED"
-                           IsPassword="True"
-                           FontSize="16"
-                           Margin="15,10"
-                           TextChanged="OnPasswordChanged"/>
-                </Frame>
-                <Label x:Name="PasswordStrengthLabel"
-                       TextColor="#8B95A5"
-                       FontSize="12"
-                       IsVisible="False"/>
-            </VerticalStackLayout>
-
-            <!-- Confirm Password Input -->
-            <VerticalStackLayout Spacing="8">
-                  <Label TextColor="#E0E6ED" 
-                      FontSize="14"
-                      FontAttributes="Bold"
-                      Text="{loc:Translate Key=Register_ConfirmPassword}"/>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       HasShadow="False">
-                    <Entry x:Name="ConfirmPasswordEntry"
-                           Placeholder="Nhập lại mật khẩu"
-                           PlaceholderColor="#5C6B7A"
-                           TextColor="#E0E6ED"
-                           IsPassword="True"
-                           FontSize="16"
-                           Margin="15,10"/>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0"
+                               Text="📱"
+                               FontSize="18"
+                               VerticalOptions="Center"
+                               Margin="14,0,0,0"/>
+                        <Entry x:Name="PhoneEntry"
+                               Grid.Column="1"
+                               Placeholder="+84 xxx xxx xxx"
+                               PlaceholderColor="#5C6B7A"
+                               TextColor="#E0E6ED"
+                               Keyboard="Telephone"
+                               FontSize="16"
+                               Margin="10,12"/>
+                    </Grid>
                 </Frame>
             </VerticalStackLayout>
 
             <!-- Terms Checkbox -->
             <HorizontalStackLayout Spacing="10" Margin="0,10,0,0">
                 <CheckBox x:Name="TermsCheckbox"
-                         Color="#34D399"/>
-                <Label TextColor="#8B95A5" FontSize="12" VerticalOptions="Center">
+                          Color="#34D399"/>
+                <Label TextColor="#8B95A5" FontSize="13" VerticalOptions="Center">
                     <Label.FormattedText>
                         <FormattedString>
                             <Span Text="{loc:Translate Key=Register_TermsPrefix}"/>
@@ -120,10 +97,11 @@
                    TextColor="#EF4444"
                    FontSize="14"
                    IsVisible="False"
-                   HorizontalOptions="Center"/>
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"/>
 
             <!-- Register Button -->
-                <Button x:Name="RegisterButton"
+            <Button x:Name="RegisterButton"
                     Text="{loc:Translate Key=Register_Button}"
                     BackgroundColor="#34D399"
                     TextColor="#0D1B2A"
@@ -131,7 +109,7 @@
                     FontAttributes="Bold"
                     CornerRadius="12"
                     HeightRequest="56"
-                    Margin="0,20,0,0"
+                    Margin="0,10,0,0"
                     Clicked="OnRegisterClicked">
                 <Button.Shadow>
                     <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
@@ -140,17 +118,17 @@
 
             <!-- Loading Indicator -->
             <ActivityIndicator x:Name="LoadingIndicator"
-                             IsRunning="False"
-                             IsVisible="False"
-                             Color="#34D399"
-                             HeightRequest="40"/>
+                               IsRunning="False"
+                               IsVisible="False"
+                               Color="#34D399"
+                               HeightRequest="40"/>
 
             <!-- Login Link -->
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,20,0,20">
-                  <Label TextColor="#8B95A5" 
-                      FontSize="14"
-                      Text="{loc:Translate Key=Register_HaveAccount}"/>
-                  <Label Text="{loc:Translate Key=Register_Login}"
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,16,0,20">
+                <Label TextColor="#8B95A5"
+                       FontSize="14"
+                       Text="{loc:Translate Key=Register_HaveAccount}"/>
+                <Label Text="{loc:Translate Key=Register_Login}"
                        TextColor="#34D399"
                        FontSize="14"
                        FontAttributes="Bold">
@@ -163,4 +141,3 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

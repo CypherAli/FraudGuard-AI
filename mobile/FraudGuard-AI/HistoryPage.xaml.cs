@@ -1,17 +1,17 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using FraudGuardAI.Models;
 using FraudGuardAI.Services;
+using FraudGuardAI.Localization;
 
-namespace FraudGuardAI
+namespace FraudGuardAI.Pages
 {
     public partial class HistoryPage : ContentPage
     {
         #region Fields
 
-        private HistoryService _historyService;
+        private readonly IHistoryService _historyService;
+        private readonly IAppSettings _settings;
         private ObservableCollection<CallLog> _callLogs;
         private bool _isRefreshing;
         private Command? _refreshCommand;
@@ -53,14 +53,15 @@ namespace FraudGuardAI
 
         #region Constructor
 
-        public HistoryPage()
+        public HistoryPage(IHistoryService historyService, IAppSettings settings)
         {
             InitializeComponent();
-            
+
+            _historyService = historyService;
+            _settings = settings;
             _callLogs = new ObservableCollection<CallLog>();
             HistoryCollectionView.ItemsSource = _callLogs;
-            _historyService = new HistoryService();
-            
+
             BindingContext = this;
         }
 
@@ -86,13 +87,13 @@ namespace FraudGuardAI
                 HideError();
                 HideEmptyState();
 
-                string deviceId = SettingsPage.GetDeviceID();
-                
+                string deviceId = _settings.GetDeviceId();
+
                 // Add timeout for history request
                 var historyTask = _historyService.GetHistoryAsync(deviceId, limit: 50);
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(8));
                 var completedTask = await Task.WhenAny(historyTask, timeoutTask);
-                
+
                 List<CallLog> history;
                 if (completedTask == historyTask)
                 {
@@ -100,33 +101,33 @@ namespace FraudGuardAI
                 }
                 else
                 {
-                    throw new TimeoutException("Server không phản hồi sau 8 giây");
+                    throw new TimeoutException(T("History_TimeoutError"));
                 }
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _callLogs.Clear();
-                    
+
                     if (history != null && history.Count > 0)
                     {
                         foreach (var log in history)
-                        {
                             _callLogs.Add(log);
-                        }
-                        SubtitleLabel.Text = $"{history.Count} analyzed calls";
+
+                        if (SubtitleLabel != null)
+                            SubtitleLabel.Text = string.Format(T("History_AnalyzedCallsFormat"), history.Count);
                     }
                     else
                     {
                         ShowEmptyState();
                     }
-                    
+
                     ShowLoading(false);
                 });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[History] Error: {ex.Message}");
-                
+
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     ShowLoading(false);
@@ -157,10 +158,7 @@ namespace FraudGuardAI
             ErrorView.IsVisible = false;
         }
 
-        private void HideEmptyState()
-        {
-            EmptyStateView.IsVisible = false;
-        }
+        private void HideEmptyState() => EmptyStateView.IsVisible = false;
 
         private void ShowError(string message)
         {
@@ -170,26 +168,19 @@ namespace FraudGuardAI
             EmptyStateView.IsVisible = false;
         }
 
-        private void HideError()
-        {
-            ErrorView.IsVisible = false;
-        }
+        private void HideError() => ErrorView.IsVisible = false;
 
         #endregion
 
         #region Event Handlers
 
         private async void OnRetryClicked(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync();
-        }
+            => await LoadHistoryAsync();
 
         private async void OnCallLogTapped(object sender, EventArgs e)
         {
             if (sender is BindableObject bindable && bindable.BindingContext is CallLog log)
-            {
                 await Shell.Current.GoToAsync($"HistoryDetailPage?id={log.Id}");
-            }
         }
 
         private async Task RefreshAsync()
@@ -202,10 +193,13 @@ namespace FraudGuardAI
 
         #region Public Methods
 
-        public async Task ReloadAsync()
-        {
-            await LoadHistoryAsync();
-        }
+        public async Task ReloadAsync() => await LoadHistoryAsync();
+
+        #endregion
+
+        #region Helpers
+
+        private static string T(string key) => LocalizationResourceManager.Instance[key];
 
         #endregion
     }

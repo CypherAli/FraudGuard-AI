@@ -55,7 +55,7 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                string baseUrl = SettingsPage.GetAPIBaseUrl();
+                string baseUrl = new AppSettings().GetApiBaseUrl();
                 var response = await _httpClient.GetAsync($"{baseUrl}/api/blacklist");
                 response.EnsureSuccessStatusCode();
 

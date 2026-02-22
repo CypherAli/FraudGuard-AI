@@ -23,19 +23,19 @@ namespace FraudGuardAI.Services
         Task<bool> VerifyOtpAsync(string verificationId, string otpCode);
 
         /// <summary>
-        /// Register new user (not used in email-only flow)
+        /// Register new user — triggers OTP verification flow.
         /// </summary>
-        /// <param name="phoneNumber">Legacy parameter</param>
-        /// <param name="password">User password (optional, for future use)</param>
-        /// <returns>Verification ID for OTP verification</returns>
-        Task<string> RegisterAsync(string phoneNumber, string? password = null);
+        /// <param name="email">Email address to register</param>
+        /// <param name="password">Reserved for future use; pass null for OTP-only flow</param>
+        /// <returns>Verification ID to use with VerifyOtpAsync</returns>
+        Task<string> RegisterAsync(string email, string? password = null);
 
         /// <summary>
-        /// Login existing user with email
+        /// Login existing user — triggers OTP verification flow.
         /// </summary>
-        /// <param name="phoneNumber">Email address</param>
-        /// <returns>Verification ID for OTP verification</returns>
-        Task<string> LoginAsync(string phoneNumber);
+        /// <param name="email">Registered email address</param>
+        /// <returns>Verification ID to use with VerifyOtpAsync</returns>
+        Task<string> LoginAsync(string email);
 
         /// <summary>
         /// Logout current user

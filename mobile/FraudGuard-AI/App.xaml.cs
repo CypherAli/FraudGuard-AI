@@ -117,7 +117,9 @@ namespace FraudGuardAI
             if (_audioService == null)
             {
                 Debug.WriteLine("[App] Creating AudioStreamingServiceLowLevel (lazy init)");
-                _audioService = new AudioStreamingServiceLowLevel();
+                var settings = Application.Current?.Handler?.MauiContext?.Services
+                    ?.GetService<IAppSettings>() ?? new AppSettings();
+                _audioService = new AudioStreamingServiceLowLevel(settings);
             }
             return _audioService;
         }

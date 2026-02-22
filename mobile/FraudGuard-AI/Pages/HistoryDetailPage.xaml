@@ -63,13 +63,13 @@
                                    TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
                         </VerticalStackLayout>
                         <VerticalStackLayout HorizontalOptions="Center">
-                            <Label Text="{loc:Translate Key=Detail_Timestamp}"
+                            <Label Text="{loc:Translate Key=Detail_Time}"
                                    FontSize="11" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
                             <Label x:Name="TimestampLabel" FontSize="15" FontAttributes="Bold"
                                    TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>
                         </VerticalStackLayout>
                         <VerticalStackLayout HorizontalOptions="Center">
-                            <Label Text="{loc:Translate Key=Detail_DeepfakeScore}"
+                            <Label Text="{loc:Translate Key=Detail_Deepfake}"
                                    FontSize="11" TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center"/>
                             <Label x:Name="DeepfakeLabel" FontSize="15" FontAttributes="Bold"
                                    TextColor="{DynamicResource TextPrimary}" HorizontalOptions="Center"/>

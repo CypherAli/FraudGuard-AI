@@ -29,25 +29,7 @@ type TranscribeClient struct {
 	HTTPClient      *http.Client
 }
 
-// transcribeRequest là body gửi lên Amazon Transcribe StartTranscriptionJob
-type transcribeStartRequest struct {
-	TranscriptionJobName string                   `json:"TranscriptionJobName"`
-	LanguageCode         string                   `json:"LanguageCode"`
-	MediaFormat          string                   `json:"MediaFormat"`
-	Media                transcribeMedia          `json:"Media"`
-	Settings             transcribeSettings       `json:"Settings,omitempty"`
-}
-
-type transcribeMedia struct {
-	MediaFileUri string `json:"MediaFileUri"`
-}
-
-type transcribeSettings struct {
-	ShowSpeakerLabels bool `json:"ShowSpeakerLabels,omitempty"`
-	MaxSpeakerLabels  int  `json:"MaxSpeakerLabels,omitempty"`
-}
-
-// transcribeStreamRequest dùng cho Transcribe Streaming (real-time, không cần S3)
+// transcribeStreamResponse dùng cho Transcribe Streaming (real-time, không cần S3)
 // Gọi qua HTTP/1.1 chunked streaming endpoint
 type transcribeStreamResponse struct {
 	Transcript struct {

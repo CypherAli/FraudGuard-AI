@@ -27,6 +27,7 @@ namespace FraudGuardAI.Services
         private volatile bool _isStreaming;
         private volatile bool _isConnected;
         private readonly SemaphoreSlim _startStopLock = new SemaphoreSlim(1, 1);
+        private readonly IAppSettings _settings;
 
         // Cấu hình Audio (khớp với backend Deepgram)
         private const int SAMPLE_RATE = 16000;
@@ -54,15 +55,16 @@ namespace FraudGuardAI.Services
 
         #region Constructor
 
-        public AudioStreamingServiceLowLevel()
+        public AudioStreamingServiceLowLevel(IAppSettings settings)
         {
+            _settings = settings;
+
             // Initialize fields to prevent null reference
             _webSocket = null!;
             _audioRecord = null!;
             _cancellationTokenSource = null!;
             _isStreaming = false;
             _isConnected = false;
-            // URL will be retrieved dynamically from Settings when connecting
         }
 
         #endregion
@@ -78,9 +80,9 @@ namespace FraudGuardAI.Services
                     return true;
                 }
 
-                // Get WebSocket URL dynamically from Settings
-                string webSocketUrl = SettingsPage.GetWebSocketUrl();
-                string deviceId = SettingsPage.GetDeviceID();
+                // Get WebSocket URL and device ID from IAppSettings
+                string webSocketUrl = _settings.GetWebSocketUrl();
+                string deviceId = _settings.GetDeviceId();
 
                 // Enforce WSS for known production domains (prevent accidental plain WS)
                 if (webSocketUrl.StartsWith("ws://") &&

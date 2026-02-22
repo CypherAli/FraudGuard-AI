@@ -71,7 +71,7 @@ namespace FraudGuardAI.Models
         // Computed properties for UI display
         public string DurationDisplay => FormatDuration(DurationSeconds);
         
-        public string RiskLevelDisplay => IsFraud ? " NGUY HIỂM" : " An toàn";
+        public string RiskLevelDisplay => IsFraud ? "⚠ DANGEROUS" : "✓ SAFE";
         
         public Color CardBackgroundColor => IsFraud 
             ? Color.FromArgb("#FFEBEE") // Light red

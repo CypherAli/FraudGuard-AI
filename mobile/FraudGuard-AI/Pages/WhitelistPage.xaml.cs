@@ -65,7 +65,7 @@ namespace FraudGuardAI.Pages
         {
             var number = await DisplayPromptAsync(
                 T("Whitelist_AddNumber"),
-                T("Whitelist_AddPrompt"),
+                T("Whitelist_AddPromptMessage"),
                 T("Common_OK"),
                 T("Common_Cancel"),
                 placeholder: "0912345678",
@@ -73,8 +73,32 @@ namespace FraudGuardAI.Pages
 
             if (string.IsNullOrWhiteSpace(number)) return;
 
-            await _whitelistService.AddNumberAsync(number.Trim());
+            var trimmed = number.Trim();
+
+            // Validate: only digits, optional leading +
+            if (!IsValidPhoneNumber(trimmed))
+            {
+                await DisplayAlert(T("Common_Error"), T("Whitelist_InvalidNumber"), T("Common_OK"));
+                return;
+            }
+
+            // Check for duplicates
+            if (_allNumbers.Contains(trimmed))
+            {
+                await DisplayAlert(T("Common_Error"), T("Whitelist_DuplicateNumber"), T("Common_OK"));
+                return;
+            }
+
+            await _whitelistService.AddNumberAsync(trimmed);
             LoadWhitelist();
+        }
+
+        private static bool IsValidPhoneNumber(string number)
+        {
+            if (string.IsNullOrWhiteSpace(number)) return false;
+            // Allow optional leading + for international format, rest must be digits
+            var digits = number.StartsWith("+") ? number.Substring(1) : number;
+            return digits.Length >= 7 && digits.Length <= 15 && digits.All(char.IsDigit);
         }
 
         private async void OnImportContactsClicked(object sender, EventArgs e)
@@ -98,7 +122,7 @@ namespace FraudGuardAI.Pages
         {
             bool confirm = await DisplayAlert(
                 T("Whitelist_ClearAll"),
-                T("Whitelist_ConfirmClear"),
+                T("Whitelist_ClearConfirmMessage"),
                 T("Common_OK"),
                 T("Common_Cancel"));
 

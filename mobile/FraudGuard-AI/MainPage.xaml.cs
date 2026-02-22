@@ -20,6 +20,8 @@ namespace FraudGuardAI
         #region Fields
 
         private AudioStreamingServiceLowLevel _audioService;
+        private readonly IAppSettings _settings;
+        private readonly IHistoryService _historyService;
         private bool _isProtectionActive = false;
         private bool _isConnecting = false;
         private CancellationTokenSource _animationCts;
@@ -32,8 +34,11 @@ namespace FraudGuardAI
 
         #region Constructor
 
-        public MainPage()
+        public MainPage(IAppSettings settings, IHistoryService historyService)
         {
+            _settings = settings;
+            _historyService = historyService;
+
             InitializeComponent();
             InitializeAudioService();
 
@@ -58,7 +63,7 @@ namespace FraudGuardAI
                 await Task.Delay(1000);
                 
                 // Check if auto protection is enabled and not already active
-                if (SettingsPage.IsAutoProtectionEnabled() && !_isProtectionActive && !_isConnecting)
+                if (_settings.IsAutoProtectionEnabled() && !_isProtectionActive && !_isConnecting)
                 {
                     System.Diagnostics.Debug.WriteLine("[MainPage] Auto-starting protection...");
                     await StartProtectionAsync();
@@ -117,9 +122,8 @@ namespace FraudGuardAI
         {
             try
             {
-                var deviceId = SettingsPage.GetDeviceID();
-                var historyService = new HistoryService();
-                var allCalls = await historyService.GetHistoryAsync(deviceId, limit: 1000);
+                var deviceId = _settings.GetDeviceId();
+                var allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
                 var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
                 
                 _stats.BlockedTotal = fraudCalls.Count;
