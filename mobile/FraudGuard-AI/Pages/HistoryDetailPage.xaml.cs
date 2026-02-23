@@ -82,7 +82,7 @@ namespace FraudGuardAI.Pages
             // Info row
             DurationLabel.Text = log.DurationDisplay;
             TimestampLabel.Text = log.StartTime.ToString("HH:mm");
-            DeepfakeLabel.Text = "N/A"; // Deepfake score not stored in CallLog yet
+            DeepfakeLabel.Text = log.DeepfakeScore > 0 ? $"{log.DeepfakeScore}%" : "N/A";
 
             RiskCard.IsVisible = true;
 

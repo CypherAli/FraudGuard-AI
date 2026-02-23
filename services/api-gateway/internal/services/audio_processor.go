@@ -233,23 +233,23 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 		log.Printf("🔄 [%s] Starting async transcription...", deviceID)
 
-		// Run deepfake analysis in parallel with transcription
-		// Use flushData (the safely copied buffer) instead of audioData (the raw parameter)
-		// to avoid potential aliasing issues if the caller reuses the underlying array.
-		var deepfakeScore int
-		var deepfakeDone chan struct{}
+		// Run deepfake analysis in parallel with transcription.
+		// Use a buffered channel (cap=1) to pass the score back safely — avoids the
+		// data-race that occurs when writing to a captured outer variable from a goroutine.
+		deepfakeChan := make(chan int, 1)
 		if audio.IsEnabled() {
-			deepfakeDone = make(chan struct{})
 			go func() {
-				defer close(deepfakeDone)
 				dd := GetDeepfakeDetector(deviceID)
 				analysis := dd.AnalyzeChunk(flushData)
-				deepfakeScore = dd.GetRollingScore() // Use rolling average for stability
+				score := dd.GetRollingScore() // Use rolling average for stability
 				if analysis.IsLikelyFake {
 					log.Printf("🎭 [%s] Deepfake detected! Score=%d (chunk=%d)",
-						deviceID, deepfakeScore, analysis.Score)
+						deviceID, score, analysis.Score)
 				}
+				deepfakeChan <- score
 			}()
+		} else {
+			deepfakeChan <- 0 // no analysis — send sentinel so receive below never blocks
 		}
 
 		// Step 1: Transcribe audio — Deepgram primary, Amazon Transcribe fallback
@@ -295,10 +295,8 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			}
 		}
 
-		// Wait for deepfake analysis to complete
-		if deepfakeDone != nil {
-			<-deepfakeDone
-		}
+		// Receive deepfake score (blocks until goroutine sends, or immediately if disabled)
+		deepfakeScore := <-deepfakeChan
 
 		if transcript == "" {
 			return
@@ -308,6 +306,9 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 		detector := GetOrCreateFraudDetector(deviceID, sendAlert)
 		result := detector.AnalyzeText(transcript)
+
+		// Always persist the deepfake score to the session so EndSession can save it to DB
+		detector.UpdateDeepfakeScore(deepfakeScore)
 
 		// Boost risk score if deepfake detected
 		// Bug #4 fix: also update the session's AccumulatedScore so it persists across calls

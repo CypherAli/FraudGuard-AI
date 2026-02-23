@@ -1,31 +1,48 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace FraudGuardAI.Models
 {
     /// <summary>
     /// Model representing a call log entry from the server
     /// Maps to the JSON response from GET /api/history
+    /// Backend returns snake_case keys — [JsonPropertyName] ensures correct deserialization
+    /// even though ReadFromJsonAsync uses PropertyNameCaseInsensitive (which ignores case
+    /// but NOT underscores, so "risk_score" ≠ "riskscore" without these attributes).
     /// </summary>
     public class CallLog
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
-        
+
+        [JsonPropertyName("device_id")]
         public string DeviceId { get; set; }
-        
+
+        [JsonPropertyName("start_time")]
         public DateTime StartTime { get; set; }
-        
+
+        [JsonPropertyName("end_time")]
         public DateTime EndTime { get; set; }
-        
+
+        [JsonPropertyName("duration_seconds")]
         public long DurationSeconds { get; set; }
-        
+
+        [JsonPropertyName("risk_score")]
         public int RiskScore { get; set; }
-        
+
+        [JsonPropertyName("deepfake_score")]
+        public int DeepfakeScore { get; set; }
+
+        [JsonPropertyName("is_fraud")]
         public bool IsFraud { get; set; }
-        
+
+        [JsonPropertyName("evidence")]
         public string Evidence { get; set; }
 
+        [JsonPropertyName("transcript")]
         public string Transcript { get; set; }
 
+        [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; }
 
         // Computed: parse detected keywords from Evidence field

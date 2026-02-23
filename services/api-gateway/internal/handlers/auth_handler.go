@@ -39,18 +39,21 @@ type RateLimitEntry struct {
 }
 
 var (
-	otpStore     = make(map[string]*OTPEntry)
-	otpMutex     sync.RWMutex
-	sessionStore = make(map[string]*SessionEntry)
-	sessionMutex sync.RWMutex
-	rateLimiter  = make(map[string]*RateLimitEntry)
-	rateMutex    sync.Mutex
+	otpStore          = make(map[string]*OTPEntry)
+	otpMutex          sync.RWMutex
+	sessionStore      = make(map[string]*SessionEntry)
+	sessionMutex      sync.RWMutex
+	rateLimiter       = make(map[string]*RateLimitEntry)   // OTP send rate limiter
+	verifyRateLimiter = make(map[string]*RateLimitEntry)   // OTP verify rate limiter
+	rateMutex         sync.Mutex
 )
 
 const (
-	maxOTPRequestsPerWindow = 3
-	rateLimitWindow         = 10 * time.Minute
-	sessionExpiry           = 30 * 24 * time.Hour // 30 days
+	maxOTPRequestsPerWindow   = 3
+	rateLimitWindow           = 10 * time.Minute
+	maxVerifyAttemptsPerWindow = 5
+	verifyRateLimitWindow     = 15 * time.Minute
+	sessionExpiry             = 30 * 24 * time.Hour // 30 days
 )
 
 // SendOTPRequest is the request body for sending OTP
@@ -73,29 +76,39 @@ func GenerateOTP() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
-// checkRateLimit checks if OTP sending is rate-limited for this email
-func checkRateLimit(email string) bool {
+// checkRateLimitFor is a generic rate-limit helper for any in-memory map.
+// Returns true if allowed, false if the limit is exceeded.
+func checkRateLimitFor(store map[string]*RateLimitEntry, key string, maxAttempts int, window time.Duration) bool {
 	rateMutex.Lock()
 	defer rateMutex.Unlock()
 
-	entry, exists := rateLimiter[email]
+	entry, exists := store[key]
 	if !exists {
-		rateLimiter[email] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
-		return true // allowed
-	}
-
-	// Reset window if expired
-	if time.Since(entry.FirstSent) > rateLimitWindow {
-		rateLimiter[email] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		store[key] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
 		return true
 	}
 
-	if entry.Count >= maxOTPRequestsPerWindow {
-		return false // rate limited
+	if time.Since(entry.FirstSent) > window {
+		store[key] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		return true
+	}
+
+	if entry.Count >= maxAttempts {
+		return false
 	}
 
 	entry.Count++
 	return true
+}
+
+// checkRateLimit checks if OTP sending is rate-limited for this email (3 per 10 min).
+func checkRateLimit(email string) bool {
+	return checkRateLimitFor(rateLimiter, email, maxOTPRequestsPerWindow, rateLimitWindow)
+}
+
+// checkVerifyRateLimit protects /auth/verify-otp from brute-force (5 per 15 min).
+func checkVerifyRateLimit(email string) bool {
+	return checkRateLimitFor(verifyRateLimiter, email, maxVerifyAttemptsPerWindow, verifyRateLimitWindow)
 }
 
 // SendOTP handles the OTP sending request
@@ -180,6 +193,12 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Brute-force protection: max 5 verify attempts per 15 minutes
+	if !checkVerifyRateLimit(email) {
+		sendJSONError(w, "Quá nhiều lần thử xác thực. Vui lòng đợi 15 phút.", http.StatusTooManyRequests)
+		return
+	}
+
 	// Check OTP
 	otpMutex.RLock()
 	entry, exists := otpStore[email]
@@ -238,10 +257,6 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // CheckSession validates a session token
 func CheckSession(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	if token == "" {
-		token = r.URL.Query().Get("token")
-	}
-
 	if token == "" {
 		sendJSONError(w, "Token không được cung cấp", http.StatusUnauthorized)
 		return
@@ -404,11 +419,17 @@ func CleanupExpiredOTPs(ctx context.Context) {
 			}
 			sessionMutex.Unlock()
 
-			// Cleanup rate limiter
+			// Cleanup send rate limiter
 			rateMutex.Lock()
 			for email, entry := range rateLimiter {
 				if time.Since(entry.FirstSent) > rateLimitWindow {
 					delete(rateLimiter, email)
+				}
+			}
+			// Cleanup verify rate limiter
+			for email, entry := range verifyRateLimiter {
+				if time.Since(entry.FirstSent) > verifyRateLimitWindow {
+					delete(verifyRateLimiter, email)
 				}
 			}
 			rateMutex.Unlock()

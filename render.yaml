@@ -20,6 +20,10 @@ services:
           property: connectionString
       - key: GO_ENV
         value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false
     healthCheckPath: /health
     # Auto-deploy on push to main branch
     branch: main

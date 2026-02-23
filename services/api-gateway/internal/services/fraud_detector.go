@@ -32,6 +32,7 @@ type SessionState struct {
 	DeviceID          string
 	SessionID         string
 	AccumulatedScore  int
+	MaxDeepfakeScore  int // Highest deepfake score seen this session (persisted to CallLog)
 	DetectedPatterns  []string
 	TranscriptHistory []string
 	StartTime         time.Time
@@ -433,6 +434,17 @@ func (fd *FraudDetector) AddDeepfakeBoost(boost int) {
 		fd.deviceID, boost, fd.session.AccumulatedScore)
 }
 
+// UpdateDeepfakeScore records the maximum deepfake score seen during the session.
+// Called from audio_processor.go after each chunk analysis.
+// The max value is persisted to the CallLog by EndSession().
+func (fd *FraudDetector) UpdateDeepfakeScore(score int) {
+	fd.mu.Lock()
+	defer fd.mu.Unlock()
+	if score > fd.session.MaxDeepfakeScore {
+		fd.session.MaxDeepfakeScore = score
+	}
+}
+
 // GetCurrentRiskScore returns the current accumulated risk score
 func (fd *FraudDetector) GetCurrentRiskScore() int {
 	fd.mu.RLock()
@@ -462,11 +474,12 @@ func (fd *FraudDetector) ResetSession() {
 	fd.alertCount = 0
 }
 
-// ProcessFraudReport handles user reports of fraudulent phone numbers
-func ProcessFraudReport(report models.ReportRequest) {
+// ProcessFraudReport handles user reports of fraudulent phone numbers.
+// Returns an error if the database operation fails so callers can report back to the client.
+func ProcessFraudReport(report models.ReportRequest) error {
 	if db.Pool == nil {
 		log.Printf("[fraud_report] Database not available, cannot process report for %s", report.PhoneNumber)
-		return
+		return fmt.Errorf("database not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -487,7 +500,7 @@ func ProcessFraudReport(report models.ReportRequest) {
 		)
 		if err != nil {
 			log.Printf("[fraud_report] Error inserting blacklist entry: %v", err)
-			return
+			return fmt.Errorf("failed to insert blacklist entry: %w", err)
 		}
 		log.Printf("[fraud_report] Added %s to blacklist", report.PhoneNumber)
 	} else {
@@ -502,10 +515,11 @@ func ProcessFraudReport(report models.ReportRequest) {
 		)
 		if err != nil {
 			log.Printf("[fraud_report] Error updating blacklist entry: %v", err)
-			return
+			return fmt.Errorf("failed to update blacklist entry: %w", err)
 		}
 		log.Printf("[fraud_report] Updated %s (reports: %d, confidence: %.2f)", report.PhoneNumber, newCount, newConfidence)
 	}
+	return nil
 }
 
 func calculateConfidenceScore(reportCount int) float64 {
@@ -601,15 +615,16 @@ func (fd *FraudDetector) EndSession() {
 	isFraud := session.AccumulatedScore >= fd.config.HighThreshold
 
 	callLog := &models.CallLog{
-		DeviceID:   fd.deviceID,
-		StartTime:  session.StartTime,
-		EndTime:    endTime,
-		Duration:   duration,
-		RiskScore:  session.AccumulatedScore,
-		IsFraud:    isFraud,
-		Evidence:   evidenceStr,
-		Transcript: fullTranscript,
-		CreatedAt:  time.Now(),
+		DeviceID:      fd.deviceID,
+		StartTime:     session.StartTime,
+		EndTime:       endTime,
+		Duration:      duration,
+		RiskScore:     session.AccumulatedScore,
+		IsFraud:       isFraud,
+		Evidence:      evidenceStr,
+		Transcript:    fullTranscript,
+		DeepfakeScore: session.MaxDeepfakeScore,
+		CreatedAt:     time.Now(),
 	}
 
 	log.Printf("[%s] Session ended - Duration: %ds, RiskScore: %d, IsFraud: %v, Alerts: %d",

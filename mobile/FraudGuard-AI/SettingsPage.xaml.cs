@@ -87,16 +87,22 @@ namespace FraudGuardAI.Pages
                 var user = await _authService.GetCurrentUserAsync();
                 if (user != null)
                 {
+                    // Preferences takes priority (updated by Edit Profile); fall back to SecureStorage value
+                    var prefName = Preferences.Get("DisplayName", null as string);
+                    var displayName = !string.IsNullOrEmpty(prefName)
+                        ? prefName
+                        : user.DisplayName ?? LocalizationResourceManager.Instance["Settings_DefaultUserName"];
+
                     if (UserNameLabel != null)
-                        UserNameLabel.Text = user.DisplayName ?? LocalizationResourceManager.Instance["Settings_DefaultUserName"];
+                        UserNameLabel.Text = displayName;
                     if (UserEmailLabel != null)
                         UserEmailLabel.Text = user.Email ?? "user@example.com";
                     if (PhoneNumberLabel != null)
                         PhoneNumberLabel.Text = !string.IsNullOrEmpty(user.PhoneNumber)
                             ? user.PhoneNumber
                             : LocalizationResourceManager.Instance["Settings_NotUpdated"];
-                    if (AvatarInitials != null && !string.IsNullOrEmpty(user.DisplayName))
-                        AvatarInitials.Text = GetInitials(user.DisplayName);
+                    if (AvatarInitials != null)
+                        AvatarInitials.Text = GetInitials(displayName);
                 }
 
                 LoadAvatarImage();
@@ -315,16 +321,23 @@ namespace FraudGuardAI.Pages
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
 
+            // Accept plain IPv4: 192.168.1.1
             var parts = ip.Split('.');
-            if (parts.Length != 4) return false;
+            if (parts.Length == 4 && parts.All(p => int.TryParse(p, out int n) && n >= 0 && n <= 255))
+                return true;
 
-            foreach (var part in parts)
-            {
-                if (!int.TryParse(part, out int num) || num < 0 || num > 255)
-                    return false;
-            }
+            // Accept hostname / mDNS: my-server.local, raspberrypi, etc.
+            // Allow letters, digits, hyphens, dots (no leading/trailing hyphen per segment)
+            if (System.Text.RegularExpressions.Regex.IsMatch(ip,
+                @"^(?!-)[A-Za-z0-9\-]{1,63}(?<!-)(\.[A-Za-z0-9\-]{1,63}(?<!-))*$"))
+                return true;
 
-            return true;
+            // Accept full URLs starting with http:// or https://
+            if (Uri.TryCreate(ip, UriKind.Absolute, out var uri) &&
+                (uri.Scheme == "http" || uri.Scheme == "https"))
+                return true;
+
+            return false;
         }
 
         #endregion
@@ -475,7 +488,7 @@ namespace FraudGuardAI.Pages
                 {
                     UserNameLabel.Text = newName;
                     AvatarInitials.Text = GetInitials(newName);
-                    // TODO: Save to server
+                    Preferences.Set("DisplayName", newName);
                     await DisplayAlert(
                         T("Settings_EditProfile_SuccessTitle"),
                         T("Settings_EditProfile_SuccessMessage"),

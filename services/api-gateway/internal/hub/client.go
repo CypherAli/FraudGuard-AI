@@ -136,7 +136,11 @@ func (c *Client) handleTextMessage(message []byte) {
 	}
 
 	// Process the report (add to blacklist, etc.)
-	go services.ProcessFraudReport(report)
+	go func() {
+		if err := services.ProcessFraudReport(report); err != nil {
+			log.Printf("⚠️ [%s] ProcessFraudReport error: %v", c.deviceID, err)
+		}
+	}()
 }
 
 // sendAlert sends an alert message to this specific client

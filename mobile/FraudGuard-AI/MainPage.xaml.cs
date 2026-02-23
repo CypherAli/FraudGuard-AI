@@ -29,6 +29,8 @@ namespace FraudGuardAI
         private DashboardStats _stats = new();
         // Tracks which banner alert started the auto-dismiss timer (prevents race condition)
         private string _lastBannerAlertId = string.Empty;
+        // Stored handler reference so we can unsubscribe in OnDisappearing (prevents memory leak)
+        private System.ComponentModel.PropertyChangedEventHandler _locChangeHandler;
 
         #endregion
 
@@ -42,19 +44,48 @@ namespace FraudGuardAI
             InitializeComponent();
             InitializeAudioService();
 
-            LocalizationResourceManager.Instance.PropertyChanged += (_, __) =>
+            // Store handler reference so we can unsubscribe in OnDisappearing
+            _locChangeHandler = (_, __) =>
             {
                 UpdateProtectionUI(_isProtectionActive, _isConnecting);
                 UpdateStatsDisplay();
             };
-            
+
             // Load dashboard stats asynchronously
             _ = LoadDashboardStatsAsync();
-            
+
             // Auto-start protection if enabled in settings
             _ = AutoStartProtectionIfEnabledAsync();
         }
-        
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            // Subscribe to service events (paired with unsubscribe in OnDisappearing)
+            if (_audioService != null)
+            {
+                _audioService.AlertReceived += OnAlertReceived;
+                _audioService.ErrorOccurred += OnErrorOccurred;
+                _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
+            }
+            LocalizationResourceManager.Instance.PropertyChanged += _locChangeHandler;
+            // Refresh dashboard stats each time user navigates back to MainPage
+            _ = LoadDashboardStatsAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            // Unsubscribe to prevent memory leaks when page goes to background
+            if (_audioService != null)
+            {
+                _audioService.AlertReceived -= OnAlertReceived;
+                _audioService.ErrorOccurred -= OnErrorOccurred;
+                _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+            }
+            LocalizationResourceManager.Instance.PropertyChanged -= _locChangeHandler;
+        }
+
         private async Task AutoStartProtectionIfEnabledAsync()
         {
             try
@@ -86,11 +117,7 @@ namespace FraudGuardAI
                 // Use shared service instance from App
                 _audioService = App.GetAudioService();
                 
-                // Attach event handlers
-                _audioService.AlertReceived += OnAlertReceived;
-                _audioService.ErrorOccurred += OnErrorOccurred;
-                _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
-                
+                // NOTE: event subscriptions moved to OnAppearing() to prevent memory leaks
                 // Check if already streaming from previous session
                 _isProtectionActive = _audioService.IsStreaming;
                 

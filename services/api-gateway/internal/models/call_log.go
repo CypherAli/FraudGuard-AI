@@ -6,16 +6,17 @@ import (
 
 // CallLog represents a fraud detection call session log
 type CallLog struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	DeviceID  string    `gorm:"index;not null" json:"device_id"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
-	Duration  int64     `json:"duration_seconds"`          // Duration in seconds
-	RiskScore int       `json:"risk_score"`                // Accumulated risk score
-	IsFraud    bool      `json:"is_fraud"`                     // True if risk score >= threshold
-	Evidence   string    `gorm:"type:text" json:"evidence"`    // Transcript snippets or detected keywords
-	Transcript string    `gorm:"type:text" json:"transcript"`  // Full masked transcript of the call
-	CreatedAt  time.Time `json:"created_at"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	DeviceID      string    `gorm:"index;not null" json:"device_id"`
+	StartTime     time.Time `json:"start_time"`
+	EndTime       time.Time `json:"end_time"`
+	Duration      int64     `json:"duration_seconds"`           // Duration in seconds
+	RiskScore     int       `json:"risk_score"`                 // Accumulated risk score
+	DeepfakeScore int       `json:"deepfake_score"`             // Highest rolling deepfake score this session
+	IsFraud       bool      `json:"is_fraud"`                   // True if risk score >= threshold
+	Evidence      string    `gorm:"type:text" json:"evidence"`  // Transcript snippets or detected keywords
+	Transcript    string    `gorm:"type:text" json:"transcript"` // Full masked transcript of the call
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
