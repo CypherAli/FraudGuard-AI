@@ -145,6 +145,13 @@ func main() {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
+		// Limit request body to 1MB to prevent DoS via large payloads
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
+				next.ServeHTTP(w, r)
+			})
+		})
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
 		r.Get("/history", handlers.GetHistory)

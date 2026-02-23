@@ -33,7 +33,11 @@ func ReportFraud(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Process the fraud report (updates blacklist)
-	services.ProcessFraudReport(report)
+	if err := services.ProcessFraudReport(report); err != nil {
+		log.Printf("[ReportFraud] Failed to process report for %s: %v", report.PhoneNumber, err)
+		sendJSONError(w, "Failed to process report: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Check if the phone number should be auto-verified (consensus)
 	autoVerified := checkConsensusVerification(report.PhoneNumber)
@@ -83,11 +87,14 @@ func ImportBlacklist(w http.ResponseWriter, r *http.Request) {
 		if num.PhoneNumber == "" {
 			continue
 		}
-		services.ProcessFraudReport(models.ReportRequest{
+		if err := services.ProcessFraudReport(models.ReportRequest{
 			PhoneNumber: num.PhoneNumber,
 			Reason:      num.Reason,
 			DeviceID:    "import",
-		})
+		}); err != nil {
+			log.Printf("[ImportBlacklist] Failed to import %s: %v", num.PhoneNumber, err)
+			continue
+		}
 		imported++
 	}
 

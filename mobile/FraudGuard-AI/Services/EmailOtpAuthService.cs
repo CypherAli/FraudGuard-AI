@@ -71,7 +71,7 @@ namespace FraudGuardAI.Services
             };
 
             var token = "EMAIL_TOKEN:" + Guid.NewGuid().ToString();
-            var tokenExpiry = DateTime.UtcNow.AddYears(10);
+            var tokenExpiry = DateTime.UtcNow.AddDays(30); // 30-day session (was 10 years)
 
             await _secureStorage.SaveAuthTokenAsync(token);
             await _secureStorage.SaveUserDataAsync(user.UserId, user.PhoneNumber, user.DisplayName);

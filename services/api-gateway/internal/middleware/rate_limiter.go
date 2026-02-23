@@ -65,10 +65,9 @@ func (rl *RateLimiter) Allow(clientIP string) bool {
 // HTTPMiddleware returns an HTTP middleware that applies rate limiting
 func (rl *RateLimiter) HTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// r.RemoteAddr is already normalized by chi's middleware.RealIP
+		// (takes the first IP from X-Forwarded-For / X-Real-IP to prevent spoofing)
 		clientIP := r.RemoteAddr
-		if xForward := r.Header.Get("X-Forwarded-For"); xForward != "" {
-			clientIP = xForward
-		}
 
 		if !rl.Allow(clientIP) {
 			log.Printf("🚫 Rate limit exceeded for %s", clientIP)
