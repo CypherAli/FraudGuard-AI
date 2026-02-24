@@ -115,9 +115,13 @@ func main() {
 
 	// CORS middleware
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	goEnv := os.Getenv("GO_ENV")
 	if allowedOrigin == "" {
-		allowedOrigin = "*" // Default to * for development
-		log.Println("⚠️  CORS_ALLOWED_ORIGIN not set — defaulting to '*' (allow all origins). Set this to your domain in production!")
+		if goEnv == "production" {
+			log.Fatal("❌ CORS_ALLOWED_ORIGIN must be set in production. Refusing to start with wildcard CORS.")
+		}
+		allowedOrigin = "*" // Development only
+		log.Println("⚠️  CORS_ALLOWED_ORIGIN not set — defaulting to '*' (development only)")
 	} else {
 		log.Printf("🔒 CORS allowed origin: %s", allowedOrigin)
 	}
@@ -137,13 +141,18 @@ func main() {
 	// API rate limiting
 	r.Use(customMiddleware.APILimiter.HTTPMiddleware)
 
+	// Auth middleware (wraps handlers.ValidateToken — avoids import cycles)
+	requireAuth := customMiddleware.RequireAuth(handlers.ValidateToken)
+
 	// Routes
 	r.Get("/health", handlers.HealthCheck)
+
+	// WebSocket — requires valid Bearer token via ?token= query param or Authorization header
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		handlers.ServeWs(wsHub, w, r)
 	})
 
-	// API routes
+	// API routes — protected by auth middleware
 	r.Route("/api", func(r chi.Router) {
 		// Limit request body to 1MB to prevent DoS via large payloads
 		r.Use(func(next http.Handler) http.Handler {
@@ -152,6 +161,7 @@ func main() {
 				next.ServeHTTP(w, r)
 			})
 		})
+		r.Use(requireAuth)
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
 		r.Get("/history", handlers.GetHistory)

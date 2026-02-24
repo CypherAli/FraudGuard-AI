@@ -1,98 +1,146 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
 using FraudGuardAI.Models;
 
 namespace FraudGuardAI.Services
 {
+    /// <summary>
+    /// OTP auth via backend API — Brevo key never touches the APK.
+    /// Backend endpoints: POST /auth/send-otp  |  POST /auth/verify-otp
+    /// </summary>
     public class EmailOtpAuthService : IAuthenticationService
     {
         private readonly SecureStorageService _secureStorage;
-        private readonly BrevoEmailService _emailService;
+        private readonly IAppSettings _appSettings;
         private AuthenticationState _currentState;
         private string? _pendingEmail;
 
+        private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(20) };
+
         public event EventHandler<AuthenticationState>? AuthenticationStateChanged;
 
-        public EmailOtpAuthService(SecureStorageService secureStorage, BrevoEmailService emailService)
+        public EmailOtpAuthService(SecureStorageService secureStorage, IAppSettings appSettings)
         {
             _secureStorage = secureStorage;
-            _emailService = emailService;
+            _appSettings = appSettings;
             _currentState = new AuthenticationState();
         }
+
+        // ── Response DTOs ────────────────────────────────────────────────────
+
+        private sealed class SendOtpResponse
+        {
+            public bool Success { get; set; }
+            public string? Message { get; set; }
+            public string? Error { get; set; }
+        }
+
+        private sealed class VerifyOtpResponse
+        {
+            public bool Success { get; set; }
+            public string? Token { get; set; }
+            public string? UserId { get; set; }
+            public string? Email { get; set; }
+            public string? Error { get; set; }
+        }
+
+        // ── IAuthenticationService ───────────────────────────────────────────
 
         public async Task<string> SendOtpAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
                 throw new ArgumentException("Email không hợp lệ");
 
-            var normalizedEmail = email.Trim();
+            var normalizedEmail = email.Trim().ToLowerInvariant();
             if (!IsValidEmail(normalizedEmail))
                 throw new ArgumentException("Email không hợp lệ");
 
             _pendingEmail = normalizedEmail;
-            await _secureStorage.SaveEmailAsync(_pendingEmail);
+            await _secureStorage.SaveEmailAsync(normalizedEmail);
 
-            var otp = GenerateOtp();
-            var expiry = DateTime.UtcNow.AddMinutes(5);
-            await _secureStorage.SaveOtpAsync(otp, expiry);
+            var url = $"{_appSettings.GetApiBaseUrl()}/auth/send-otp";
+            Debug.WriteLine($"[EmailOtpAuth] POST {url} (email={normalizedEmail})");
 
-            var sent = await _emailService.SendOtpEmailAsync(_pendingEmail, otp);
-            if (!sent)
-                throw new Exception("Không thể gửi mã OTP. Vui lòng thử lại.");
+            HttpResponseMessage httpResp;
+            try
+            {
+                httpResp = await _http.PostAsJsonAsync(url, new { email = normalizedEmail });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EmailOtpAuth] Network error: {ex.Message}");
+                throw new Exception("Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối mạng.");
+            }
 
-            Debug.WriteLine($"[EmailOtpAuth] OTP sent to {_pendingEmail}");
-            return Guid.NewGuid().ToString();
+            if (!httpResp.IsSuccessStatusCode)
+            {
+                var err = await httpResp.Content.ReadFromJsonAsync<SendOtpResponse>();
+                var msg = err?.Error ?? "Không thể gửi mã OTP. Vui lòng thử lại.";
+                throw new Exception(msg);
+            }
+
+            Debug.WriteLine($"[EmailOtpAuth] OTP sent to {normalizedEmail} via backend");
+
+            // verificationId = email (backend keys OTP by email)
+            return normalizedEmail;
         }
 
         public async Task<bool> VerifyOtpAsync(string verificationId, string otpCode)
         {
-            var storedOtp = await _secureStorage.GetOtpAsync();
-            var expiry = await _secureStorage.GetOtpExpiryAsync();
+            // verificationId is the email returned from SendOtpAsync
+            var email = verificationId;
 
-            if (string.IsNullOrEmpty(storedOtp) || expiry == null)
-                return false;
+            var url = $"{_appSettings.GetApiBaseUrl()}/auth/verify-otp";
+            Debug.WriteLine($"[EmailOtpAuth] POST {url}");
 
-            if (DateTime.UtcNow > expiry.Value)
-                return false;
-
-            if (!string.Equals(storedOtp, otpCode, StringComparison.Ordinal))
-                return false;
-
-            var email = _pendingEmail ?? await _secureStorage.GetEmailAsync() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(email))
-                return false;
-
-            var user = new User
+            HttpResponseMessage httpResp;
+            try
             {
-                UserId = Guid.NewGuid().ToString(),
-                Email = email,
-                PhoneNumber = string.Empty,
-                DisplayName = GetDisplayNameFromEmail(email),
-                LastLoginAt = DateTime.UtcNow
-            };
+                httpResp = await _http.PostAsJsonAsync(url, new { email, otp = otpCode });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EmailOtpAuth] Network error: {ex.Message}");
+                return false;
+            }
 
-            var token = "EMAIL_TOKEN:" + Guid.NewGuid().ToString();
-            var tokenExpiry = DateTime.UtcNow.AddDays(30); // 30-day session (was 10 years)
+            if (!httpResp.IsSuccessStatusCode)
+                return false;
 
-            await _secureStorage.SaveAuthTokenAsync(token);
-            await _secureStorage.SaveUserDataAsync(user.UserId, user.PhoneNumber, user.DisplayName);
+            var result = await httpResp.Content.ReadFromJsonAsync<VerifyOtpResponse>();
+            if (result?.Success != true || string.IsNullOrEmpty(result.Token))
+                return false;
+
+            // Persist backend-issued token & user data
+            var userId = result.UserId ?? GenerateFallbackUserId(email);
+            var displayName = GetDisplayNameFromEmail(email);
+            var tokenExpiry = DateTime.UtcNow.AddDays(30);
+
+            await _secureStorage.SaveAuthTokenAsync(result.Token);
+            await _secureStorage.SaveUserDataAsync(userId, string.Empty, displayName);
             await _secureStorage.SaveEmailAsync(email);
             await _secureStorage.SaveTokenExpiryAsync(tokenExpiry);
 
-            _currentState = new AuthenticationState(user, token, tokenExpiry);
+            var user = new User
+            {
+                UserId = userId,
+                Email = email,
+                DisplayName = displayName,
+                LastLoginAt = DateTime.UtcNow
+            };
+
+            _currentState = new AuthenticationState(user, result.Token, tokenExpiry);
             AuthenticationStateChanged?.Invoke(this, _currentState);
 
+            Debug.WriteLine($"[EmailOtpAuth] Login successful for {email}");
             return true;
         }
 
-        public async Task<string> RegisterAsync(string phoneNumber, string? password = null)
-        {
-            return await SendOtpAsync(phoneNumber);
-        }
+        public async Task<string> RegisterAsync(string email, string? password = null)
+            => await SendOtpAsync(email);
 
-        public async Task<string> LoginAsync(string phoneNumber)
-        {
-            return await SendOtpAsync(phoneNumber);
-        }
+        public async Task<string> LoginAsync(string email)
+            => await SendOtpAsync(email);
 
         public async Task LogoutAsync()
         {
@@ -114,25 +162,24 @@ namespace FraudGuardAI.Services
             try
             {
                 var userId = await _secureStorage.GetUserIdAsync();
-                var displayName = await _secureStorage.GetDisplayNameAsync();
-                var email = await _secureStorage.GetEmailAsync();
+                var email  = await _secureStorage.GetEmailAsync();
+                var name   = await _secureStorage.GetDisplayNameAsync();
 
                 if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(email))
                 {
                     return new User
                     {
-                        UserId = userId,
-                        Email = email,
-                        DisplayName = displayName ?? email,
+                        UserId      = userId,
+                        Email       = email,
+                        DisplayName = name ?? email,
                         LastLoginAt = DateTime.UtcNow
                     };
                 }
-
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EmailOtpAuth] Error getting current user: {ex.Message}");
+                Debug.WriteLine($"[EmailOtpAuth] GetCurrentUser error: {ex.Message}");
                 return null;
             }
         }
@@ -141,43 +188,35 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                var hasUserData = await _secureStorage.HasUserDataAsync();
-                var isTokenValid = await _secureStorage.IsTokenValidAsync();
-                return hasUserData && isTokenValid;
+                return await _secureStorage.HasUserDataAsync()
+                    && await _secureStorage.IsTokenValidAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EmailOtpAuth] Error checking authentication: {ex.Message}");
+                Debug.WriteLine($"[EmailOtpAuth] IsAuthenticated error: {ex.Message}");
                 return false;
             }
         }
 
         public async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var isAuthenticated = await IsAuthenticatedAsync();
-            if (isAuthenticated)
+            if (await IsAuthenticatedAsync())
             {
-                var user = await GetCurrentUserAsync();
-                var token = await _secureStorage.GetAuthTokenAsync();
+                var user   = await GetCurrentUserAsync();
+                var token  = await _secureStorage.GetAuthTokenAsync();
                 var expiry = await _secureStorage.GetTokenExpiryAsync();
 
                 if (user != null && token != null && expiry != null)
-                {
                     _currentState = new AuthenticationState(user, token, expiry.Value);
-                }
             }
             else
             {
                 _currentState = new AuthenticationState();
             }
-
             return _currentState;
         }
 
-        private static string GenerateOtp()
-        {
-            return System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 999999).ToString();
-        }
+        // ── Helpers ──────────────────────────────────────────────────────────
 
         private static bool IsValidEmail(string email)
         {
@@ -186,18 +225,16 @@ namespace FraudGuardAI.Services
                 var addr = new System.Net.Mail.MailAddress(email);
                 return string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase);
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         private static string GetDisplayNameFromEmail(string email)
         {
-            var atIndex = email.IndexOf('@');
-            if (atIndex > 0)
-                return email.Substring(0, atIndex);
-            return email;
+            var at = email.IndexOf('@');
+            return at > 0 ? email[..at] : email;
         }
+
+        private static string GenerateFallbackUserId(string email)
+            => $"user_{Math.Abs(email.GetHashCode()):x}";
     }
 }

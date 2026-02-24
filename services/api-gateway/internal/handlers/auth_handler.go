@@ -389,6 +389,18 @@ func generateUserID(_ string) string {
 	return fmt.Sprintf("user_%x", b)
 }
 
+// ValidateToken checks whether a bearer token is active and not expired.
+// Used by auth middleware and WebSocket handler.
+func ValidateToken(token string) bool {
+	if token == "" {
+		return false
+	}
+	sessionMutex.RLock()
+	session, exists := sessionStore[token]
+	sessionMutex.RUnlock()
+	return exists && time.Now().Before(session.ExpiresAt)
+}
+
 // CleanupExpiredOTPs removes expired OTPs and sessions periodically
 func CleanupExpiredOTPs(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
