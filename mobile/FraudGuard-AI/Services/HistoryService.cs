@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FraudGuardAI.Models;
 
@@ -5,6 +6,7 @@ namespace FraudGuardAI.Services
 {
     /// <summary>
     /// Fetches call-analysis history from the backend REST API.
+    /// All requests include the bearer token stored in SecureStorage.
     /// </summary>
     public class HistoryService : IHistoryService
     {
@@ -15,10 +17,22 @@ namespace FraudGuardAI.Services
         };
 
         private readonly IAppSettings _settings;
+        private readonly SecureStorageService _secureStorage;
 
-        public HistoryService(IAppSettings settings)
+        public HistoryService(IAppSettings settings, SecureStorageService secureStorage)
         {
             _settings = settings;
+            _secureStorage = secureStorage;
+        }
+
+        // Builds an authenticated GET request
+        private async Task<HttpRequestMessage> AuthGet(string url)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            var token = await _secureStorage.GetAuthTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return req;
         }
 
         /// <inheritdoc/>
@@ -36,10 +50,9 @@ namespace FraudGuardAI.Services
                 query.Add("fraud_only=true");
 
             var url = $"{_settings.GetApiBaseUrl()}/api/history?{string.Join("&", query)}";
-
             System.Diagnostics.Debug.WriteLine($"[HistoryService] GET {url}");
 
-            var response = await _http.GetAsync(url);
+            var response = await _http.SendAsync(await AuthGet(url));
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<HistoryResponse>();
@@ -52,10 +65,9 @@ namespace FraudGuardAI.Services
         public async Task<CallLog?> GetCallDetailAsync(int callId)
         {
             var url = $"{_settings.GetApiBaseUrl()}/api/call/{callId}";
-
             System.Diagnostics.Debug.WriteLine($"[HistoryService] GET {url}");
 
-            var response = await _http.GetAsync(url);
+            var response = await _http.SendAsync(await AuthGet(url));
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<CallDetailResponse>();
@@ -67,6 +79,7 @@ namespace FraudGuardAI.Services
         {
             try
             {
+                // /health is public — no auth needed
                 var url = $"{_settings.GetApiBaseUrl()}/health";
                 var response = await _http.GetAsync(url);
                 return response.IsSuccessStatusCode;

@@ -40,11 +40,23 @@ var upgrader = websocket.Upgrader{
 
 // ServeWs handles websocket requests from the peer
 func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
+	// Validate bearer token — accept from Authorization header or ?token= query param
+	// (WebSocket clients cannot set custom headers in some implementations)
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if token == "" {
+		token = r.URL.Query().Get("token")
+	}
+	if !ValidateToken(token) {
+		http.Error(w, `{"success":false,"error":"Unauthorized — invalid or missing token"}`, http.StatusUnauthorized)
+		log.Println("⛔ WebSocket rejected: invalid token")
+		return
+	}
+
 	// Extract device_id from query parameters
 	deviceID := r.URL.Query().Get("device_id")
 	if deviceID == "" {
 		http.Error(w, "device_id is required", http.StatusBadRequest)
-		log.Println(" WebSocket connection rejected: missing device_id")
+		log.Println("⛔ WebSocket connection rejected: missing device_id")
 		return
 	}
 

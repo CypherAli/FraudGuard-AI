@@ -56,7 +56,14 @@ namespace FraudGuardAI.Services
             try
             {
                 string baseUrl = new AppSettings().GetApiBaseUrl();
-                var response = await _httpClient.GetAsync($"{baseUrl}/api/blacklist");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/blacklist");
+
+                // Attach session token if available
+                var token = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                if (!string.IsNullOrEmpty(token))
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
