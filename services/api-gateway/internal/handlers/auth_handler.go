@@ -9,7 +9,8 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"net/smtp"
+	"bytes"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -292,55 +293,64 @@ func CheckSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// sendOTPEmail sends the OTP via email
+// sendOTPEmail gửi OTP qua Brevo Transactional Email API.
+// Biến môi trường cần set: BREVO_API_KEY
 func sendOTPEmail(toEmail, otp string) error {
-	// Get SMTP settings from environment
-	smtpHost := getEnv("SMTP_HOST", "smtp.gmail.com")
-	smtpPort := getEnv("SMTP_PORT", "587")
-	smtpUser := getEnv("SMTP_USER", "")
-	smtpPass := getEnv("SMTP_PASS", "")
-
-	if smtpUser == "" || smtpPass == "" {
-		// SMTP not configured: log that email was skipped (never log the OTP code itself)
-		log.Printf("⚠️  [Auth] SMTP not configured - OTP email skipped for %s", toEmail)
-		return fmt.Errorf("SMTP credentials not configured. Set SMTP_USER and SMTP_PASS environment variables")
+	apiKey := getEnv("BREVO_API_KEY", "")
+	if apiKey == "" {
+		log.Printf("⚠️  [Auth] BREVO_API_KEY chưa được cấu hình — bỏ qua gửi email cho %s", toEmail)
+		return fmt.Errorf("BREVO_API_KEY not set")
 	}
 
-	// Create email message
-	from := smtpUser
-	to := []string{toEmail}
-	subject := "FraudGuard AI - Mã xác thực OTP"
-	body := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-</head>
-<body style="font-family: Arial, sans-serif; background-color: #0D1B2A; color: #E0E6ED; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #1B2838; padding: 30px; border-radius: 12px;">
-        <h1 style="color: #34D399; text-align: center;">🛡️ FraudGuard AI</h1>
-        <h2 style="text-align: center;">Mã xác thực OTP của bạn</h2>
-        <div style="background-color: #0D1B2A; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #34D399;">%s</span>
-        </div>
-        <p style="text-align: center; color: #8B95A5;">Mã này sẽ hết hạn sau <strong>5 phút</strong></p>
-        <p style="text-align: center; color: #8B95A5; font-size: 12px;">Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
+	fromEmail := getEnv("BREVO_FROM_EMAIL", "a2020lehong@gmail.com")
+	fromName := getEnv("BREVO_FROM_NAME", "FraudGuard AI")
+
+	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;background:#0D1B2A;color:#E0E6ED;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:#1B2838;padding:30px;border-radius:12px;">
+    <h1 style="color:#34D399;text-align:center;">FraudGuard AI</h1>
+    <h2 style="text-align:center;">Mã xác thực OTP của bạn</h2>
+    <div style="background:#0D1B2A;padding:20px;border-radius:8px;text-align:center;margin:20px 0;">
+      <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#34D399;">%s</span>
     </div>
-</body>
-</html>
-`, otp)
+    <p style="text-align:center;color:#8B95A5;">Mã này sẽ hết hạn sau <strong>5 phút</strong></p>
+    <p style="text-align:center;color:#8B95A5;font-size:12px;">Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
+  </div>
+</body></html>`, otp)
 
-	message := fmt.Sprintf("From: %s\r\n"+
-		"To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"MIME-Version: 1.0\r\n"+
-		"Content-Type: text/html; charset=UTF-8\r\n"+
-		"\r\n%s", from, toEmail, subject, body)
+	payload := fmt.Sprintf(`{
+		"sender":      {"email": %q, "name": %q},
+		"to":          [{"email": %q}],
+		"subject":     "FraudGuard AI - Mã xác thực OTP",
+		"htmlContent": %q
+	}`, fromEmail, fromName, toEmail, htmlBody)
 
-	// Send email
-	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, []byte(message))
-	return err
+	req, err := http.NewRequest(http.MethodPost,
+		"https://api.brevo.com/v3/smtp/email",
+		bytes.NewBufferString(payload),
+	)
+	if err != nil {
+		return fmt.Errorf("brevo: tạo request thất bại: %w", err)
+	}
+	req.Header.Set("api-key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("brevo: request thất bại: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("brevo: API lỗi %d: %s", resp.StatusCode, string(body))
+	}
+
+	log.Printf("✅ [Auth] Email OTP đã gửi qua Brevo tới %s", toEmail)
+	return nil
 }
 
 // Helper functions
