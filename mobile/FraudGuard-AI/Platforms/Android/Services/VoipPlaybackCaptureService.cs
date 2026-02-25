@@ -105,7 +105,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                     .SetAudioFormat(new AudioFormat.Builder()
                         .SetEncoding(global::Android.Media.Encoding.Pcm16bit)
                         .SetSampleRate(SAMPLE_RATE)
-                        .SetChannelMask(ChannelIn.Mono)
+                        .SetChannelMask(ChannelOut.Mono)
                         .Build())
                     .SetBufferSizeInBytes(bufSize)
                     .Build();
