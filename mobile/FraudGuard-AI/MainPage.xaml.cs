@@ -688,10 +688,13 @@ namespace FraudGuardAI
                     (Application.Current?.MainPage ?? this).DisplayAlert(
                         "🛡️ Chế độ Call-Shield",
                         "Bật để FraudGuard phân tích cả giọng kẻ lừa đảo (đầu dây bên kia).\n\n" +
-                        "Android sẽ hiển thị hộp thoại \"Bắt đầu ghi màn hình\" — đây là yêu cầu hệ thống để bắt âm thanh VoIP. " +
-                        "FraudGuard KHÔNG ghi màn hình của bạn.\n\n" +
-                        "Chỉ hoạt động với Zalo, Messenger, WhatsApp, Telegram... (cuộc gọi VoIP).",
-                        "Bật Call-Shield",
+                        "⚠️ Lưu ý: Call-Shield chỉ hoạt động với cuộc gọi VoIP qua ứng dụng " +
+                        "(Zalo, Messenger, WhatsApp, Telegram...).\n\n" +
+                        "📞 Cuộc gọi điện thoại thông thường (mạng di động): âm thanh đầu dây bên kia " +
+                        "đi qua chip modem phần cứng, Android không cho phép ứng dụng nào bắt được — " +
+                        "đây là giới hạn của hệ điều hành, không phải lỗi ứng dụng.\n\n" +
+                        "Android sẽ hiển thị hộp thoại \"Bắt đầu ghi màn hình\" — FraudGuard KHÔNG ghi màn hình.",
+                        "Bật Call-Shield (VoIP)",
                         "Để sau"
                     )
                 );
@@ -709,6 +712,30 @@ namespace FraudGuardAI
                     return;
                 }
 
+                // Subscribe to VoIP status BEFORE starting so we catch PSTN_OR_INIT_FAILED
+                Action<string>? voipStatusHandler = null;
+                voipStatusHandler = (status) =>
+                {
+                    if (status == "PSTN_DETECTED")
+                    {
+                        _audioService.VoipStatusChanged -= voipStatusHandler;
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            StatusLabel.Text = "📞 Cuộc gọi thường — Mic đang phân tích giọng bạn";
+                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                            // Suggest speakerphone for better capture
+                            _ = (Application.Current?.MainPage ?? this).DisplayAlert(
+                                "ℹ️ Cuộc gọi điện thoại thường",
+                                "Đây là cuộc gọi qua mạng di động (không phải VoIP).\n\n" +
+                                "Call-Shield không thể bắt giọng đầu dây bên kia theo giới hạn Android.\n\n" +
+                                "💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.",
+                                "OK"
+                            );
+                        });
+                    }
+                };
+                _audioService.VoipStatusChanged += voipStatusHandler;
+
                 bool voipStarted = await _audioService.StartVoipCaptureAsync(projection);
                 _voipCaptureActive = voipStarted;
 
@@ -721,7 +748,19 @@ namespace FraudGuardAI
                     }
                     else
                     {
-                        StatusLabel.Text = "⚠️ VoIP capture không khả dụng (cần Android 10+)";
+                        // Immediate init failure (PSTN_OR_INIT_FAILED or Android < 10)
+                        _audioService.VoipStatusChanged -= voipStatusHandler; // clean up
+                        StatusLabel.Text = "📞 Mic đang phân tích — bật Loa ngoài để nghe cả 2 bên";
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                        _ = (Application.Current?.MainPage ?? this).DisplayAlert(
+                            "ℹ️ Call-Shield không khởi động được",
+                            "Có thể do:\n" +
+                            "• Đây là cuộc gọi di động thông thường (giới hạn Android)\n" +
+                            "• Ứng dụng VoIP chưa có âm thanh\n" +
+                            "• Thiết bị cần Android 10+\n\n" +
+                            "💡 Bật Loa ngoài để FraudGuard thu được cả 2 giọng qua micro.",
+                            "OK"
+                        );
                     }
                 });
             }

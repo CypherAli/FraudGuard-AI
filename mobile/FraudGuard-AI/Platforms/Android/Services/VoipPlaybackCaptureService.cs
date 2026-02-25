@@ -100,19 +100,24 @@ namespace FraudGuardAI.Platforms.Android.Services
 
                 int bufSize = Math.Max(minBuf * 2, BUFFER_SIZE);
 
+                // SetChannelMask takes ChannelOut in the MAUI binding, but AudioPlaybackCapture
+                // internally needs the ChannelIn value (CHANNEL_IN_MONO = 16, not CHANNEL_OUT_MONO = 4).
+                // Explicit cast passes the correct integer 16 to the underlying Android API.
                 _audioRecord = new AudioRecord.Builder()
                     .SetAudioPlaybackCaptureConfig(captureConfig)
                     .SetAudioFormat(new AudioFormat.Builder()
                         .SetEncoding(global::Android.Media.Encoding.Pcm16bit)
                         .SetSampleRate(SAMPLE_RATE)
-                        .SetChannelMask(ChannelOut.Mono)
+                        .SetChannelMask((ChannelOut)(int)ChannelIn.Mono)  // int 16 = CHANNEL_IN_MONO
                         .Build())
                     .SetBufferSizeInBytes(bufSize)
                     .Build();
 
                 if (_audioRecord.State != State.Initialized)
                 {
-                    OnError("AudioRecord (PlaybackCapture) init failed — no VoIP audio? (normal for PSTN calls)");
+                    // Common cause: regular PSTN call — modem audio not accessible via AudioPlaybackCapture.
+                    // VoIP apps (Zalo, Messenger, WhatsApp) route audio through Android audio stack so they work.
+                    OnError("PSTN_OR_INIT_FAILED");
                     _audioRecord.Dispose();
                     _audioRecord = null;
                     return false;
@@ -194,6 +199,12 @@ namespace FraudGuardAI.Platforms.Android.Services
             int    errors  = 0;
             long   chunks  = 0;
 
+            // PSTN detection: if we get only absolute-silence for >8s after init,
+            // it means the call is likely PSTN (regular phone call) — notify UI.
+            const int PSTN_DETECT_CHUNKS = 200; // ~8s at 8KB/~40ms per chunk
+            int silentChunks = 0;
+            bool pstnWarningFired = false;
+
             Log.Info(TAG, "🔄 VoIP streaming loop started");
 
             try
@@ -222,7 +233,21 @@ namespace FraudGuardAI.Platforms.Android.Services
 
                         // Energy check — bỏ qua silence tuyệt đối
                         if (IsAbsoluteSilence(pcmBuf, bytesRead))
+                        {
+                            silentChunks++;
+                            // Sustained silence → likely PSTN call (regular cellular)
+                            if (!pstnWarningFired && silentChunks >= PSTN_DETECT_CHUNKS)
+                            {
+                                pstnWarningFired = true;
+                                Log.Warn(TAG, "⚠️ No VoIP audio in 8s — likely a regular PSTN call");
+                                OnStatus("PSTN_DETECTED");
+                            }
                             continue;
+                        }
+
+                        // Got real audio — reset PSTN counter
+                        silentChunks = 0;
+                        pstnWarningFired = false;
 
                         // Build send buffer: [0x01][PCM...]
                         Buffer.BlockCopy(pcmBuf, 0, sendBuf, 1, bytesRead);

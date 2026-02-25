@@ -55,6 +55,12 @@ namespace FraudGuardAI.Services
         /// copy if you need to hold a reference past the callback.
         /// </summary>
         public event Action<byte[], int>? PcmDataAvailable;
+
+        /// <summary>
+        /// Status messages from the VoIP capture layer forwarded to UI.
+        /// Key messages: "PSTN_DETECTED" (regular call — no VoIP audio after 8s).
+        /// </summary>
+        public event Action<string>? VoipStatusChanged;
         
         /// <summary>
         /// Check if currently streaming audio
@@ -349,8 +355,16 @@ namespace FraudGuardAI.Services
             }
 
             _voipCapture ??= new VoipPlaybackCaptureService();
-            _voipCapture.StatusChanged += (_, msg) => System.Diagnostics.Debug.WriteLine($"[VoIP] {msg}");
-            _voipCapture.ErrorOccurred += (_, err) => OnError($"VoIP: {err}", null);
+            _voipCapture.StatusChanged += (_, msg) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[VoIP] {msg}");
+                VoipStatusChanged?.Invoke(msg); // forward to UI layer
+            };
+            _voipCapture.ErrorOccurred += (_, err) =>
+            {
+                OnError($"VoIP: {err}", null);
+                VoipStatusChanged?.Invoke(err); // e.g. "PSTN_OR_INIT_FAILED"
+            };
 
             bool started = await _voipCapture.StartAsync(
                 mediaProjection,
