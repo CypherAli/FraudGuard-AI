@@ -29,6 +29,9 @@
     <!-- Quyền đọc trạng thái cuộc gọi (tự động phát hiện cuộc gọi đến) -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <!-- Android 11+ (API 33+): explicit permission to read SIM phone number -->
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+
     <!-- Quyền Internet (BẮT BUỘC cho WebSocket) -->
     <uses-permission android:name="android.permission.INTERNET" />
     

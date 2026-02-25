@@ -12,6 +12,16 @@ namespace FraudGuardAI
         private readonly float[] _offsets;
         private const int BAR_COUNT = 32;
 
+        // ── Real PCM audio state ──────────────────────────────────────────
+        // Normalised [0..1] amplitude per bar from actual microphone PCM data.
+        // Smoothed toward the raw target values each Advance() tick for a
+        // natural-looking decay rather than instant jump-to-zero.
+        private readonly float[] _pcmLevels    = new float[BAR_COUNT];
+        private readonly float[] _pcmTargets   = new float[BAR_COUNT];
+        private bool _hasPcmData = false;
+        private const float SMOOTH_RISE  = 0.6f;  // fast rise on loud signal
+        private const float SMOOTH_DECAY = 0.12f; // slow decay for smooth visual
+
         public WaveformDrawable()
         {
             var rnd = new Random(42);
@@ -23,9 +33,54 @@ namespace FraudGuardAI
                 .Select(i => i * 0.22f).ToArray();
         }
 
+        /// <summary>
+        /// Feed raw PCM-16 audio bytes so the waveform reflects actual caller audio.
+        /// Thread-safe: may be called from the audio thread.
+        /// </summary>
+        public void UpdateFromPcm(byte[] data, int length)
+        {
+            if (data == null || length < 2) return;
+
+            int totalSamples = length / 2; // 16-bit = 2 bytes per sample
+            int samplesPerBar = Math.Max(1, totalSamples / BAR_COUNT);
+
+            for (int bar = 0; bar < BAR_COUNT; bar++)
+            {
+                int startSample = bar * samplesPerBar;
+                int endSample   = Math.Min(startSample + samplesPerBar, totalSamples);
+                long sum = 0;
+                for (int s = startSample; s < endSample; s++)
+                {
+                    int idx = s * 2;
+                    if (idx + 1 < length)
+                    {
+                        short sample = (short)(data[idx] | (data[idx + 1] << 8));
+                        sum += Math.Abs(sample);
+                    }
+                }
+                float avg = endSample > startSample ? (float)(sum / (endSample - startSample)) : 0f;
+                // Normalise: 16-bit max is 32768
+                _pcmTargets[bar] = Math.Min(1f, avg / 32768f);
+            }
+
+            _hasPcmData = true;
+        }
+
         public void Advance(float deltaSeconds)
         {
             _time += deltaSeconds;
+
+            if (_hasPcmData)
+            {
+                // Smooth each bar toward its target
+                for (int i = 0; i < BAR_COUNT; i++)
+                {
+                    float target = _pcmTargets[i];
+                    float current = _pcmLevels[i];
+                    float alpha = target > current ? SMOOTH_RISE : SMOOTH_DECAY;
+                    _pcmLevels[i] = current + (target - current) * alpha;
+                }
+            }
         }
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -45,9 +100,21 @@ namespace FraudGuardAI
 
                 if (IsActive)
                 {
-                    float wave = (float)Math.Sin(_time * _speeds[i] * 4f + _offsets[i]);
-                    h = (wave * 0.5f + 0.5f) * _heights[i] * maxH + 3f;
-                    canvas.FillColor = Color.FromRgba(0.078f, 0.722f, 0.651f, 0.75f + (wave * 0.25f));
+                    if (_hasPcmData)
+                    {
+                        // Real PCM: actual caller audio amplitude
+                        float level = _pcmLevels[i];
+                        h = (level * 0.88f + 0.05f) * maxH; // min ~5% so bars always visible
+                        float alpha = 0.45f + level * 0.55f;
+                        canvas.FillColor = Color.FromRgba(0.078f, 0.722f, 0.651f, alpha);
+                    }
+                    else
+                    {
+                        // Fallback animated sine wave until first PCM chunk arrives
+                        float wave = (float)Math.Sin(_time * _speeds[i] * 4f + _offsets[i]);
+                        h = (wave * 0.5f + 0.5f) * _heights[i] * maxH + 3f;
+                        canvas.FillColor = Color.FromRgba(0.078f, 0.722f, 0.651f, 0.75f + (wave * 0.25f));
+                    }
                 }
                 else
                 {

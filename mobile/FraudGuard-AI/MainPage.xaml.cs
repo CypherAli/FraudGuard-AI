@@ -132,7 +132,10 @@ namespace FraudGuardAI
             {
                 // Use shared service instance from App
                 _audioService = App.GetAudioService();
-                
+
+                // Wire PCM data to the waveform visualiser (fire-and-forget; no UI thread needed)
+                _audioService.PcmDataAvailable += (buf, len) => _waveformDrawable.UpdateFromPcm(buf, len);
+
                 // NOTE: event subscriptions moved to OnAppearing() to prevent memory leaks
                 // Check if already streaming from previous session
                 _isProtectionActive = _audioService.IsStreaming;
@@ -168,16 +171,40 @@ namespace FraudGuardAI
                 var deviceId = _settings.GetDeviceId();
                 var allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
                 var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
-                
-                _stats.BlockedTotal = fraudCalls.Count;
-                _stats.BlockedToday = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
+
+                _stats.BlockedTotal  = fraudCalls.Count;
+                _stats.BlockedToday  = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
                 _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD);
 
-                // Protection efficiency: percentage of analyzed calls where fraud was detected and blocked
-                if (allCalls.Count > 0)
-                    _stats.ProtectionEfficiency = Math.Min(100, (fraudCalls.Count / (double)allCalls.Count) * 100);
-                else
-                    _stats.ProtectionEfficiency = 0;
+                // ── Protection efficiency (overall) ──────────────────────────────
+                _stats.ProtectionEfficiency = allCalls.Count > 0
+                    ? Math.Min(100, (fraudCalls.Count / (double)allCalls.Count) * 100)
+                    : 0;
+
+                // ── Weekly change: fraud calls blocked in the last 7 days ────────
+                var sevenDaysAgo   = DateTime.Today.AddDays(-7);
+                var fourteenDaysAgo = DateTime.Today.AddDays(-14);
+
+                int thisWeekFraud = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
+                int lastWeekFraud = fraudCalls.Count(c =>
+                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
+                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+
+                _stats.WeeklyChange = thisWeekFraud; // "+X this week"
+
+                // ── Efficiency change: this week vs previous week ─────────────────
+                int thisWeekAll = allCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
+                int lastWeekAll = allCalls.Count(c =>
+                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
+                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+
+                double thisWeekEff = thisWeekAll > 0
+                    ? Math.Min(100, (thisWeekFraud / (double)thisWeekAll) * 100) : 0;
+                double lastWeekEff = lastWeekAll > 0
+                    ? Math.Min(100, (lastWeekFraud / (double)lastWeekAll) * 100) : 0;
+
+                // Only show positive change (improvement)
+                _stats.EfficiencyChange = Math.Max(0, thisWeekEff - lastWeekEff);
             }
             catch (Exception ex)
             {
@@ -348,6 +375,14 @@ namespace FraudGuardAI
 
             var label = ReportLabelEntry?.Text?.Trim() ?? string.Empty;
             var threat = _selectedThreatLevel;
+
+            // Disable button to prevent double-submit and show loading state
+            if (SubmitReportButton != null)
+            {
+                SubmitReportButton.IsEnabled = false;
+                SubmitReportButton.Text = "⏳ Đang gửi…";
+                SubmitReportButton.Opacity = 0.7;
+            }
 
             await HideReportSheet();
 

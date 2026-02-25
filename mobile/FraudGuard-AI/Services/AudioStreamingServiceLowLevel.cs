@@ -47,6 +47,14 @@ namespace FraudGuardAI.Services
         public event EventHandler<AlertEventArgs>? AlertReceived;
         public event EventHandler<ErrorEventArgs>? ErrorOccurred;
         public event EventHandler<ConnectionStatusEventArgs>? ConnectionStatusChanged;
+
+        /// <summary>
+        /// Fired on every non-silent PCM read from the microphone.
+        /// Subscribers (e.g. WaveformDrawable) use this to visualise real audio.
+        /// Callback is (buffer, bytesRead); buffer is a shared internal array —
+        /// copy if you need to hold a reference past the callback.
+        /// </summary>
+        public event Action<byte[], int>? PcmDataAvailable;
         
         /// <summary>
         /// Check if currently streaming audio
@@ -452,6 +460,9 @@ namespace FraudGuardAI.Services
                                 // Skip sending silence - saves Deepgram API calls and bandwidth
                                 continue;
                             }
+
+                            // Notify listeners (e.g. WaveformDrawable) with raw PCM samples
+                            PcmDataAvailable?.Invoke(buffer, bytesRead);
 
                             // Gửi lên WebSocket với channel prefix 0x00 (only non-silent audio)
                             if (_webSocket?.State == WebSocketState.Open)

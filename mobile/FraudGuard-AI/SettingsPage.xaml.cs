@@ -97,12 +97,22 @@ namespace FraudGuardAI.Pages
                         UserNameLabel.Text = displayName;
                     if (UserEmailLabel != null)
                         UserEmailLabel.Text = user.Email ?? "user@example.com";
-                    if (PhoneNumberLabel != null)
-                        PhoneNumberLabel.Text = !string.IsNullOrEmpty(user.PhoneNumber)
-                            ? user.PhoneNumber
-                            : LocalizationResourceManager.Instance["Settings_NotUpdated"];
                     if (AvatarInitials != null)
                         AvatarInitials.Text = GetInitials(displayName);
+
+                    // ── Phone number: SecureStorage → API profile → auto-detect ──
+                    string? storedPhone = await SecureStorage.Default.GetAsync("phone_number");
+
+                    if (string.IsNullOrWhiteSpace(storedPhone))
+                        storedPhone = string.IsNullOrEmpty(user.PhoneNumber) ? null : user.PhoneNumber;
+
+                    if (string.IsNullOrWhiteSpace(storedPhone))
+                        storedPhone = await TryDetectDevicePhoneNumberAsync();
+
+                    if (PhoneNumberLabel != null)
+                        PhoneNumberLabel.Text = !string.IsNullOrWhiteSpace(storedPhone)
+                            ? storedPhone
+                            : LocalizationResourceManager.Instance["Settings_NotUpdated"];
                 }
 
                 LoadAvatarImage();
@@ -111,6 +121,51 @@ namespace FraudGuardAI.Pages
             {
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Error loading user info: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Attempts to read the device SIM phone number via TelephonyManager.
+        /// Returns the number if found and persists it to SecureStorage for future use.
+        /// Returns null when the SIM number is not available (most carriers don't provision it).
+        /// </summary>
+        private async Task<string?> TryDetectDevicePhoneNumberAsync()
+        {
+#if ANDROID
+            try
+            {
+                var context = global::Android.App.Application.Context;
+
+                // READ_PHONE_NUMBERS (API 33+) or READ_PHONE_STATE (pre-33) required.
+                // READ_PHONE_STATE is already declared in AndroidManifest.xml.
+                var status = await Permissions.CheckStatusAsync<Permissions.Phone>();
+                if (status != PermissionStatus.Granted)
+                    status = await Permissions.RequestAsync<Permissions.Phone>();
+
+                if (status != PermissionStatus.Granted)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SettingsPage] Phone permission not granted — cannot auto-detect number");
+                    return null;
+                }
+
+                var telephony = (Android.Telephony.TelephonyManager?)
+                    context.GetSystemService(global::Android.Content.Context.TelephonyService);
+
+                string? line1 = telephony?.Line1Number;
+
+                if (!string.IsNullOrWhiteSpace(line1) &&
+                    line1 != "Unknown" && line1 != "+1" && line1.Length >= 7)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SettingsPage] Auto-detected phone: {line1}");
+                    await SecureStorage.Default.SetAsync("phone_number", line1);
+                    return line1;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] TelephonyManager error: {ex.Message}");
+            }
+#endif
+            return null;
         }
 
         private void LoadAvatarImage()
