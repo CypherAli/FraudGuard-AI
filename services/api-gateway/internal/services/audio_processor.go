@@ -23,6 +23,13 @@ var (
 
 const detectorTTL = 30 * time.Minute
 
+// Channel byte prefix — matches VoipPlaybackCaptureService constants on the mobile side.
+// Mobile prepends exactly 1 byte before each PCM chunk over the WebSocket.
+const (
+	ChannelMic  = byte(0x00) // Uplink:   user's microphone  → label [USER]
+	ChannelVoIP = byte(0x01) // Downlink: VoIP playback      → label [SCAMMER]
+)
+
 func init() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
@@ -63,7 +70,9 @@ func evictStaleDetectors() {
 
 	audioBufferMutex.Lock()
 	for _, deviceID := range stale {
-		delete(audioBufferRegistry, deviceID)
+		delete(audioBufferRegistry, deviceID+"|mic")
+		delete(audioBufferRegistry, deviceID+"|voip")
+		delete(audioBufferRegistry, deviceID) // legacy key
 	}
 	audioBufferMutex.Unlock()
 
@@ -84,11 +93,13 @@ type AudioBuffer struct {
 	minSize       int
 }
 
-func getAudioBuffer(deviceID string) *AudioBuffer {
+// getAudioBuffer retrieves or creates an AudioBuffer for a given key.
+// Use compound keys like "deviceID|mic" or "deviceID|voip" for dual-stream support.
+func getAudioBuffer(key string) *AudioBuffer {
 	audioBufferMutex.Lock()
 	defer audioBufferMutex.Unlock()
 
-	if buf, exists := audioBufferRegistry[deviceID]; exists {
+	if buf, exists := audioBufferRegistry[key]; exists {
 		return buf
 	}
 
@@ -98,14 +109,16 @@ func getAudioBuffer(deviceID string) *AudioBuffer {
 		flushInterval: 2 * time.Second,
 		minSize:       16000 * 2 * 1, // ~1 second of 16kHz mono 16-bit audio (32KB)
 	}
-	audioBufferRegistry[deviceID] = buf
+	audioBufferRegistry[key] = buf
 	return buf
 }
 
 func removeAudioBuffer(deviceID string) {
 	audioBufferMutex.Lock()
 	defer audioBufferMutex.Unlock()
-	delete(audioBufferRegistry, deviceID)
+	delete(audioBufferRegistry, deviceID+"|mic")
+	delete(audioBufferRegistry, deviceID+"|voip")
+	delete(audioBufferRegistry, deviceID) // legacy key (pre-dual-stream clients)
 }
 
 // GetOrCreateFraudDetector retrieves or creates a fraud detector for a device.
@@ -172,16 +185,47 @@ func GetDeepfakeDetector(deviceID string) *audio.DeepfakeDetector {
 }
 
 // ProcessAudioStream handles real-time audio streaming with buffering.
-// Audio chunks are accumulated before sending to Deepgram for better transcription quality.
+//
+// Protocol: each chunk begins with a 1-byte channel prefix:
+//
+//	0x00 (ChannelMic)  → user's microphone uplink   → labeled [USER]
+//	0x01 (ChannelVoIP) → VoIP playback downlink      → labeled [SCAMMER]
+//
+// Legacy clients (no prefix) are treated as Mic for backward compatibility.
 func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models.AlertMessage)) {
-	if GlobalDeepgramClient == nil {
+	if GlobalDeepgramClient == nil || len(audioData) == 0 {
 		return
 	}
 
-	buf := getAudioBuffer(deviceID)
+	// Decode channel prefix. If the first byte is a known channel byte, strip it.
+	// Otherwise fall back to treating the whole payload as Mic audio (legacy).
+	channel := ChannelMic
+	speakerLabel := "[USER]"
+	pcmData := audioData
+
+	if audioData[0] == ChannelMic || audioData[0] == ChannelVoIP {
+		channel = audioData[0]
+		pcmData = audioData[1:]
+		if channel == ChannelVoIP {
+			speakerLabel = "[SCAMMER]"
+		}
+	}
+
+	if len(pcmData) == 0 {
+		return
+	}
+
+	// Per-channel buffer key: "deviceID|mic" or "deviceID|voip"
+	// Must match the keys used in removeAudioBuffer and evictStaleDetectors.
+	channelSuffix := "mic"
+	if channel == ChannelVoIP {
+		channelSuffix = "voip"
+	}
+	bufKey := deviceID + "|" + channelSuffix
+	buf := getAudioBuffer(bufKey)
 
 	audioBufferMutex.Lock()
-	buf.data = append(buf.data, audioData...)
+	buf.data = append(buf.data, pcmData...)
 	bufferSize := len(buf.data)
 	timeSinceFlush := time.Since(buf.lastFlush)
 	shouldFlush := bufferSize >= buf.minSize || timeSinceFlush >= buf.flushInterval
@@ -234,10 +278,11 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		log.Printf("🔄 [%s] Starting async transcription...", deviceID)
 
 		// Run deepfake analysis in parallel with transcription.
-		// Use a buffered channel (cap=1) to pass the score back safely — avoids the
-		// data-race that occurs when writing to a captured outer variable from a goroutine.
+		// Only meaningful for the VoIP (downlink) stream — we want to detect
+		// AI-synthesized scammer voices, not the victim's microphone.
+		// Use a buffered channel (cap=1) to pass the score back safely.
 		deepfakeChan := make(chan int, 1)
-		if audio.IsEnabled() {
+		if audio.IsEnabled() && channel == ChannelVoIP {
 			go func() {
 				dd := GetDeepfakeDetector(deviceID)
 				analysis := dd.AnalyzeChunk(flushData)
@@ -302,10 +347,24 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			return
 		}
 
-		log.Printf("[%s] Transcript: '%s'", deviceID, transcript)
+		// Prefix transcript with speaker label so FraudDetector and Gemini Agent
+		// receive a labeled 2-sided conversation: "[USER] ..." vs "[SCAMMER] ..."
+		labeledTranscript := speakerLabel + " " + transcript
+		log.Printf("[%s] %s Transcript: '%s'", deviceID, speakerLabel, transcript)
+
+		// ── Lớp 1 Fast Path — gửi transcript ngay lập tức về mobile ─────────
+		// Mobile nhận được trong <100ms và chạy LocalFraudScanner.CheckEmergency()
+		// TRƯỚC KHI FraudDetector + Gemini Agent hoàn thành (có thể mất 1-5 giây).
+		// Mục tiêu: từ lúc kẻ lừa đảo nói xong → điện thoại nạn nhân nhận
+		// được transcript preview trong dưới 1 giây.
+		sendAlert(models.AlertMessage{
+			Type:      "transcript_preview",
+			Transcript: labeledTranscript,
+			Timestamp: time.Now().Unix(),
+		})
 
 		detector := GetOrCreateFraudDetector(deviceID, sendAlert)
-		result := detector.AnalyzeText(transcript)
+		result := detector.AnalyzeText(labeledTranscript)
 
 		// Always persist the deepfake score to the session so EndSession can save it to DB
 		detector.UpdateDeepfakeScore(deepfakeScore)
@@ -338,7 +397,7 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 				Type:          "alert",
 				AlertType:     result.Action,
 				Confidence:    float64(result.RiskScore) / 100.0,
-				Transcript:    transcript,
+				Transcript:    labeledTranscript,
 				Keywords:      result.Patterns,
 				Timestamp:     time.Now().Unix(),
 				Message:       result.Message,
@@ -352,7 +411,7 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 				Type:          "alert",
 				AlertType:     "LOW",
 				Confidence:    float64(result.RiskScore) / 100.0,
-				Transcript:    transcript,
+				Transcript:    labeledTranscript,
 				Keywords:      result.Patterns,
 				Timestamp:     time.Now().Unix(),
 				Message:       result.Message,

@@ -13,7 +13,7 @@ namespace FraudGuardAI.Pages
     public partial class HistoryDetailPage : ContentPage
     {
         private int _callLogId;
-        private CallLog _callLog;
+        private CallLog? _callLog;
         private readonly IHistoryService _historyService;
 
         public int CallLogId
@@ -69,6 +69,7 @@ namespace FraudGuardAI.Pages
         private void PopulateUI()
         {
             var log = _callLog;
+            if (log == null) return;
 
             // Risk Score
             RiskScoreLabel.Text = $"{log.RiskScore}%";

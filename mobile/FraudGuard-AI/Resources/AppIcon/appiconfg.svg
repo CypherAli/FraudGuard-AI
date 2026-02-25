@@ -1,3 +1,13 @@
 <svg width="456" height="456" viewBox="0 0 456 456" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M228 120L180 240H276L228 336" fill="white"/>
+  <!-- Foreground for adaptive icon (white shapes, transparent background) -->
+  <!-- Shield -->
+  <path d="M228 100 L336 148 L336 240 C336 308 286 348 228 374 C170 348 120 308 120 240 L120 148 Z"
+        fill="rgba(255,255,255,0.14)" stroke="white" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Phone body -->
+  <rect x="192" y="172" width="72" height="120" rx="10"
+        fill="none" stroke="white" stroke-width="14"/>
+  <!-- Speaker -->
+  <line x1="214" y1="193" x2="242" y2="193" stroke="white" stroke-width="11" stroke-linecap="round"/>
+  <!-- Home dot -->
+  <circle cx="228" cy="276" r="8" fill="white"/>
 </svg>

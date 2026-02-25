@@ -25,9 +25,9 @@ namespace FraudGuardAI.Helpers
         public class ErrorInfo
         {
             public ErrorType Type { get; set; }
-            public string Title { get; set; }
-            public string Message { get; set; }
-            public string ActionHint { get; set; }
+            public string? Title { get; set; }
+            public string? Message { get; set; }
+            public string? ActionHint { get; set; }
             public bool CanRetry { get; set; }
         }
 

@@ -8,10 +8,36 @@
 
     <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
         
-        <!-- Logo -->
-        <Label Text="🛡️" 
-               FontSize="80" 
-               HorizontalOptions="Center"/>
+        <!-- Logo: Blue circle with shield + phone icon -->
+        <Grid WidthRequest="130" HeightRequest="130" HorizontalOptions="Center">
+            <!-- Blue gradient circle background -->
+            <Ellipse WidthRequest="130" HeightRequest="130"
+                     HorizontalOptions="Center" VerticalOptions="Center">
+                <Ellipse.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#2563EB" Offset="0"/>
+                        <GradientStop Color="#1E3A8A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+            <!-- Shield outline (slight fill + white stroke) -->
+            <!-- Coordinate space x=0..60, y=0..76 so both paths center identically in Grid -->
+            <Path Stroke="White" StrokeThickness="4.5"
+                  StrokeLineJoin="Round" StrokeLineCap="Round"
+                  Fill="#22FFFFFF"
+                  HorizontalOptions="Center" VerticalOptions="Center"
+                  Data="M 30 0 L 60 14 L 60 44 Q 60 66 30 76 Q 0 66 0 44 L 0 14 Z"/>
+            <!-- Phone body + speaker + home — use M 0,0 and M 60,76 anchors to match shield's bounding box -->
+            <!-- so MAUI centers this path identically to the shield path in the Grid -->
+            <Path Stroke="White" StrokeThickness="3.5"
+                  StrokeLineJoin="Round" StrokeLineCap="Round"
+                  Fill="Transparent"
+                  HorizontalOptions="Center" VerticalOptions="Center"
+                  Data="M 0 0 L 0 0 M 60 76 L 60 76
+                        M 18 20 Q 15 20 15 23 L 15 57 Q 15 60 18 60 L 42 60 Q 45 60 45 57 L 45 23 Q 45 20 42 20 Z
+                        M 22 27 L 38 27
+                        M 25 54 L 35 54"/>
+        </Grid>
         
        <Label Text="{loc:Translate Key=Login_Title}"
                FontSize="36"

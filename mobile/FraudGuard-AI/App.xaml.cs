@@ -10,7 +10,7 @@ namespace FraudGuardAI
 {
     public partial class App : Application
     {
-        private static AudioStreamingServiceLowLevel _audioService;
+        private static AudioStreamingServiceLowLevel? _audioService;
         private const string PREF_LIGHT_THEME = "LightThemeEnabled";
         private const string PREF_LIGHT_THEME_USER_SET = "LightThemeUserSet";
         private const string PREF_APP_LANGUAGE = "AppLanguage";
@@ -132,27 +132,29 @@ namespace FraudGuardAI
             var resources = Application.Current.Resources;
             if (useLightTheme)
             {
-                resources["TextPrimary"] = Color.FromArgb("#1B2530");
-                resources["TextSecondary"] = Color.FromArgb("#5A6B7A");
-                resources["CardBg"] = Color.FromArgb("#FFFFFF");
-                resources["InputBg"] = Color.FromArgb("#EEF2F6");
-                resources["StatCardBg"] = Color.FromArgb("#F1F5F9");
+                resources["PageBackground"]  = Color.FromArgb("#F5F7FB");
+                resources["TextPrimary"]     = Color.FromArgb("#1B2530");
+                resources["TextSecondary"]   = Color.FromArgb("#5A6B7A");
+                resources["CardBg"]          = Color.FromArgb("#FFFFFF");
+                resources["InputBg"]         = Color.FromArgb("#EEF2F6");
+                resources["StatCardBg"]      = Color.FromArgb("#F1F5F9");
                 resources["BackgroundColor"] = Color.FromArgb("#F5F7FB");
-                resources["CardBackground"] = Color.FromArgb("#FFFFFF");
+                resources["CardBackground"]  = Color.FromArgb("#FFFFFF");
                 resources["InputBackground"] = Color.FromArgb("#EEF2F6");
-                resources["BorderColor"] = Color.FromArgb("#D6E0EA");
+                resources["BorderColor"]     = Color.FromArgb("#D6E0EA");
             }
             else
             {
-                resources["TextPrimary"] = Color.FromArgb("#E0E6ED");
-                resources["TextSecondary"] = Color.FromArgb("#8B9CAF");
-                resources["CardBg"] = Color.FromArgb("#1B2838");
-                resources["InputBg"] = Color.FromArgb("#0F1923");
-                resources["StatCardBg"] = Color.FromArgb("#1E2A3A");
-                resources["BackgroundColor"] = Color.FromArgb("#0D1B2A");
-                resources["CardBackground"] = Color.FromArgb("#1B2838");
+                resources["PageBackground"]  = Color.FromArgb("#0A0A0A");
+                resources["TextPrimary"]     = Color.FromArgb("#E0E6ED");
+                resources["TextSecondary"]   = Color.FromArgb("#8B9CAF");
+                resources["CardBg"]          = Color.FromArgb("#1B2838");
+                resources["InputBg"]         = Color.FromArgb("#0F1923");
+                resources["StatCardBg"]      = Color.FromArgb("#1E2A3A");
+                resources["BackgroundColor"] = Color.FromArgb("#0A0A0A");
+                resources["CardBackground"]  = Color.FromArgb("#1B2838");
                 resources["InputBackground"] = Color.FromArgb("#0F1923");
-                resources["BorderColor"] = Color.FromArgb("#2A3F54");
+                resources["BorderColor"]     = Color.FromArgb("#2A3F54");
             }
         }
         

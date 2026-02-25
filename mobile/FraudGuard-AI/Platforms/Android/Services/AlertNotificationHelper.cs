@@ -41,9 +41,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                 
                 // Sử dụng âm thanh cảnh báo mặc định
                 var audioAttributes = new AudioAttributes.Builder()
-                    .SetContentType(AudioContentType.Sonification)
-                    .SetUsage(AudioUsageKind.Notification)
-                    .Build();
+                    .SetContentType(AudioContentType.Sonification)!
+                    .SetUsage(AudioUsageKind.Notification)!
+                    .Build()!;
                 channel.SetSound(RingtoneManager.GetDefaultUri(RingtoneType.Notification), audioAttributes);
 
                 var notificationManager = context.GetSystemService(Context.NotificationService) as NotificationManager;

@@ -16,7 +16,7 @@ namespace FraudGuardAI.Models
         public int Id { get; set; }
 
         [JsonPropertyName("device_id")]
-        public string DeviceId { get; set; }
+        public string? DeviceId { get; set; }
 
         [JsonPropertyName("start_time")]
         public DateTime StartTime { get; set; }
@@ -37,10 +37,10 @@ namespace FraudGuardAI.Models
         public bool IsFraud { get; set; }
 
         [JsonPropertyName("evidence")]
-        public string Evidence { get; set; }
+        public string? Evidence { get; set; }
 
         [JsonPropertyName("transcript")]
-        public string Transcript { get; set; }
+        public string? Transcript { get; set; }
 
         [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; }
@@ -87,18 +87,34 @@ namespace FraudGuardAI.Models
 
         // Computed properties for UI display
         public string DurationDisplay => FormatDuration(DurationSeconds);
-        
-        public string RiskLevelDisplay => IsFraud ? "⚠ DANGEROUS" : "✓ SAFE";
-        
-        public Color CardBackgroundColor => IsFraud 
-            ? Color.FromArgb("#FFEBEE") // Light red
-            : Color.FromArgb("#E8F5E9"); // Light green
-        
-        public Color RiskScoreColor => RiskScore >= 80 
-            ? Color.FromArgb("#D32F2F") // Dark red
-            : RiskScore >= 60 
-                ? Color.FromArgb("#FF9800") // Orange
-                : Color.FromArgb("#4CAF50"); // Green
+
+        /// <summary>
+        /// Returns the granular risk level: CRITICAL / HIGH / MEDIUM / LOW / SAFE
+        /// (based on AlertTypeDisplay, not the old binary DANGEROUS/SAFE)
+        /// </summary>
+        public string RiskLevelDisplay => AlertTypeDisplay;
+
+        public Color CardBackgroundColor => IsFraud
+            ? Color.FromArgb("#1AEF4444")  // Dark red tint
+            : Color.FromArgb("#1A2DD4BF"); // Dark teal tint
+
+        /// <summary>
+        /// Dark-theme palette: matches the dashboard accent colors exactly.
+        /// Critical ≥ 80  → Red    #EF4444
+        /// High     ≥ 60  → Orange #F97316
+        /// Medium   ≥ 40  → Amber  #FBBF24
+        /// Low      ≥ 15  → Blue   #60A5FA
+        /// Safe      &lt; 15 → Teal   #2DD4BF
+        /// </summary>
+        public Color RiskScoreColor => RiskScore >= 80
+            ? Color.FromArgb("#EF4444")
+            : RiskScore >= 60
+                ? Color.FromArgb("#F97316")
+                : RiskScore >= 40
+                    ? Color.FromArgb("#FBBF24")
+                    : RiskScore >= 15
+                        ? Color.FromArgb("#60A5FA")
+                        : Color.FromArgb("#2DD4BF");
 
         public string TimeDisplay => StartTime.ToString("dd/MM/yyyy HH:mm");
 
@@ -126,12 +142,12 @@ namespace FraudGuardAI.Models
     {
         public bool Success { get; set; }
 
-        public CallLog[] Data { get; set; }
+        public CallLog[]? Data { get; set; }
     }
 
     public class CallDetailResponse
     {
         public bool Success { get; set; }
-        public CallLog Data { get; set; }
+        public CallLog? Data { get; set; }
     }
 }

@@ -13,8 +13,8 @@ namespace FraudGuardAI.Services
     public class ContactWhitelistService
     {
         private const string WHITELIST_KEY = "contact_whitelist";
-        private HashSet<string> _whitelist;
-        private static ContactWhitelistService _instance;
+        private HashSet<string> _whitelist = new();
+        private static ContactWhitelistService? _instance;
         private static readonly object _lock = new();
 
         public static ContactWhitelistService Instance
@@ -100,7 +100,7 @@ namespace FraudGuardAI.Services
 
                 string[] projection = { global::Android.Provider.ContactsContract.CommonDataKinds.Phone.Number };
 
-                using var cursor = resolver.Query(uri, projection, null, null, null);
+                using var cursor = resolver?.Query(uri!, projection, null, null, null);
                 if (cursor != null)
                 {
                     int phoneIndex = cursor.GetColumnIndex(
@@ -108,7 +108,7 @@ namespace FraudGuardAI.Services
 
                     while (cursor.MoveToNext())
                     {
-                        string phone = cursor.GetString(phoneIndex);
+                        string? phone = cursor.GetString(phoneIndex);
                         if (!string.IsNullOrWhiteSpace(phone))
                         {
                             string normalized = NormalizePhone(phone);
@@ -181,7 +181,7 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                string json = await SecureStorage.Default.GetAsync(WHITELIST_KEY);
+                string? json = await SecureStorage.Default.GetAsync(WHITELIST_KEY);
                 if (!string.IsNullOrEmpty(json))
                 {
                     var list = JsonSerializer.Deserialize<List<string>>(json);

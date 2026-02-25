@@ -27,15 +27,15 @@ namespace FraudGuardAI.Helpers
         public class ConnectionResult
         {
             public bool Success { get; set; }
-            public string Message { get; set; }
-            public Exception Error { get; set; }
+            public string? Message { get; set; }
+            public Exception? Error { get; set; }
 
             public static ConnectionResult Successful(string message = "Connected successfully")
             {
                 return new ConnectionResult { Success = true, Message = message };
             }
 
-            public static ConnectionResult Failed(string message, Exception error = null)
+            public static ConnectionResult Failed(string message, Exception? error = null)
             {
                 return new ConnectionResult { Success = false, Message = message, Error = error };
             }
@@ -78,7 +78,7 @@ namespace FraudGuardAI.Helpers
         /// </summary>
         public async Task<ConnectionResult> TestWebSocketConnection(string serverIP, int port = 8080, string deviceId = "test_device")
         {
-            ClientWebSocket ws = null;
+            ClientWebSocket? ws = null;
             try
             {
                 ws = new ClientWebSocket();
@@ -150,7 +150,7 @@ namespace FraudGuardAI.Helpers
         /// </summary>
         public async Task<ConnectionResult> ConnectWithRetry(
             Func<Task<bool>> connectAction,
-            Action<int, int> onRetry = null)
+            Action<int, int>? onRetry = null)
         {
             for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
             {

@@ -155,7 +155,7 @@ namespace FraudGuardAI.Pages
             return name.Length >= 2 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
         }
         
-        private async void CheckServerConnection()
+        private void CheckServerConnection()
         {
             try
             {
@@ -269,7 +269,7 @@ namespace FraudGuardAI.Pages
         {
             try
             {
-                string url = ServerIPEntry?.Text?.Trim();
+                string? url = ServerIPEntry?.Text?.Trim();
 
                 if (string.IsNullOrWhiteSpace(url))
                 {
@@ -391,7 +391,7 @@ namespace FraudGuardAI.Pages
             try
             {
                 bool isUsbMode = Preferences.Get(PREF_USB_MODE, false);
-                string serverUrl = isUsbMode ? USB_URL : ServerIPEntry?.Text?.Trim();
+                string? serverUrl = isUsbMode ? USB_URL : ServerIPEntry?.Text?.Trim();
 
                 if (string.IsNullOrWhiteSpace(serverUrl))
                 {
@@ -567,6 +567,15 @@ namespace FraudGuardAI.Pages
 
             Application.Current.UserAppTheme = useLightTheme ? AppTheme.Light : AppTheme.Dark;
             App.ApplyThemeResources(useLightTheme);
+
+            // Update Shell TabBar to match theme
+            if (Shell.Current != null)
+            {
+                var tabBg    = useLightTheme ? Color.FromArgb("#F5F7FB") : Color.FromArgb("#0A0A0A");
+                var tabUnsel = useLightTheme ? Color.FromArgb("#8B9CAF") : Color.FromArgb("#606060");
+                Shell.SetTabBarBackgroundColor(Shell.Current, tabBg);
+                Shell.SetTabBarUnselectedColor(Shell.Current, tabUnsel);
+            }
         }
 
         private async void OnLanguageClicked(object sender, EventArgs e)
@@ -728,6 +737,62 @@ namespace FraudGuardAI.Pages
                     string.Format(T("Settings_Logout_ErrorMessage"), ex.Message),
                     T("Common_OK")
                 );
+            }
+        }
+
+        // ── Connection section collapse/expand ──────────────────────────
+        private async void OnConnectionSectionToggled(object sender, EventArgs e)
+        {
+            try
+            {
+                bool isCurrentlyExpanded = ConnectionDetailsPanel.IsVisible;
+                ConnectionDetailsPanel.IsVisible = !isCurrentlyExpanded;
+
+                // Rotate chevron: 0° = collapsed (›), 90° = expanded (pointing down)
+                if (ConnectionChevron != null)
+                    await ConnectionChevron.RotateTo(isCurrentlyExpanded ? 0 : 90, 200, Easing.CubicInOut);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Connection toggle error: {ex.Message}");
+            }
+        }
+
+        // ── Update phone number ──────────────────────────────────────────
+        private async void OnUpdatePhoneClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // Pre-fill with existing value if available
+                string current = PhoneNumberLabel?.Text ?? "";
+                string notUpdated = LocalizationResourceManager.Instance["Settings_NotUpdated"];
+                if (current == notUpdated) current = "";
+
+                string newPhone = await DisplayPromptAsync(
+                    "Cập nhật số điện thoại",
+                    "Nhập số điện thoại của bạn:",
+                    "Lưu",
+                    "Hủy",
+                    placeholder: "0912345678",
+                    initialValue: current,
+                    keyboard: Keyboard.Telephone
+                );
+
+                if (string.IsNullOrWhiteSpace(newPhone)) return;
+                newPhone = newPhone.Trim();
+
+                // Persist to SecureStorage (key matches SecureStorageService.KEY_PHONE_NUMBER)
+                await Microsoft.Maui.Storage.SecureStorage.Default.SetAsync("phone_number", newPhone);
+
+                // Update UI label immediately
+                if (PhoneNumberLabel != null)
+                    PhoneNumberLabel.Text = newPhone;
+
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Phone number updated: {newPhone}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SettingsPage] Update phone error: {ex.Message}");
             }
         }
 

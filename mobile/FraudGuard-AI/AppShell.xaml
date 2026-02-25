@@ -8,15 +8,15 @@
     xmlns:loc="clr-namespace:FraudGuardAI.Localization"
     Shell.FlyoutBehavior="Disabled"
     Shell.NavBarIsVisible="False"
-    Shell.TabBarBackgroundColor="#0D1B2A"
-    Shell.TabBarForegroundColor="#E0E6ED"
-    Shell.TabBarUnselectedColor="#5C6B7A"
-    Shell.TabBarTitleColor="#E0E6ED">
+    Shell.TabBarBackgroundColor="#0A0A0A"
+    Shell.TabBarForegroundColor="#F97316"
+    Shell.TabBarUnselectedColor="#60FFFFFF"
+    Shell.TabBarTitleColor="#F97316">
 
     <Shell.Resources>
         <ResourceDictionary>
             <Style TargetType="TabBar">
-                <Setter Property="Shell.TabBarBackgroundColor" Value="#0D1B2A"/>
+                <Setter Property="Shell.TabBarBackgroundColor" Value="#0A0A0A"/>
             </Style>
         </ResourceDictionary>
     </Shell.Resources>
@@ -25,39 +25,17 @@
         <ShellContent
             Title="{loc:Translate Key=Tab_Protection}"
             ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage">
-            <ShellContent.Icon>
-                <FontImageSource
-                    Glyph="○"
-                    Size="24"
-                    Color="#E0E6ED"/>
-            </ShellContent.Icon>
-        </ShellContent>
+            Route="MainPage"/>
 
         <ShellContent
             Title="{loc:Translate Key=Tab_History}"
             ContentTemplate="{DataTemplate pages:HistoryPage}"
-            Route="HistoryPage">
-            <ShellContent.Icon>
-                <FontImageSource
-                    Glyph="◎"
-                    Size="24"
-                    Color="#E0E6ED"/>
-            </ShellContent.Icon>
-        </ShellContent>
+            Route="HistoryPage"/>
 
         <ShellContent
             Title="{loc:Translate Key=Tab_Settings}"
             ContentTemplate="{DataTemplate pages:SettingsPage}"
-            Route="SettingsPage">
-            <ShellContent.Icon>
-                <FontImageSource
-                    Glyph="⚙"
-                    Size="24"
-                    Color="#14B8A6"/>
-            </ShellContent.Icon>
-        </ShellContent>
+            Route="SettingsPage"/>
     </TabBar>
 
 </Shell>
-

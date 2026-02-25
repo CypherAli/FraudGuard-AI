@@ -33,7 +33,8 @@ namespace FraudGuardAI.Pages
                 if (!Preferences.Get("OnboardingCompleted", false))
                 {
                     Debug.WriteLine("[StartupPage] First launch — showing onboarding");
-                    Application.Current.MainPage = new OnboardingPage();
+                    if (Application.Current != null)
+                        Application.Current.MainPage = new OnboardingPage();
                     return;
                 }
 

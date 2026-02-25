@@ -3,215 +3,175 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.Auth.OtpVerificationPage"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
-             BackgroundColor="#0D1B2A"
+             BackgroundColor="{DynamicResource PageBackground}"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            
-            <!-- Back Button -->
-           <Button Text="{loc:Translate Key=Otp_Back}"
-                    BackgroundColor="Transparent"
-                    TextColor="#34D399"
-                    FontSize="16"
-                    HorizontalOptions="Start"
-                    Clicked="OnBackClicked"
-                    Margin="0,20,0,0"/>
+        <VerticalStackLayout Padding="24,0,24,40" Spacing="0">
 
-            <!-- Icon -->
-            <Grid HorizontalOptions="Center" Margin="0,20,0,0">
-                <Label Text="🛡️"
-                       FontSize="64"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center"/>
-                <Label Text="✓"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       TextColor="White"
-                       HorizontalOptions="End"
-                       VerticalOptions="End"
-                       Margin="0,0,4,6"/>
-            </Grid>
+            <!-- ══ Back ══ -->
+            <Border BackgroundColor="Transparent" StrokeThickness="0"
+                    HorizontalOptions="Start" Margin="0,52,0,0">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackClicked"/>
+                </Border.GestureRecognizers>
+                <Label Text="← Quay lại"
+                       TextColor="#2DD4BF" FontSize="14"
+                       Padding="4"/>
+            </Border>
 
-            <!-- Title -->
-            <VerticalStackLayout Spacing="10" Margin="0,20,0,30">
-                <Label Text="{loc:Translate Key=Otp_Title}" 
-                       FontSize="28" 
-                       FontAttributes="Bold"
-                       TextColor="#E0E6ED"
+            <!-- ══ Header ══ -->
+            <VerticalStackLayout Spacing="6" Margin="0,28,0,32" HorizontalOptions="Center">
+                <Label Text="FRAUDGUARD · V2.1"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="#40FFFFFF" FontAttributes="Bold"
+                       HorizontalOptions="Center"/>
+                <Label Text="{loc:Translate Key=Otp_Title}"
+                       FontSize="30" FontAttributes="Bold" TextColor="White"
                        HorizontalOptions="Center"/>
                 <Label x:Name="PhoneLabel"
-                       Text="{loc:Translate Key=Otp_SentToEmail}" 
-                       FontSize="14" 
-                       TextColor="#8B95A5"
+                       Text="{loc:Translate Key=Otp_SentToEmail}"
+                       FontSize="13" TextColor="#60FFFFFF"
                        HorizontalOptions="Center"/>
                 <Label x:Name="PhoneNumberLabel"
-                       FontSize="16" 
-                       FontAttributes="Bold"
-                       TextColor="#34D399"
+                       FontSize="15" FontAttributes="Bold"
+                       TextColor="#2DD4BF"
                        HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- OTP Input Boxes -->
-                     <HorizontalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,20">
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                                      WidthRequest="44"
-                                      HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp1"
-                           TextColor="#E0E6ED"
-                                             FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       WidthRequest="44"
-                       HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp2"
-                           TextColor="#E0E6ED"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       WidthRequest="44"
-                       HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp3"
-                           TextColor="#E0E6ED"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       WidthRequest="44"
-                       HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp4"
-                           TextColor="#E0E6ED"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       WidthRequest="44"
-                       HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp5"
-                           TextColor="#E0E6ED"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-                <Frame BackgroundColor="#1B2838" 
-                       BorderColor="#2D3E50" 
-                       CornerRadius="12" 
-                       Padding="0"
-                       WidthRequest="44"
-                       HeightRequest="56"
-                       HasShadow="False">
-                    <Entry x:Name="Otp6"
-                           TextColor="#E0E6ED"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"
-                           Keyboard="Numeric"
-                           MaxLength="1"
-                           TextChanged="OnOtpDigitChanged"/>
-                </Frame>
-            </HorizontalStackLayout>
+            <!-- ══ OTP Card ══ -->
+            <Border StrokeThickness="1" Padding="24">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0EFFFFFF" Offset="0"/>
+                        <GradientStop Color="#000A0A0A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Stroke>
+                    <SolidColorBrush Color="#12FFFFFF"/>
+                </Border.Stroke>
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24"/>
+                </Border.StrokeShape>
 
-            <!-- Error Message -->
-            <Label x:Name="ErrorLabel"
-                   TextColor="#EF4444"
-                   FontSize="14"
-                   IsVisible="False"
-                   HorizontalOptions="Center"/>
+                <VerticalStackLayout Spacing="20">
 
-            <!-- Verify Button -->
-           <Button x:Name="VerifyButton"
-                  Text="{loc:Translate Key=Otp_Verify}"
-                    BackgroundColor="#34D399"
-                    TextColor="#0D1B2A"
-                    FontSize="16"
-                    FontAttributes="Bold"
-                    CornerRadius="12"
-                    HeightRequest="56"
-                    Margin="0,20,0,0"
-                    Clicked="OnVerifyClicked">
-                <Button.Shadow>
-                    <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
-                </Button.Shadow>
-            </Button>
+                    <!-- Section label -->
+                    <Label Text="NHẬP MÃ XÁC THỰC"
+                           FontSize="10" CharacterSpacing="2"
+                           TextColor="#40FFFFFF" FontAttributes="Bold"
+                           HorizontalOptions="Center"/>
 
-            <!-- Loading Indicator -->
-            <ActivityIndicator x:Name="LoadingIndicator"
-                             IsRunning="False"
-                             IsVisible="False"
-                             Color="#34D399"
-                             HeightRequest="40"/>
+                    <!-- OTP Input Row -->
+                    <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                        <!-- Box 1 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp1" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                        <!-- Box 2 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp2" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                        <!-- Box 3 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp3" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                        <!-- Box 4 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp4" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                        <!-- Box 5 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp5" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                        <!-- Box 6 -->
+                        <Border BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                                Stroke="#1A14B8A6" WidthRequest="44" HeightRequest="54">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry x:Name="Otp6" TextColor="White" FontSize="22" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                   BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="1"
+                                   TextChanged="OnOtpDigitChanged"/>
+                        </Border>
+                    </HorizontalStackLayout>
 
-            <!-- Resend OTP -->
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,20,0,0">
-                <Label TextColor="#8B95A5" 
-                       FontSize="14"
-                       Text="{loc:Translate Key=Otp_NoCode}"/>
-                <Label x:Name="ResendLabel"
-                       Text="{loc:Translate Key=Otp_Resend}"
-                       TextColor="#34D399"
-                       FontSize="14"
-                       FontAttributes="Bold">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnResendTapped"/>
-                    </Label.GestureRecognizers>
-                </Label>
-            </HorizontalStackLayout>
+                    <!-- Error Message -->
+                    <Label x:Name="ErrorLabel"
+                           TextColor="#F87171" FontSize="13"
+                           IsVisible="False"
+                           HorizontalOptions="Center"/>
 
-            <!-- Countdown Timer -->
-            <Label x:Name="CountdownLabel"
-                   TextColor="#8B95A5"
-                   FontSize="12"
-                   HorizontalOptions="Center"
-                   IsVisible="False"/>
+                    <!-- Verify Button -->
+                    <Button x:Name="VerifyButton"
+                            Text="{loc:Translate Key=Otp_Verify}"
+                            TextColor="White"
+                            FontSize="16" FontAttributes="Bold"
+                            CornerRadius="14" HeightRequest="52"
+                            Clicked="OnVerifyClicked">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#14B8A6" Offset="0"/>
+                                <GradientStop Color="#0D9488" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                        <Button.Shadow>
+                            <Shadow Brush="#14B8A6" Opacity="0.25" Radius="12" Offset="0,4"/>
+                        </Button.Shadow>
+                    </Button>
+
+                    <!-- Loading Indicator -->
+                    <ActivityIndicator x:Name="LoadingIndicator"
+                                       IsRunning="False" IsVisible="False"
+                                       Color="#14B8A6" HeightRequest="36"
+                                       HorizontalOptions="Center"/>
+
+                    <!-- Resend -->
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="6">
+                        <Label Text="{loc:Translate Key=Otp_NoCode}"
+                               TextColor="#50FFFFFF" FontSize="13"/>
+                        <Label x:Name="ResendLabel"
+                               Text="{loc:Translate Key=Otp_Resend}"
+                               TextColor="#2DD4BF" FontSize="13" FontAttributes="Bold">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnResendTapped"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </HorizontalStackLayout>
+
+                    <!-- Countdown -->
+                    <Label x:Name="CountdownLabel"
+                           TextColor="#40FFFFFF" FontSize="12"
+                           HorizontalOptions="Center"
+                           IsVisible="False"/>
+
+                </VerticalStackLayout>
+            </Border>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

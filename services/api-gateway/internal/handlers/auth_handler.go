@@ -1,19 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
-	"bytes"
-	"io"
 	"os"
 	"strings"
 	"sync"
@@ -59,92 +57,6 @@ const (
 	verifyRateLimitWindow     = 15 * time.Minute
 	sessionExpiry             = 30 * 24 * time.Hour // 30 days
 )
-
-// ── JWT (stateless — survives server restarts, no session store needed) ──────
-
-type jwtClaims struct {
-	Email string `json:"email"`
-	Exp   int64  `json:"exp"`
-	Iat   int64  `json:"iat"`
-}
-
-// getJWTSecret reads JWT_SECRET from env (set this on Render.com → stays across restarts).
-func getJWTSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		// Fallback for local dev — set JWT_SECRET in production!
-		secret = "fraudguard-jwt-secret-CHANGE-IN-PROD"
-		log.Println("⚠️  [Auth] JWT_SECRET not set — using default (unsafe for production)")
-	}
-	return []byte(secret)
-}
-
-// generateJWT creates a signed HS256 JWT that expires in sessionExpiry.
-func generateJWT(email string) (string, error) {
-	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
-	claims := jwtClaims{
-		Email: email,
-		Exp:   time.Now().Add(sessionExpiry).Unix(),
-		Iat:   time.Now().Unix(),
-	}
-	claimsJSON, err := json.Marshal(claims)
-	if err != nil {
-		return "", err
-	}
-	payload := base64.RawURLEncoding.EncodeToString(claimsJSON)
-	signing := header + "." + payload
-	mac := hmac.New(sha256.New, getJWTSecret())
-	mac.Write([]byte(signing))
-	sig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-	return signing + "." + sig, nil
-}
-
-// validateJWT verifies the HS256 signature and expiry of a JWT.
-// Returns true only if signature is valid AND token has not expired.
-func validateJWT(tokenStr string) bool {
-	parts := strings.Split(tokenStr, ".")
-	if len(parts) != 3 {
-		return false
-	}
-	// 1. Verify signature
-	signing := parts[0] + "." + parts[1]
-	mac := hmac.New(sha256.New, getJWTSecret())
-	mac.Write([]byte(signing))
-	expectedSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-	if !hmac.Equal([]byte(expectedSig), []byte(parts[2])) {
-		return false
-	}
-	// 2. Verify expiry
-	claimsJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return false
-	}
-	var claims jwtClaims
-	if err := json.Unmarshal(claimsJSON, &claims); err != nil {
-		return false
-	}
-	return time.Now().Unix() < claims.Exp
-}
-
-// HandleValidateToken — GET /auth/validate-token
-// Lightweight check used by the mobile app BEFORE attempting WebSocket connection.
-// Returns 200 {"valid":true} or 401 {"valid":false}.
-func HandleValidateToken(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if token == "" {
-		token = r.URL.Query().Get("token")
-	}
-	if !ValidateToken(token) {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{"valid": false, "message": "Token hết hạn hoặc không hợp lệ"})
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"valid": true})
-}
-
-// ── End JWT section ───────────────────────────────────────────────────────────
 
 // SendOTPRequest is the request body for sending OTP
 type SendOTPRequest struct {
@@ -382,12 +294,12 @@ func CheckSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// sendOTPEmail gửi OTP qua Brevo Transactional Email API.
-// Biến môi trường cần set: BREVO_API_KEY
+// sendOTPEmail sends the OTP via Brevo transactional email API.
+// Requires BREVO_API_KEY env var. BREVO_FROM_EMAIL defaults to a2020lehong@gmail.com.
 func sendOTPEmail(toEmail, otp string) error {
 	apiKey := getEnv("BREVO_API_KEY", "")
 	if apiKey == "" {
-		log.Printf("⚠️  [Auth] BREVO_API_KEY chưa được cấu hình — bỏ qua gửi email cho %s", toEmail)
+		log.Printf("⚠️  [Auth] BREVO_API_KEY not configured — OTP email skipped for %s", toEmail)
 		return fmt.Errorf("BREVO_API_KEY not set")
 	}
 
@@ -420,7 +332,7 @@ func sendOTPEmail(toEmail, otp string) error {
 		bytes.NewBufferString(payload),
 	)
 	if err != nil {
-		return fmt.Errorf("brevo: tạo request thất bại: %w", err)
+		return fmt.Errorf("brevo: failed to create request: %w", err)
 	}
 	req.Header.Set("api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
@@ -429,16 +341,16 @@ func sendOTPEmail(toEmail, otp string) error {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("brevo: request thất bại: %w", err)
+		return fmt.Errorf("brevo: request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("brevo: API lỗi %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("brevo: API error %d: %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("✅ [Auth] Email OTP đã gửi qua Brevo tới %s", toEmail)
+	log.Printf("✅ [Auth] OTP email sent via Brevo to %s", toEmail)
 	return nil
 }
 
@@ -460,12 +372,13 @@ func getEnv(key, defaultValue string) string {
 }
 
 func generateSessionToken(email string) (string, error) {
-	// Use JWT — self-validating, survives server restarts
-	token, err := generateJWT(email)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate JWT: %w", err)
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate session token: %w", err)
 	}
-	// Keep sessionStore for CheckSession endpoint backwards-compat
+	token := fmt.Sprintf("%x", b)
+
+	// Store session
 	sessionMutex.Lock()
 	sessionStore[token] = &SessionEntry{
 		Email:     email,
@@ -474,36 +387,45 @@ func generateSessionToken(email string) (string, error) {
 		ExpiresAt: time.Now().Add(sessionExpiry),
 	}
 	sessionMutex.Unlock()
-	log.Printf("🔑 [Auth] JWT issued for %s (expires %s)", email, time.Now().Add(sessionExpiry).Format(time.RFC3339))
+
 	return token, nil
 }
 
-func generateUserID(_ string) string {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err != nil {
-		// Fallback to timestamp-based ID
-		return fmt.Sprintf("user_%d", time.Now().UnixNano())
-	}
-	return fmt.Sprintf("user_%x", b)
+// generateUserID derives a stable, deterministic user ID from the email address.
+// Same email always produces the same ID — required for call history continuity across logins.
+func generateUserID(email string) string {
+	h := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return fmt.Sprintf("user_%x", h[:8]) // 16 hex chars, stable per email
 }
 
 // ValidateToken checks whether a bearer token is active and not expired.
 // Used by auth middleware and WebSocket handler.
-// Priority: JWT validation first (stateless — works after restart),
-// then session store fallback (for any legacy non-JWT tokens).
 func ValidateToken(token string) bool {
 	if token == "" {
 		return false
 	}
-	// JWT path — no server state needed, works across restarts
-	if validateJWT(token) {
-		return true
-	}
-	// Fallback: legacy random-hex session tokens (migration period)
 	sessionMutex.RLock()
 	session, exists := sessionStore[token]
 	sessionMutex.RUnlock()
 	return exists && time.Now().Before(session.ExpiresAt)
+}
+
+// HandleValidateToken — GET /auth/validate-token
+// Lightweight pre-check used by the mobile app BEFORE attempting WebSocket connection.
+// Returns 200 {"valid":true} or 401 {"valid":false,"message":"..."}.
+func HandleValidateToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if token == "" {
+		token = r.URL.Query().Get("token")
+	}
+	if !ValidateToken(token) {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]any{"valid": false, "message": "Token hết hạn hoặc không hợp lệ"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{"valid": true})
 }
 
 // CleanupExpiredOTPs removes expired OTPs and sessions periodically

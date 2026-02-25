@@ -63,6 +63,7 @@ namespace FraudGuardAI.Pages
                 // Find the current visible item's VisualStack
                 // The CarouselView renders DataTemplates, but we handle content via events
                 // For simplicity, we rely on the visual tree if available
+#pragma warning disable CS0618
                 foreach (var child in OnboardingCarousel.LogicalChildren)
                 {
                     if (child is VisualElement ve)
@@ -70,6 +71,7 @@ namespace FraudGuardAI.Pages
                         UpdateVisualElement(ve, slide);
                     }
                 }
+#pragma warning restore CS0618
             }
             catch (Exception ex)
             {
@@ -92,7 +94,9 @@ namespace FraudGuardAI.Pages
                     descLabel.Text = T(slide.DescKey);
             }
 
+#pragma warning disable CS0618
             foreach (var child in element.LogicalChildren)
+#pragma warning restore CS0618
             {
                 if (child is Element childElement)
                     UpdateVisualElement(childElement, slide);

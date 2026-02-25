@@ -1,5 +1,6 @@
 #if ANDROID
 using System;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -7,7 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Android.Media;
 using Android.Util;
+using Android.Media.Projection;
 using FraudGuardAI.Models;
+using FraudGuardAI.Platforms.Android.Services;
 
 namespace FraudGuardAI.Services
 {
@@ -21,13 +24,17 @@ namespace FraudGuardAI.Services
     {
         #region Fields & Properties
 
-        private ClientWebSocket _webSocket;
-        private AudioRecord _audioRecord;
-        private CancellationTokenSource _cancellationTokenSource;
+        private ClientWebSocket? _webSocket;
+        private AudioRecord? _audioRecord;
+        private CancellationTokenSource? _cancellationTokenSource;
         private volatile bool _isStreaming;
         private volatile bool _isConnected;
         private readonly SemaphoreSlim _startStopLock = new SemaphoreSlim(1, 1);
         private readonly IAppSettings _settings;
+
+        // ── VoIP Playback Capture (downlink — scammer's voice) ────────────────
+        private VoipPlaybackCaptureService? _voipCapture;
+        private volatile bool _voipCaptureActive;
 
         // Cấu hình Audio (khớp với backend Deepgram)
         private const int SAMPLE_RATE = 16000;
@@ -37,9 +44,9 @@ namespace FraudGuardAI.Services
         private const int BYTES_PER_SAMPLE = 2; // 16-bit = 2 bytes
         private const string TAG = "FraudGuard"; // Logcat tag for filtering
 
-        public event EventHandler<AlertEventArgs> AlertReceived;
-        public event EventHandler<ErrorEventArgs> ErrorOccurred;
-        public event EventHandler<ConnectionStatusEventArgs> ConnectionStatusChanged;
+        public event EventHandler<AlertEventArgs>? AlertReceived;
+        public event EventHandler<ErrorEventArgs>? ErrorOccurred;
+        public event EventHandler<ConnectionStatusEventArgs>? ConnectionStatusChanged;
         
         /// <summary>
         /// Check if currently streaming audio
@@ -59,10 +66,6 @@ namespace FraudGuardAI.Services
         {
             _settings = settings;
 
-            // Initialize fields to prevent null reference
-            _webSocket = null!;
-            _audioRecord = null!;
-            _cancellationTokenSource = null!;
             _isStreaming = false;
             _isConnected = false;
         }
@@ -194,7 +197,7 @@ namespace FraudGuardAI.Services
                 Log.Info(TAG, $"🎤 Audio recording STARTED - BufferSize={bufferSize}, MinBuffer={minBufferSize}");
 
                 // Bắt đầu streaming loop
-                _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource.Token));
+                _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource!.Token));
 
                 return true;
             }
@@ -233,6 +236,9 @@ namespace FraudGuardAI.Services
                 {
                     try
                     {
+                        // Stop VoIP capture (parallel — has its own internal lock)
+                        await StopVoipCaptureAsync();
+
                         // Stop AudioRecord with timeout
                         var audioCleanupTask = Task.Run(() =>
                         {
@@ -315,6 +321,53 @@ namespace FraudGuardAI.Services
             }
         }
 
+        /// <summary>
+        /// Khởi động VoIP playback capture (downlink — giọng kẻ lừa đảo).
+        /// Gọi sau khi StartStreamingAsync() thành công.
+        /// Requires MediaProjection token từ MainActivity.RequestMediaProjectionAsync().
+        /// </summary>
+        public async Task<bool> StartVoipCaptureAsync(MediaProjection mediaProjection)
+        {
+            if (_webSocket == null || _webSocket.State != WebSocketState.Open)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] StartVoipCaptureAsync: WebSocket not open");
+                return false;
+            }
+
+            if (_voipCaptureActive)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] VoIP capture already active");
+                return true;
+            }
+
+            _voipCapture ??= new VoipPlaybackCaptureService();
+            _voipCapture.StatusChanged += (_, msg) => System.Diagnostics.Debug.WriteLine($"[VoIP] {msg}");
+            _voipCapture.ErrorOccurred += (_, err) => OnError($"VoIP: {err}", null);
+
+            bool started = await _voipCapture.StartAsync(
+                mediaProjection,
+                _webSocket,
+                _cancellationTokenSource?.Token ?? CancellationToken.None);
+
+            _voipCaptureActive = started;
+            System.Diagnostics.Debug.WriteLine($"[AudioService] VoIP capture {(started ? "STARTED ✅" : "FAILED ❌")}");
+            return started;
+        }
+
+        /// <summary>
+        /// Dừng VoIP playback capture.
+        /// </summary>
+        public async Task StopVoipCaptureAsync()
+        {
+            _voipCaptureActive = false;
+            if (_voipCapture != null)
+            {
+                await _voipCapture.StopAsync();
+                _voipCapture.Dispose();
+                _voipCapture = null;
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -339,7 +392,11 @@ namespace FraudGuardAI.Services
 
         private async Task StreamAudioDataAsync(CancellationToken cancellationToken)
         {
+            // PCM read buffer (no channel prefix)
             byte[] buffer = new byte[BUFFER_SIZE];
+            // Send buffer: [CHANNEL_MIC (1 byte)] + [PCM data] — reused to avoid GC pressure
+            byte[] sendBuf = new byte[1 + BUFFER_SIZE];
+            sendBuf[0] = VoipPlaybackCaptureService.CHANNEL_MIC; // 0x00 = User/Mic uplink
             int consecutiveErrors = 0;
             const int MAX_CONSECUTIVE_ERRORS = 10;
 
@@ -372,7 +429,9 @@ namespace FraudGuardAI.Services
                                 bytesRead = (bytesRead / BYTES_PER_SAMPLE) * BYTES_PER_SAMPLE;
                             }
                             
-                            // Check audio energy level - skip silence to save bandwidth & API calls
+                            // Check audio energy level - skip near-absolute silence only
+                            // Threshold lowered to 60 (from 150) so whispers / call audio
+                            // coming through the earpiece are NOT falsely discarded.
                             bool isSilence = true;
                             double energy = 0;
                             int sampleCount = bytesRead / BYTES_PER_SAMPLE;
@@ -385,8 +444,8 @@ namespace FraudGuardAI.Services
                             {
                                 energy /= sampleCount;
                             }
-                            // Threshold ~150 out of 32768 - filters out background noise/silence
-                            isSilence = energy < 150;
+                            // Only skip if truly silent (microphone noise floor ~40-60)
+                            isSilence = energy < 60;
 
                             if (isSilence)
                             {
@@ -394,10 +453,12 @@ namespace FraudGuardAI.Services
                                 continue;
                             }
 
-                            // Gửi lên WebSocket (only non-silent audio)
+                            // Gửi lên WebSocket với channel prefix 0x00 (only non-silent audio)
                             if (_webSocket?.State == WebSocketState.Open)
                             {
-                                var segment = new ArraySegment<byte>(buffer, 0, bytesRead);
+                                // Prepend CHANNEL_MIC so backend labels transcript as [USER]
+                                Buffer.BlockCopy(buffer, 0, sendBuf, 1, bytesRead);
+                                var segment = new ArraySegment<byte>(sendBuf, 0, 1 + bytesRead);
                                 await _webSocket.SendAsync(
                                     segment,
                                     WebSocketMessageType.Binary,
@@ -520,8 +581,69 @@ namespace FraudGuardAI.Services
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
 
-                if (!root.TryGetProperty("type", out var typeElement) ||
-                    typeElement.GetString() != "alert")
+                if (!root.TryGetProperty("type", out var typeElement))
+                    return;
+
+                var typeStr = typeElement.GetString();
+
+                // ── Lớp 1: Transcript Preview (Layer 1 on-device fast path) ──────────
+                // Backend gửi transcript ngay sau khi Deepgram hoàn thành, TRƯỚC KHI
+                // FraudDetector và Gemini Agent kết thúc phân tích.
+                // LocalFraudScanner kiểm tra ngay trên thiết bị và cảnh báo tức thì
+                // nếu phát hiện emergency keywords (OTP, AnyDesk, mã xác nhận...).
+                if (typeStr == "transcript_preview")
+                {
+                    var transcriptText = root.TryGetProperty("transcript", out var tp)
+                        ? tp.GetString() ?? ""
+                        : "";
+
+                    if (!string.IsNullOrEmpty(transcriptText))
+                    {
+                        var scanResult = LocalFraudScanner.Scan(transcriptText);
+
+                        if (scanResult.Level == ScanLevel.Emergency)
+                        {
+                            // ⚡ Emergency: cảnh báo NGAY LẬP TỨC trước khi backend phân tích xong
+                            var kwList = string.Join(", ", scanResult.Keywords);
+                            Log.Warn(TAG, $"⚡ Layer 1 EMERGENCY scan: [{kwList}]");
+
+                            OnAlertReceived(new AlertData
+                            {
+                                AlertType    = "HIGH",
+                                Confidence   = 0.75,
+                                Transcript   = transcriptText,
+                                Keywords     = scanResult.Keywords
+                                                   .Select(k => $"⚡LOCAL: {k}").ToArray(),
+                                Message      = $"⚠️ Phát hiện từ nguy hiểm: {kwList}",
+                                DeepfakeScore = 0,
+                                Timestamp    = DateTime.Now,
+                            });
+                        }
+                        else if (scanResult.Level == ScanLevel.Warning)
+                        {
+                            // Warning: hiện banner nhỏ, không rung (backend sẽ xác nhận sau)
+                            var kwList = string.Join(", ", scanResult.Keywords);
+                            Log.Info(TAG, $"⚡ Layer 1 WARNING scan: [{kwList}]");
+
+                            OnAlertReceived(new AlertData
+                            {
+                                AlertType    = "LOW",
+                                Confidence   = 0.40,
+                                Transcript   = transcriptText,
+                                Keywords     = scanResult.Keywords
+                                                   .Select(k => $"⚡LOCAL: {k}").ToArray(),
+                                Message      = $"Lưu ý: {kwList}",
+                                DeepfakeScore = 0,
+                                Timestamp    = DateTime.Now,
+                            });
+                        }
+                        // ScanLevel.Safe → bỏ qua, không làm phiền user
+                    }
+                    return; // transcript_preview xử lý xong — không fall through
+                }
+
+                // ── Full alert từ backend (sau khi FraudDetector + Gemini hoàn thành) ─
+                if (typeStr != "alert")
                     return; // Not an alert message, ignore
 
                 // Validate required fields before accessing
@@ -643,6 +765,9 @@ namespace FraudGuardAI.Services
             {
                 _cancellationTokenSource?.Cancel();
                 _cancellationTokenSource?.Dispose();
+
+                try { _voipCapture?.Dispose(); } catch { }
+                _voipCapture = null;
 
                 try { _audioRecord?.Release(); } catch { }
                 try { _audioRecord?.Dispose(); } catch { }

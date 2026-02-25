@@ -28,21 +28,21 @@ namespace FraudGuardAI.Platforms.Android.Services
         /// <summary>
         /// Event để thông báo cho MainPage khi trạng thái cuộc gọi thay đổi
         /// </summary>
-        public static event EventHandler<CallStateChangedEventArgs> CallStateChanged;
+        public static event EventHandler<CallStateChangedEventArgs>? CallStateChanged;
 
         /// <summary>
         /// Kiểm tra xem có cuộc gọi đang diễn ra không
         /// </summary>
         public static bool IsCallActive => _isCallActive;
 
-        public override void OnReceive(Context context, Intent intent)
+        public override void OnReceive(Context? context, Intent? intent)
         {
             if (intent?.Action != TelephonyManager.ActionPhoneStateChanged)
                 return;
 
             try
             {
-                string stateStr = intent.GetStringExtra(TelephonyManager.ExtraState);
+                string? stateStr = intent.GetStringExtra(TelephonyManager.ExtraState);
                 string phoneNumber = intent.GetStringExtra(TelephonyManager.ExtraIncomingNumber) ?? "Unknown";
 
                 Debug.WriteLine($"[CallReceiver] Phone state changed: {stateStr}, Number: {phoneNumber}");
@@ -61,8 +61,11 @@ namespace FraudGuardAI.Platforms.Android.Services
                             if (BlacklistCacheService.Instance.IsBlacklisted(phoneNumber))
                             {
                                 Debug.WriteLine($"[CallReceiver] 🚫 BLACKLISTED — auto-rejecting: {phoneNumber}");
-                                RejectCall(context);
-                                ShowRejectionNotification(context, phoneNumber);
+                                if (context != null)
+                                {
+                                    RejectCall(context);
+                                    ShowRejectionNotification(context, phoneNumber);
+                                }
                                 return; // Don't process further
                             }
                         }
@@ -223,7 +226,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             {
                 if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.P)
                 {
-                    var telecomManager = (TelecomManager)context.GetSystemService(Context.TelecomService);
+                    var telecomManager = context.GetSystemService(Context.TelecomService) as TelecomManager;
                     if (telecomManager != null)
                     {
                         bool ended = telecomManager.EndCall();

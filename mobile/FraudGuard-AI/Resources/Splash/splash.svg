@@ -1,5 +1,28 @@
 <svg width="456" height="456" viewBox="0 0 456 456" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="456" height="456" fill="#0A1929"/>
-  <text x="228" y="200" font-family="Arial" font-size="48" fill="#1E88E5" text-anchor="middle" font-weight="bold">FraudGuard</text>
-  <text x="228" y="260" font-family="Arial" font-size="36" fill="#4CAF50" text-anchor="middle">AI</text>
+  <!-- Dark navy background matching app theme -->
+  <rect width="456" height="456" fill="#0D1B2A"/>
+
+  <!-- Blue gradient circle -->
+  <defs>
+    <linearGradient id="cg" x1="228" y1="128" x2="228" y2="328" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1E3A8A"/>
+    </linearGradient>
+  </defs>
+  <circle cx="228" cy="228" r="100" fill="url(#cg)"/>
+
+  <!-- Shield + phone icon (scaled to fit 100r circle) -->
+  <!-- Shield outline, centered at 228,228 -->
+  <path d="M228 158 L278 180 L278 222 C278 254 258 272 228 286 C198 272 178 254 178 222 L178 180 Z"
+        fill="rgba(255,255,255,0.14)" stroke="white" stroke-width="7" stroke-linejoin="round"/>
+
+  <!-- Phone body inside shield -->
+  <rect x="210" y="190" width="36" height="58" rx="5"
+        fill="none" stroke="white" stroke-width="6"/>
+
+  <!-- Phone speaker line -->
+  <line x1="221" y1="200" x2="235" y2="200" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Phone home dot -->
+  <circle cx="228" cy="237" r="4" fill="white"/>
 </svg>
