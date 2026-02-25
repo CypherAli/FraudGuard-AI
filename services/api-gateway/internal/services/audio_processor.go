@@ -352,6 +352,17 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		labeledTranscript := speakerLabel + " " + transcript
 		log.Printf("[%s] %s Transcript: '%s'", deviceID, speakerLabel, transcript)
 
+		// ── Lớp 1 Fast Path — gửi transcript ngay lập tức về mobile ─────────
+		// Mobile nhận được trong <100ms và chạy LocalFraudScanner.CheckEmergency()
+		// TRƯỚC KHI FraudDetector + Gemini Agent hoàn thành (có thể mất 1-5 giây).
+		// Mục tiêu: từ lúc kẻ lừa đảo nói xong → điện thoại nạn nhân nhận
+		// được transcript preview trong dưới 1 giây.
+		sendAlert(models.AlertMessage{
+			Type:      "transcript_preview",
+			Transcript: labeledTranscript,
+			Timestamp: time.Now().Unix(),
+		})
+
 		detector := GetOrCreateFraudDetector(deviceID, sendAlert)
 		result := detector.AnalyzeText(labeledTranscript)
 

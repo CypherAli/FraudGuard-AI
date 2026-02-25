@@ -29,16 +29,18 @@ type FraudDetector struct {
 
 // SessionState tracks accumulated risk for a call session
 type SessionState struct {
-	DeviceID          string
-	SessionID         string
-	AccumulatedScore  int
-	MaxDeepfakeScore  int // Highest deepfake score seen this session (persisted to CallLog)
-	DetectedPatterns  []string
-	TranscriptHistory []string
-	StartTime         time.Time
-	LastUpdateTime    time.Time
-	AlertsSent        int
-	LastAlertTime     time.Time // For alert cooldown enforcement
+	DeviceID           string
+	SessionID          string
+	AccumulatedScore   int
+	MaxDeepfakeScore   int // Highest deepfake score seen this session (persisted to CallLog)
+	DetectedPatterns   []string
+	TranscriptHistory  []string
+	StartTime          time.Time
+	LastUpdateTime     time.Time
+	AlertsSent         int
+	LastAlertTime      time.Time // For alert cooldown enforcement
+	LastSuspiciousTime time.Time // For time-based decay: when did last suspicious chunk arrive?
+	WhitelistHits      int       // Counts strong whitelist signals (phim, kịch bản...) in first 60s
 }
 
 // FraudAnalysisResult contains the result of fraud analysis
@@ -181,6 +183,47 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	normalizedText := strings.ToLower(text)
 	score, patterns := fd.calculateRiskScore(normalizedText)
 
+	// ── Lớp 2: Time-based Decay ──────────────────────────────────────────────
+	// Nếu chunk hiện tại vô hại (delta ≤ 0), tự động giảm score theo thời gian.
+	// Rate: -5 điểm mỗi 10 giây hội thoại bình thường → cuộc trò chuyện về
+	// phim/tin tức sẽ tự "nguội" sau ~2-3 phút dù có vài từ nhạy cảm lẻ.
+	const (
+		decayInterval    = 10 * time.Second
+		decayPerInterval = 5
+	)
+	if score <= 0 && fd.session.AccumulatedScore > 0 && !fd.session.LastSuspiciousTime.IsZero() {
+		elapsed := time.Since(fd.session.LastSuspiciousTime)
+		intervals := int(elapsed / decayInterval)
+		if intervals > 0 {
+			decay := intervals * decayPerInterval
+			fd.session.AccumulatedScore -= decay
+			if fd.session.AccumulatedScore < 0 {
+				fd.session.AccumulatedScore = 0
+			}
+			// Reset baseline — tránh apply cùng khoảng thời gian nhiều lần
+			fd.session.LastSuspiciousTime = time.Now()
+			log.Printf("[%s] ⬇ Score decay: -%d (idle %v) → %d",
+				fd.deviceID, decay, elapsed.Round(time.Second), fd.session.AccumulatedScore)
+		}
+	} else if score > 0 {
+		// Nội dung đáng ngờ → cập nhật mốc thời gian để decay đếm lại từ đầu
+		fd.session.LastSuspiciousTime = time.Now()
+	}
+
+	// ── Whitelist Dominance ──────────────────────────────────────────────────
+	// Nếu 60 giây đầu có nhiều tín hiệu whitelist mạnh (người dùng đang nói về phim/
+	// tin tức), tự động tăng ngưỡng Medium lên 10 điểm để tránh false positive.
+	sessionAge := time.Since(fd.session.StartTime)
+	if score < -50 && sessionAge < 60*time.Second {
+		fd.session.WhitelistHits++
+	}
+	effectiveMediumThreshold := fd.config.MediumThreshold
+	if fd.session.WhitelistHits >= 3 {
+		effectiveMediumThreshold += 10 // raise bar when conversation is clearly benign
+		log.Printf("[%s] 🛡 WhitelistDominance: threshold raised to %d (hits=%d)",
+			fd.deviceID, effectiveMediumThreshold, fd.session.WhitelistHits)
+	}
+
 	fd.session.AccumulatedScore += score
 
 	// Clamp accumulated score to [0, 100] range
@@ -196,7 +239,8 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	currentScore := fd.session.AccumulatedScore
 
-	log.Printf("[%s] Analysis: score=%d (delta=%d), patterns=%d", fd.deviceID, currentScore, score, len(patterns))
+	log.Printf("[%s] Analysis: score=%d (delta=%d), patterns=%d, whitelistHits=%d",
+		fd.deviceID, currentScore, score, len(patterns), fd.session.WhitelistHits)
 
 	result := FraudAnalysisResult{
 		RiskScore: currentScore,
@@ -205,7 +249,13 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	// Gemini Agentic AI — tự dùng tools (check_blacklist, auto_report) rồi ra quyết định.
 	// Chạy async để không block pipeline real-time; kết quả là weighted input vào session score.
-	if GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
+	//
+	// ── Lớp 3 Gate ───────────────────────────────────────────────────────────
+	// Gemini chỉ được triệu hồi khi Lớp 2 đã có tín hiệu đáng kể (≥ effectiveMediumThreshold).
+	// Lý do: tránh hàng trăm API calls lãng phí cho cuộc trò chuyện bình thường.
+	// Ví dụ: 10 phút nói về phim → 0 Gemini calls (score luôn < 40 do decay).
+	//         Kẻ lừa đảo nói "công an rửa tiền" → score 65 → Gemini gọi ngay.
+	if currentScore >= effectiveMediumThreshold && GlobalGeminiClient != nil && GeminiCircuitBreaker.Allow() {
 		alertCallback := fd.sendAlert
 		sessionID := fd.session.SessionID
 		// Capture config thresholds trước khi release lock để dùng an toàn trong goroutine

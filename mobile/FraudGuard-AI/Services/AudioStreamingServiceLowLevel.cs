@@ -1,5 +1,6 @@
 #if ANDROID
 using System;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -580,8 +581,69 @@ namespace FraudGuardAI.Services
                 var jsonDoc = JsonDocument.Parse(message);
                 var root = jsonDoc.RootElement;
 
-                if (!root.TryGetProperty("type", out var typeElement) ||
-                    typeElement.GetString() != "alert")
+                if (!root.TryGetProperty("type", out var typeElement))
+                    return;
+
+                var typeStr = typeElement.GetString();
+
+                // ── Lớp 1: Transcript Preview (Layer 1 on-device fast path) ──────────
+                // Backend gửi transcript ngay sau khi Deepgram hoàn thành, TRƯỚC KHI
+                // FraudDetector và Gemini Agent kết thúc phân tích.
+                // LocalFraudScanner kiểm tra ngay trên thiết bị và cảnh báo tức thì
+                // nếu phát hiện emergency keywords (OTP, AnyDesk, mã xác nhận...).
+                if (typeStr == "transcript_preview")
+                {
+                    var transcriptText = root.TryGetProperty("transcript", out var tp)
+                        ? tp.GetString() ?? ""
+                        : "";
+
+                    if (!string.IsNullOrEmpty(transcriptText))
+                    {
+                        var scanResult = LocalFraudScanner.Scan(transcriptText);
+
+                        if (scanResult.Level == ScanLevel.Emergency)
+                        {
+                            // ⚡ Emergency: cảnh báo NGAY LẬP TỨC trước khi backend phân tích xong
+                            var kwList = string.Join(", ", scanResult.Keywords);
+                            Log.Warn(TAG, $"⚡ Layer 1 EMERGENCY scan: [{kwList}]");
+
+                            OnAlertReceived(new AlertData
+                            {
+                                AlertType    = "HIGH",
+                                Confidence   = 0.75,
+                                Transcript   = transcriptText,
+                                Keywords     = scanResult.Keywords
+                                                   .Select(k => $"⚡LOCAL: {k}").ToArray(),
+                                Message      = $"⚠️ Phát hiện từ nguy hiểm: {kwList}",
+                                DeepfakeScore = 0,
+                                Timestamp    = DateTime.Now,
+                            });
+                        }
+                        else if (scanResult.Level == ScanLevel.Warning)
+                        {
+                            // Warning: hiện banner nhỏ, không rung (backend sẽ xác nhận sau)
+                            var kwList = string.Join(", ", scanResult.Keywords);
+                            Log.Info(TAG, $"⚡ Layer 1 WARNING scan: [{kwList}]");
+
+                            OnAlertReceived(new AlertData
+                            {
+                                AlertType    = "LOW",
+                                Confidence   = 0.40,
+                                Transcript   = transcriptText,
+                                Keywords     = scanResult.Keywords
+                                                   .Select(k => $"⚡LOCAL: {k}").ToArray(),
+                                Message      = $"Lưu ý: {kwList}",
+                                DeepfakeScore = 0,
+                                Timestamp    = DateTime.Now,
+                            });
+                        }
+                        // ScanLevel.Safe → bỏ qua, không làm phiền user
+                    }
+                    return; // transcript_preview xử lý xong — không fall through
+                }
+
+                // ── Full alert từ backend (sau khi FraudDetector + Gemini hoàn thành) ─
+                if (typeStr != "alert")
                     return; // Not an alert message, ignore
 
                 // Validate required fields before accessing
