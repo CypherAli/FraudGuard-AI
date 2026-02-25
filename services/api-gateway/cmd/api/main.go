@@ -176,6 +176,7 @@ func main() {
 		r.Post("/send-otp", handlers.SendOTP)
 		r.Post("/verify-otp", handlers.VerifyOTP)
 		r.Get("/check-session", handlers.CheckSession)
+		r.Get("/validate-token", handlers.HandleValidateToken) // lightweight pre-check before WebSocket
 	})
 
 	// Prometheus metrics endpoint
