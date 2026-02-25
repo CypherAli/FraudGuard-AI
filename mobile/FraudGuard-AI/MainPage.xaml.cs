@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using FraudGuardAI.Constants;
@@ -19,18 +20,32 @@ namespace FraudGuardAI
     {
         #region Fields
 
-        private AudioStreamingServiceLowLevel _audioService;
+        private AudioStreamingServiceLowLevel _audioService = null!;
         private readonly IAppSettings _settings;
         private readonly IHistoryService _historyService;
         private bool _isProtectionActive = false;
         private bool _isConnecting = false;
-        private CancellationTokenSource _animationCts;
-        private bool _pulseAnimationRunning = false;
+        private bool _voipCaptureActive = false;
+        private CancellationTokenSource? _animationCts;
         private DashboardStats _stats = new();
         // Tracks which banner alert started the auto-dismiss timer (prevents race condition)
         private string _lastBannerAlertId = string.Empty;
         // Stored handler reference so we can unsubscribe in OnDisappearing (prevents memory leak)
         private System.ComponentModel.PropertyChangedEventHandler _locChangeHandler;
+
+        // ── UI Animation fields ──
+        private RadarDrawable _radarDrawable = new();
+        private WaveformDrawable _waveformDrawable = new();
+        private IDispatcherTimer? _radarTimer;
+        private IDispatcherTimer? _waveformTimer;
+        private IDispatcherTimer? _statusDotTimer;
+        private bool _statusDotVisible = true;
+
+        // ── Report bottom sheet state ──
+        private string _selectedThreatLevel = "Medium";
+
+        // ── Token validation ──
+        private static readonly HttpClient _validationClient = new() { Timeout = TimeSpan.FromSeconds(8) };
 
         #endregion
 
@@ -42,6 +57,7 @@ namespace FraudGuardAI
             _historyService = historyService;
 
             InitializeComponent();
+            InitializeRadarAndWaveform();
             InitializeAudioService();
 
             // Store handler reference so we can unsubscribe in OnDisappearing
@@ -233,27 +249,163 @@ namespace FraudGuardAI
             }
         }
 
-        private async void OnReportButtonClicked(object sender, EventArgs e)
+        // ── Open bottom sheet ────────────────────────────────────
+        private async void OnReportButtonClicked(object? sender, EventArgs e)
         {
-            var result = await DisplayPromptAsync(
-                T("Main_ReportTitle"),
-                T("Main_ReportPrompt"),
-                T("Main_ReportConfirm"),
-                T("Main_ReportCancel"),
-                placeholder: "0912345678",
-                keyboard: Keyboard.Telephone
-            );
+            // Reset sheet state
+            if (ReportPhoneEntry != null) ReportPhoneEntry.Text = string.Empty;
+            if (ReportLabelEntry != null) ReportLabelEntry.Text = string.Empty;
+            _selectedThreatLevel = "Medium";
+            UpdateThreatLevelUI();
+            if (SubmitReportButton != null) { SubmitReportButton.IsEnabled = false; SubmitReportButton.Opacity = 0.4; }
 
-            if (!string.IsNullOrEmpty(result))
+            // Show overlay + animate panel from below
+            if (ReportSheetOverlay != null)
+            {
+                ReportSheetOverlay.IsVisible = true;
+                ReportSheetOverlay.Opacity = 0;
+                await ReportSheetOverlay.FadeTo(1, 200, Easing.CubicOut);
+            }
+            if (ReportSheetPanel != null)
+            {
+                ReportSheetPanel.TranslationY = 400;
+                await ReportSheetPanel.TranslateTo(0, 0, 280, Easing.CubicOut);
+            }
+        }
+
+        // ── Close bottom sheet ───────────────────────────────────
+        private async void OnReportBackdropTapped(object? sender, TappedEventArgs e)
+            => await HideReportSheet();
+
+        private async void OnCloseReportSheetTapped(object? sender, TappedEventArgs e)
+            => await HideReportSheet();
+
+        private async Task HideReportSheet()
+        {
+            if (ReportSheetPanel != null)
+                await ReportSheetPanel.TranslateTo(0, 400, 200, Easing.CubicIn);
+            if (ReportSheetOverlay != null)
+            {
+                await ReportSheetOverlay.FadeTo(0, 150, Easing.Linear);
+                ReportSheetOverlay.IsVisible = false;
+            }
+        }
+
+        // ── Threat level buttons ─────────────────────────────────
+        private void OnThreatLevelTapped(object? sender, TappedEventArgs e)
+        {
+            if (e.Parameter is string level)
+            {
+                _selectedThreatLevel = level;
+                UpdateThreatLevelUI();
+            }
+        }
+
+        private void UpdateThreatLevelUI()
+        {
+            // Reset all to unselected
+            void SetUnselected(Border? border, Label? label)
+            {
+                if (border == null || label == null) return;
+                border.BackgroundColor = Color.FromArgb("#1B2838");
+                border.Stroke = new SolidColorBrush(Color.FromArgb("#2A3F54"));
+                label.TextColor = Color.FromArgb("#6B7C8D");
+            }
+            void SetSelected(Border? border, Label? label)
+            {
+                if (border == null || label == null) return;
+                border.BackgroundColor = Color.FromArgb("#F97316");
+                border.Stroke = new SolidColorBrush(Color.FromArgb("#F97316"));
+                label.TextColor = Colors.White;
+            }
+
+            SetUnselected(ThreatLowBorder, ThreatLowLabel);
+            SetUnselected(ThreatMediumBorder, ThreatMediumLabel);
+            SetUnselected(ThreatHighBorder, ThreatHighLabel);
+
+            switch (_selectedThreatLevel)
+            {
+                case "Low":    SetSelected(ThreatLowBorder,    ThreatLowLabel);    break;
+                case "Medium": SetSelected(ThreatMediumBorder, ThreatMediumLabel); break;
+                case "High":   SetSelected(ThreatHighBorder,   ThreatHighLabel);   break;
+            }
+        }
+
+        // ── Enable submit when phone is typed ───────────────────
+        private void OnReportPhoneChanged(object? sender, TextChangedEventArgs e)
+        {
+            if (SubmitReportButton == null) return;
+            bool hasPhone = !string.IsNullOrWhiteSpace(e.NewTextValue);
+            SubmitReportButton.IsEnabled = hasPhone;
+            SubmitReportButton.Opacity = hasPhone ? 1.0 : 0.4;
+        }
+
+        // ── Submit report ────────────────────────────────────────
+        private async void OnSubmitReportClicked(object? sender, EventArgs e)
+        {
+            var phoneNumber = ReportPhoneEntry?.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(phoneNumber)) return;
+
+            var label = ReportLabelEntry?.Text?.Trim() ?? string.Empty;
+            var threat = _selectedThreatLevel;
+
+            await HideReportSheet();
+
+            try
+            {
+                var token    = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                var deviceId = _settings.GetDeviceId();
+                var baseUrl  = _settings.GetApiBaseUrl();
+
+                using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                var req = new System.Net.Http.HttpRequestMessage(
+                    System.Net.Http.HttpMethod.Post, $"{baseUrl}/api/report");
+
+                if (!string.IsNullOrEmpty(token))
+                    req.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    phone_number = phoneNumber,
+                    device_id    = deviceId,
+                    reason       = string.IsNullOrEmpty(label) ? "user_report" : label,
+                    threat_level = threat.ToLowerInvariant()
+                });
+                req.Content = new System.Net.Http.StringContent(
+                    payload, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await http.SendAsync(req);
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainPage] Report {phoneNumber} ({threat}) → HTTP {(int)response.StatusCode}");
+
+                // Always add to local cache
+                Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
+                _ = Services.BlacklistCacheService.Instance.SyncFromServerAsync();
+
+                string suffix = response.IsSuccessStatusCode
+                    ? string.Empty
+                    : response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                        ? "\n(Lưu cục bộ — đăng nhập lại để đồng bộ server)"
+                        : "\n(Đã lưu cục bộ — sẽ đồng bộ server sau)";
+
                 await DisplayAlert(
                     T("Main_ReportSuccessTitle"),
-                    string.Format(
-                        CultureInfo.CurrentCulture,
-                        T("Main_ReportSuccessMessage"),
-                        result
-                    ),
-                    T("Common_OK")
-                );
+                    string.Format(CultureInfo.CurrentCulture,
+                        T("Main_ReportSuccessMessage"), phoneNumber) + suffix,
+                    T("Common_OK"));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Report error: {ex.Message}");
+                Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
+                await DisplayAlert(
+                    T("Main_ReportSuccessTitle"),
+                    string.Format(CultureInfo.CurrentCulture,
+                        T("Main_ReportSuccessMessage"), phoneNumber)
+                        + "\n(Đã lưu cục bộ — không có kết nối mạng)",
+                    T("Common_OK"));
+            }
         }
 
         #endregion
@@ -263,16 +415,26 @@ namespace FraudGuardAI
         public async Task StartProtectionAsync()
         {
             if (_isConnecting) return;
-            
+
             _isConnecting = true;
             UpdateProtectionUI(false, connecting: true);
 
             try
             {
+                // Validate token with server BEFORE attempting WebSocket.
+                // Catches expired/invalid tokens early (e.g. after Render.com cold-restart).
+                bool tokenValid = await ValidateTokenWithServerAsync();
+                if (!tokenValid)
+                {
+                    await HandleExpiredToken();
+                    return;
+                }
+
                 var connectionTask = _audioService.StartStreamingAsync();
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+                // Allow up to 25 s — Render.com free tier can take ~15 s to cold-start
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(25));
                 var completedTask = await Task.WhenAny(connectionTask, timeoutTask);
-                
+
                 bool success = completedTask == connectionTask && await connectionTask;
 
                 if (success)
@@ -289,6 +451,9 @@ namespace FraudGuardAI
                     {
                         OverlayService.Show(global::Android.App.Application.Context);
                     }
+
+                    // Offer Call-Shield dual-stream after brief delay (fire-and-forget)
+                    _ = TryActivateCallShieldAsync();
 #endif
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
@@ -319,7 +484,9 @@ namespace FraudGuardAI
             {
                 _animationCts?.Cancel();
                 _isProtectionActive = false;
-                
+                _voipCaptureActive = false;
+
+                // StopStreamingAsync internally calls StopVoipCaptureAsync
                 var stopTask = _audioService.StopStreamingAsync();
                 await Task.WhenAny(stopTask, Task.Delay(TimeSpan.FromSeconds(5)));
 
@@ -341,6 +508,9 @@ namespace FraudGuardAI
 
         private void UpdateProtectionUI(bool isActive, bool connecting = false)
         {
+            // Update radar/waveform visual state
+            UpdateRadarState(connecting ? false : isActive);
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (connecting)
@@ -348,7 +518,6 @@ namespace FraudGuardAI
                     ProtectionIconLabel.Text = "⏳";
                     StatusLabel.Text = T("Main_ProtectionConnecting");
                     ProtectionStatusLabel.Text = T("Main_ProtectionConnectingShort");
-                    ShieldBorder.Stroke = Color.FromArgb("#FBBF24");
                     ToggleProtectionButton.IsEnabled = false;
                     ToggleProtectionButton.Text = T("Main_ButtonConnecting");
                 }
@@ -357,20 +526,85 @@ namespace FraudGuardAI
                     ProtectionIconLabel.Text = "✓";
                     StatusLabel.Text = T("Main_ProtectionActive");
                     ProtectionStatusLabel.Text = T("Main_ProtectionProtecting");
-                    ShieldBorder.Stroke = Color.FromArgb("#14B8A6");
                     ToggleProtectionButton.IsEnabled = true;
                     ToggleProtectionButton.Text = T("Main_DisableProtection");
-                    ToggleProtectionButton.BackgroundColor = Color.FromArgb("#EF4444");
                 }
                 else
                 {
                     ProtectionIconLabel.Text = "🛡️";
                     StatusLabel.Text = T("Main_ProtectionInactive");
                     ProtectionStatusLabel.Text = T("Main_ProtectionOff");
-                    ShieldBorder.Stroke = Color.FromArgb("#5C6B7A");
                     ToggleProtectionButton.IsEnabled = true;
                     ToggleProtectionButton.Text = T("Main_EnableProtection");
-                    ToggleProtectionButton.BackgroundColor = Color.FromArgb("#14B8A6");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Calls /auth/validate-token to check if the stored token is still accepted by the server.
+        /// Returns true if valid (or if server unreachable — let WebSocket handle it normally).
+        /// Returns false only when server explicitly says 401 (token expired/invalid).
+        /// </summary>
+        private async Task<bool> ValidateTokenWithServerAsync()
+        {
+            try
+            {
+                var token = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                if (string.IsNullOrEmpty(token))
+                    return false; // No token at all → definitely need login
+
+                var baseUrl = _settings.GetApiBaseUrl();
+                var url = $"{baseUrl}/auth/validate-token";
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("Authorization", $"Bearer {token}");
+
+                var response = await _validationClient.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] 🔑 Token invalid on server (401) — need re-auth");
+                    return false;
+                }
+                // Any non-401 response (200, timeout exception, network error) → assume valid
+                return true;
+            }
+            catch (TaskCanceledException)
+            {
+                // Timeout — server might be cold-starting, let WebSocket try anyway
+                System.Diagnostics.Debug.WriteLine("[MainPage] ⏱ Token validation timed out — proceeding with WebSocket");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] ⚠ Token validation error: {ex.Message} — proceeding");
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Called when server returns 401 on token validation.
+        /// Shows a clear dialog and navigates to login with email pre-filled.
+        /// </summary>
+        private async Task HandleExpiredToken()
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                UpdateProtectionUI(false);
+
+                bool relogin = await (Application.Current?.MainPage ?? this).DisplayAlert(
+                    "Phiên đăng nhập hết hạn",
+                    "Server đã khởi động lại, token cũ không còn hiệu lực.\n\nVui lòng đăng nhập lại — chỉ cần nhập OTP qua email, nhanh thôi!",
+                    "Đăng nhập lại",
+                    "Để sau"
+                );
+
+                if (relogin)
+                {
+                    // Clear old token so LoginPage detects the expired state
+                    try { Microsoft.Maui.Storage.SecureStorage.Default.Remove("auth_token"); } catch { }
+                    // Navigate to login (email stays in SecureStorage for pre-fill)
+                    Application.Current!.MainPage = new NavigationPage(new Pages.Auth.LoginPage());
                 }
             });
         }
@@ -380,8 +614,8 @@ namespace FraudGuardAI
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 UpdateProtectionUI(false);
-                
-                bool retry = await Application.Current.MainPage.DisplayAlert(
+
+                bool retry = await (Application.Current?.MainPage ?? this).DisplayAlert(
                     T("Main_ConnectionFailedTitle"),
                     T("Main_ConnectionFailedMessage"),
                     T("Main_Retry"),
@@ -400,11 +634,74 @@ namespace FraudGuardAI
             });
         }
 
+#if ANDROID
+        /// <summary>
+        /// Prompts the user to enable Call-Shield (dual-stream VoIP capture).
+        /// Shows the MediaProjection system dialog and starts VoIP capture if granted.
+        /// Runs as a fire-and-forget task — does not block protection startup.
+        /// </summary>
+        private async Task TryActivateCallShieldAsync()
+        {
+            try
+            {
+                // Let protection-start animations finish before showing another dialog
+                await Task.Delay(900);
+
+                if (!_isProtectionActive) return;
+
+                bool accepted = await MainThread.InvokeOnMainThreadAsync(() =>
+                    (Application.Current?.MainPage ?? this).DisplayAlert(
+                        "🛡️ Chế độ Call-Shield",
+                        "Bật để FraudGuard phân tích cả giọng kẻ lừa đảo (đầu dây bên kia).\n\n" +
+                        "Android sẽ hiển thị hộp thoại \"Bắt đầu ghi màn hình\" — đây là yêu cầu hệ thống để bắt âm thanh VoIP. " +
+                        "FraudGuard KHÔNG ghi màn hình của bạn.\n\n" +
+                        "Chỉ hoạt động với Zalo, Messenger, WhatsApp, Telegram... (cuộc gọi VoIP).",
+                        "Bật Call-Shield",
+                        "Để sau"
+                    )
+                );
+
+                if (!accepted || !_isProtectionActive) return;
+
+                System.Diagnostics.Debug.WriteLine("[MainPage] Call-Shield accepted — requesting MediaProjection...");
+
+                // System dialog: "FraudGuard wants to start recording"
+                var projection = await FraudGuardAI.MainActivity.RequestMediaProjectionAsync();
+
+                if (projection == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] MediaProjection denied by user");
+                    return;
+                }
+
+                bool voipStarted = await _audioService.StartVoipCaptureAsync(projection);
+                _voipCaptureActive = voipStarted;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (voipStarted)
+                    {
+                        StatusLabel.Text = "🛡️ Bảo vệ toàn diện (Mic + VoIP)";
+                        StatusLabel.TextColor = Color.FromArgb("#22D3EE");
+                    }
+                    else
+                    {
+                        StatusLabel.Text = "⚠️ VoIP capture không khả dụng (cần Android 10+)";
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Call-Shield error: {ex.Message}");
+            }
+        }
+#endif
+
         #endregion
 
         #region Audio Service Event Handlers
 
-        private void OnAlertReceived(object sender, Services.AlertEventArgs e)
+        private void OnAlertReceived(object? sender, Services.AlertEventArgs e)
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
@@ -432,7 +729,7 @@ namespace FraudGuardAI
             });
         }
 
-        private void OnErrorOccurred(object sender, Services.ErrorEventArgs e)
+        private void OnErrorOccurred(object? sender, Services.ErrorEventArgs e)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -453,7 +750,7 @@ namespace FraudGuardAI
             });
         }
 
-        private void OnConnectionStatusChanged(object sender, Services.ConnectionStatusEventArgs e)
+        private void OnConnectionStatusChanged(object? sender, Services.ConnectionStatusEventArgs e)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -463,8 +760,13 @@ namespace FraudGuardAI
 
                     if (e.IsConnected)
                     {
-                        _isProtectionActive = true;
-                        UpdateProtectionUI(true);
+                        // Only mirror the "active" UI if the FLAG still says we should be protecting.
+                        // Without this guard: StopProtectionAsync sets _isProtectionActive=false, then
+                        // a stale Connected event from a lingering reconnect fires here and calls
+                        // UpdateProtectionUI(true) — button text becomes "Tắt bảo vệ" while the flag
+                        // is false → next click starts protection instead of stopping. Bug = 2 clicks.
+                        if (_isProtectionActive)
+                            UpdateProtectionUI(true);
                     }
                     else if (!_isConnecting && _isProtectionActive)
                     {
@@ -617,6 +919,110 @@ namespace FraudGuardAI
         #region Localization Helper
 
         private static string T(string key) => Localization.LocalizationResourceManager.Instance[key];
+
+        #endregion
+
+        #region Radar & Waveform Animation
+
+        private void InitializeRadarAndWaveform()
+        {
+            try
+            {
+                // Assign drawables to GraphicsViews
+                RadarView.Drawable = _radarDrawable;
+                WaveformView.Drawable = _waveformDrawable;
+
+                // Radar timer ~60 fps
+                _radarTimer = Dispatcher.CreateTimer();
+                _radarTimer.Interval = TimeSpan.FromMilliseconds(16);
+                _radarTimer.Tick += (_, _) =>
+                {
+                    float speed = _radarDrawable.IsActive ? 0.025f : 0.012f;
+                    _radarDrawable.Angle = (_radarDrawable.Angle + speed) % (float)(Math.PI * 2);
+                    RadarView.Invalidate();
+                };
+                _radarTimer.Start();
+
+                // Waveform timer ~30 fps
+                _waveformTimer = Dispatcher.CreateTimer();
+                _waveformTimer.Interval = TimeSpan.FromMilliseconds(33);
+                _waveformTimer.Tick += (_, _) =>
+                {
+                    _waveformDrawable.Advance(0.033f);
+                    WaveformView.Invalidate();
+                };
+                _waveformTimer.Start();
+
+                // Status dot blink timer
+                _statusDotTimer = Dispatcher.CreateTimer();
+                _statusDotTimer.Interval = TimeSpan.FromMilliseconds(900);
+                _statusDotTimer.Tick += (_, _) =>
+                {
+                    _statusDotVisible = !_statusDotVisible;
+                    SystemStatusDot.Opacity = _statusDotVisible ? 1.0 : 0.25;
+                };
+                _statusDotTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Radar init error: {ex.Message}");
+            }
+        }
+
+        private void UpdateRadarState(bool isActive)
+        {
+            _radarDrawable.IsActive = isActive;
+            _waveformDrawable.IsActive = isActive;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    // Update card gradient dynamically (x:Name on brushes not supported in MAUI)
+                    if (ShieldBorder != null)
+                    {
+                        var gradient = new LinearGradientBrush
+                        {
+                            StartPoint = new Point(0, 0),
+                            EndPoint = new Point(1, 1)
+                        };
+                        gradient.GradientStops.Add(new GradientStop(
+                            isActive ? Color.FromArgb("#1414B8A6") : Color.FromArgb("#14EF4444"), 0));
+                        gradient.GradientStops.Add(new GradientStop(Color.FromArgb("#000A0A0A"), 1));
+                        ShieldBorder.Background = gradient;
+                        ShieldBorder.Stroke = new SolidColorBrush(
+                            isActive ? Color.FromArgb("#3314B8A6") : Color.FromArgb("#25EF4444"));
+                    }
+
+                    // Update status dot color
+                    if (SystemStatusDot != null)
+                        SystemStatusDot.Color = isActive
+                            ? Color.FromArgb("#2DD4BF")
+                            : Color.FromArgb("#EF4444");
+
+                    // Update status text color
+                    if (ProtectionStatusLabel != null)
+                        ProtectionStatusLabel.TextColor = isActive
+                            ? Color.FromArgb("#2DD4BF")
+                            : Color.FromArgb("#EF4444");
+
+                    // Update toggle button style
+                    if (ToggleProtectionButton != null)
+                    {
+                        ToggleProtectionButton.BorderColor = isActive
+                            ? Color.FromArgb("#EF4444")
+                            : Color.FromArgb("#2DD4BF");
+                        ToggleProtectionButton.TextColor = isActive
+                            ? Color.FromArgb("#EF4444")
+                            : Color.FromArgb("#2DD4BF");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] UpdateRadarState error: {ex.Message}");
+                }
+            });
+        }
 
         #endregion
     }

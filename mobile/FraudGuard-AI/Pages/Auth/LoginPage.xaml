@@ -3,123 +3,130 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.Auth.LoginPage"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
-             BackgroundColor="#0D1B2A"
+             BackgroundColor="{DynamicResource PageBackground}"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+        <VerticalStackLayout Padding="24,0,24,40" Spacing="0" VerticalOptions="Center">
 
-            <!-- Logo and Title -->
-            <VerticalStackLayout Spacing="10" Margin="0,40,0,24">
-                <Label Text="🛡️" FontSize="64" HorizontalOptions="Center"/>
-                  <Label Text="{loc:Translate Key=Login_Title}"
-                       FontSize="32"
-                       FontAttributes="Bold"
-                       TextColor="#E0E6ED"
+            <!-- ══ Header ══ -->
+            <VerticalStackLayout Spacing="6" Margin="0,64,0,40" HorizontalOptions="Center">
+                <Label Text="FRAUDGUARD · V2.1"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="#40FFFFFF" FontAttributes="Bold"
                        HorizontalOptions="Center"/>
-                  <Label FontSize="16"
-                      TextColor="#8B95A5"
-                      HorizontalOptions="Center"
-                      Text="{loc:Translate Key=Login_Subtitle}"/>
+                <Label Text="FraudGuard AI"
+                       FontSize="36" FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"/>
+                <Label Text="{loc:Translate Key=Login_Subtitle}"
+                       FontSize="14" TextColor="#60FFFFFF"
+                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- Email Login Card -->
-            <Frame BackgroundColor="#152234"
-                   BorderColor="#1E2B3B"
-                   CornerRadius="16"
-                   Padding="16"
-                   HasShadow="False">
-                <VerticalStackLayout Spacing="6">
-                    <HorizontalStackLayout Spacing="8">
-                        <Label Text="✉️" FontSize="18" VerticalOptions="Center"/>
-                           <Label FontSize="16"
-                               FontAttributes="Bold"
-                               TextColor="#34D399"
-                               VerticalOptions="Center"
-                               Text="{loc:Translate Key=Login_EmailLogin}"/>
-                    </HorizontalStackLayout>
-                          <Label FontSize="12"
-                              TextColor="#8B95A5"
-                              Text="{loc:Translate Key=Login_EmailDesc}"/>
+            <!-- ══ Login Card ══ -->
+            <Border StrokeThickness="1" Padding="24">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0EFFFFFF" Offset="0"/>
+                        <GradientStop Color="#000A0A0A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Stroke>
+                    <SolidColorBrush Color="#12FFFFFF"/>
+                </Border.Stroke>
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+
+                    <!-- Section label -->
+                    <Label Text="{loc:Translate Key=Login_EmailLogin}"
+                           FontSize="10" CharacterSpacing="2"
+                           TextColor="#40FFFFFF" FontAttributes="Bold"/>
+
+                    <!-- Email label -->
+                    <Label Text="{loc:Translate Key=Login_YourEmail}"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="White"/>
+
+                    <!-- Email Input -->
+                    <Border BackgroundColor="#08FFFFFF" StrokeThickness="1"
+                            Stroke="#1A14B8A6" Padding="4">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+                        <Entry x:Name="EmailEntry"
+                               Placeholder="example@gmail.com"
+                               PlaceholderColor="#40FFFFFF"
+                               TextColor="White"
+                               BackgroundColor="Transparent"
+                               Keyboard="Email"
+                               FontSize="15"
+                               Margin="12,8"/>
+                    </Border>
+
+                    <!-- Error Message -->
+                    <Label x:Name="ErrorLabel"
+                           TextColor="#F87171"
+                           FontSize="13"
+                           IsVisible="False"
+                           HorizontalOptions="Center"/>
+
+                    <!-- Send OTP Button -->
+                    <Button x:Name="LoginButton"
+                            Text="{loc:Translate Key=Login_SendOtp}"
+                            TextColor="White"
+                            FontSize="16" FontAttributes="Bold"
+                            CornerRadius="14"
+                            HeightRequest="52"
+                            Margin="0,4,0,0"
+                            Clicked="OnLoginClicked">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#F97316" Offset="0"/>
+                                <GradientStop Color="#EA580C" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                        <Button.Shadow>
+                            <Shadow Brush="#F97316" Opacity="0.3" Radius="12" Offset="0,4"/>
+                        </Button.Shadow>
+                    </Button>
+
+                    <!-- Loading Indicator -->
+                    <ActivityIndicator x:Name="LoadingIndicator"
+                                       IsRunning="False"
+                                       IsVisible="False"
+                                       Color="#14B8A6"
+                                       HeightRequest="36"
+                                       HorizontalOptions="Center"/>
+
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <!-- Email Input -->
-            <VerticalStackLayout Spacing="8">
-                  <Label TextColor="#E0E6ED"
-                      FontSize="14"
-                      FontAttributes="Bold"
-                      Text="{loc:Translate Key=Login_YourEmail}"/>
-                <Frame BackgroundColor="#1B2838"
-                       BorderColor="#2D3E50"
-                       CornerRadius="12"
-                       Padding="0"
-                       HasShadow="False">
-                    <Entry x:Name="EmailEntry"
-                           Placeholder="example@gmail.com"
-                           PlaceholderColor="#5C6B7A"
-                           TextColor="#E0E6ED"
-                           Keyboard="Email"
-                           FontSize="16"
-                           Margin="15,10"/>
-                </Frame>
-            </VerticalStackLayout>
-
-            <!-- Error Message -->
-            <Label x:Name="ErrorLabel"
-                   TextColor="#EF4444"
-                   FontSize="14"
-                   IsVisible="False"
-                   HorizontalOptions="Center"/>
-
-            <!-- Login Button -->
-                <Button x:Name="LoginButton"
-                    Text="{loc:Translate Key=Login_SendOtp}"
-                    BackgroundColor="#34D399"
-                    TextColor="#0D1B2A"
-                    FontSize="16"
-                    FontAttributes="Bold"
-                    CornerRadius="12"
-                    HeightRequest="56"
-                    Margin="0,10,0,0"
-                    Clicked="OnLoginClicked">
-                <Button.Shadow>
-                    <Shadow Brush="#34D399" Opacity="0.3" Radius="10" Offset="0,4"/>
-                </Button.Shadow>
-            </Button>
-
-            <!-- Loading Indicator -->
-            <ActivityIndicator x:Name="LoadingIndicator"
-                             IsRunning="False"
-                             IsVisible="False"
-                             Color="#34D399"
-                             HeightRequest="40"/>
-
-            <!-- Forgot Access Link -->
+            <!-- Can't access link -->
             <Label Text="{loc:Translate Key=Login_ForgotAccess}"
-                   TextColor="#60A5FA"
-                   FontSize="14"
+                   TextColor="#2DD4BF"
+                   FontSize="13"
                    TextDecorations="Underline"
                    HorizontalOptions="Center"
-                   Margin="0,4,0,0">
+                   Margin="0,20,0,0">
                 <Label.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnForgotAccessClicked"/>
                 </Label.GestureRecognizers>
             </Label>
 
-            <!-- Info Text -->
-            <VerticalStackLayout Spacing="6" Margin="0,10,0,0">
-                  <Label TextColor="#8B95A5"
-                      FontSize="12"
-                      HorizontalOptions="Center"
-                      Text="{loc:Translate Key=Login_InfoNoPassword}"/>
-                  <Label TextColor="#8B95A5"
-                      FontSize="12"
-                      HorizontalOptions="Center"
-                      Text="{loc:Translate Key=Login_InfoSingleLogin}"/>
+            <!-- Info footer -->
+            <VerticalStackLayout Spacing="4" Margin="0,24,0,0">
+                <Label Text="{loc:Translate Key=Login_InfoNoPassword}"
+                       TextColor="#30FFFFFF" FontSize="12"
+                       HorizontalOptions="Center"/>
+                <Label Text="{loc:Translate Key=Login_InfoSingleLogin}"
+                       TextColor="#30FFFFFF" FontSize="12"
+                       HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

@@ -4,164 +4,151 @@
              xmlns:models="clr-namespace:FraudGuardAI.Models"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
              x:Class="FraudGuardAI.Pages.HistoryPage"
-             Title="{loc:Translate Key=Tab_History}"
-             Shell.NavBarIsVisible="False">
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{DynamicResource PageBackground}">
 
-    <Grid RowDefinitions="Auto,*" Padding="20,48,20,20">
-        
-        <!-- Header -->
-        <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,24">
-                 <Label FontSize="26"
-                     FontAttributes="Bold"
-                     TextColor="{DynamicResource TextPrimary}"
-                     HorizontalOptions="Start"
-                     Text="{loc:Translate Key=History_Title}"/>
-            
+    <Grid RowDefinitions="Auto,*" Padding="16,52,16,100">
+
+        <!-- ══ Header ══ -->
+        <VerticalStackLayout Grid.Row="0" Spacing="2" Margin="0,0,0,14">
+            <Label Text="FRAUDGUARD · V2.1"
+                   FontSize="10" CharacterSpacing="2"
+                   TextColor="{AppThemeBinding Light=#808B9CAF, Dark=#40FFFFFF}"
+                   FontAttributes="Bold"/>
+            <Label Text="{loc:Translate Key=History_Title}"
+                   FontSize="36" FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"/>
             <Label x:Name="SubtitleLabel"
-                     Text="{loc:Translate Key=History_Subtitle}"
-                   FontSize="14"
-                   TextColor="{DynamicResource TextSecondary}"/>
+                   Text="{loc:Translate Key=History_Subtitle}"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"/>
         </VerticalStackLayout>
 
-        <!-- Content -->
+        <!-- ══ Content ══ -->
         <RefreshView x:Name="RefreshView"
                      Grid.Row="1"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}"
-                     RefreshColor="{StaticResource PrimaryBlue}">
-            
+                     RefreshColor="#14B8A6">
+
             <Grid>
                 <!-- Loading -->
                 <ActivityIndicator x:Name="LoadingIndicator"
-                                  IsRunning="False"
-                                  IsVisible="False"
-                                  Color="{StaticResource PrimaryBlue}"
-                                  VerticalOptions="Center"
-                                  HorizontalOptions="Center"
-                                  WidthRequest="48"
-                                  HeightRequest="48"/>
+                                   IsRunning="False" IsVisible="False"
+                                   Color="#14B8A6"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="Center"
+                                   WidthRequest="48" HeightRequest="48"/>
 
                 <!-- Empty State -->
                 <VerticalStackLayout x:Name="EmptyStateView"
-                                    IsVisible="False"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Center"
-                                    Spacing="16">
-                    
-                    <Border WidthRequest="80"
-                           HeightRequest="80"
-                           BackgroundColor="{DynamicResource CardBackground}"
-                           StrokeThickness="0"
-                           HorizontalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="40"/>
-                        </Border.StrokeShape>
-                        <Label Text="📋"
-                               FontSize="36"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"/>
+                                     IsVisible="False"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center"
+                                     Spacing="16">
+                    <Border WidthRequest="88" HeightRequest="88"
+                            BackgroundColor="#0EFFFFFF" StrokeThickness="1"
+                            Stroke="#1A14B8A6" HorizontalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="44"/></Border.StrokeShape>
+                        <!-- Simple document icon using text -->
+                        <Label Text="≡" FontSize="36" TextColor="#2DD4BF"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Border>
-                    
-                          <Label FontSize="18"
-                              FontAttributes="Bold"
-                              TextColor="{DynamicResource TextPrimary}"
-                              HorizontalOptions="Center"
-                              Text="{loc:Translate Key=History_EmptyTitle}"/>
-                    
-                          <Label FontSize="14"
-                              TextColor="{DynamicResource TextSecondary}"
-                              HorizontalOptions="Center"
-                              Text="{loc:Translate Key=History_EmptySubtitle}"/>
+                    <Label FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                           HorizontalOptions="Center"
+                           Text="{loc:Translate Key=History_EmptyTitle}"/>
+                    <Label FontSize="13" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                           HorizontalOptions="Center"
+                           Text="{loc:Translate Key=History_EmptySubtitle}"/>
                 </VerticalStackLayout>
 
                 <!-- Call List -->
                 <CollectionView x:Name="HistoryCollectionView"
-                               ItemsSource="{Binding CallLogs}"
-                               SelectionMode="None">
+                                ItemsSource="{Binding CallLogs}"
+                                SelectionMode="None">
                     <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
                     </CollectionView.ItemsLayout>
+
+                    <!-- Section label header -->
+                    <CollectionView.Header>
+                        <Label Text="CALL ANALYSIS LOG"
+                               FontSize="10" CharacterSpacing="2"
+                               TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}" FontAttributes="Bold"
+                               Margin="2,0,0,8"/>
+                    </CollectionView.Header>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CallLog">
-                            <Border BackgroundColor="{DynamicResource CardBg}"
-                                   StrokeThickness="0"
-                                   Padding="16">
+                            <Border BackgroundColor="#0EFFFFFF"
+                                    StrokeThickness="1" Stroke="#12FFFFFF"
+                                    Padding="18,14">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="16"/>
                                 </Border.StrokeShape>
-                                <Border.Shadow>
-                                    <Shadow Brush="#000000"
-                                           Opacity="0.2"
-                                           Radius="12"
-                                           Offset="0,4"/>
-                                </Border.Shadow>
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnCallLogTapped" CommandParameter="{Binding .}"/>
+                                    <TapGestureRecognizer Tapped="OnCallLogTapped"
+                                                          CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
+                                <Border.Shadow>
+                                    <Shadow Brush="#000000" Opacity="0.1" Radius="8" Offset="0,2"/>
+                                </Border.Shadow>
 
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                                    
-                                    <!-- Risk Badge -->
-                                    <Border Grid.Row="0" Grid.Column="0"
-                                           BackgroundColor="{Binding RiskScoreColor}"
-                                           Padding="12,6"
-                                           HorizontalOptions="Start"
-                                           StrokeThickness="0">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="8"/>
-                                        </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto"
+                                      RowDefinitions="Auto,Auto"
+                                      ColumnSpacing="12" RowSpacing="5">
+
+                                    <!-- Top: colored dot + risk level + fraud tag -->
+                                    <HorizontalStackLayout Grid.Column="0" Grid.Row="0"
+                                                           Spacing="8" VerticalOptions="Center">
+                                        <!-- Risk color dot -->
+                                        <Border WidthRequest="10" HeightRequest="10"
+                                                BackgroundColor="{Binding RiskScoreColor}"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="5"/>
+                                            </Border.StrokeShape>
+                                        </Border>
+
+                                        <!-- Risk level text (CRITICAL / HIGH / MEDIUM / LOW / SAFE) -->
                                         <Label Text="{Binding RiskLevelDisplay}"
-                                              FontSize="12"
-                                              FontAttributes="Bold"
-                                              TextColor="White"/>
-                                    </Border>
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                               VerticalOptions="Center"/>
 
-                                    <!-- Risk Score -->
-                                    <Border Grid.Row="0" Grid.Column="1"
-                                           BackgroundColor="{Binding RiskScoreColor}"
-                                           Padding="12,8"
-                                           StrokeThickness="0"
-                                           Opacity="0.2">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10"/>
-                                        </Border.StrokeShape>
-                                    </Border>
-                                    <Label Grid.Row="0" Grid.Column="1"
-                                          Text="{Binding RiskScore, StringFormat='{0}%'}"
-                                          FontSize="20"
-                                          FontAttributes="Bold"
-                                          TextColor="{Binding RiskScoreColor}"
-                                          HorizontalOptions="Center"
-                                          VerticalOptions="Center"/>
-
-                                    <!-- Time & Duration -->
-                                    <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="12">
-                                        <HorizontalStackLayout Spacing="6">
-                                            <Label Text="🕐" FontSize="12"/>
-                                            <Label Text="{Binding TimeDisplay}"
-                                                  FontSize="13"
-                                                  TextColor="{DynamicResource TextSecondary}"/>
-                                        </HorizontalStackLayout>
-                                        <Label Text="•" TextColor="{DynamicResource TextSecondary}" FontSize="13"/>
-                                        <Label Text="{Binding DurationDisplay}"
-                                              FontSize="13"
-                                              TextColor="{DynamicResource TextSecondary}"/>
+                                        <!-- FRAUD badge (only visible when IsFraud = true) -->
+                                        <Border IsVisible="{Binding IsFraud}"
+                                                BackgroundColor="#12EF4444"
+                                                StrokeThickness="1" Stroke="#30EF4444"
+                                                Padding="7,2">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="6"/>
+                                            </Border.StrokeShape>
+                                            <Label Text="FRAUD"
+                                                   FontSize="9" FontAttributes="Bold"
+                                                   TextColor="#EF4444"/>
+                                        </Border>
                                     </HorizontalStackLayout>
 
-                                    <!-- Evidence -->
-                                    <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="4">
-                                            <Label FontSize="11"
-                                                FontAttributes="Bold"
-                                                TextColor="{DynamicResource TextSecondary}"
-                                                Opacity="0.8"
-                                                Text="{loc:Translate Key=History_Evidence}"/>
-                                        <Label Text="{Binding Evidence}"
-                                              FontSize="13"
-                                              TextColor="{DynamicResource TextPrimary}"
-                                              LineBreakMode="TailTruncation"
-                                              MaxLines="2"/>
-                                    </VerticalStackLayout>
+                                    <!-- Right column: Risk score % (spans 2 rows) -->
+                                    <Label Grid.Column="1" Grid.RowSpan="2"
+                                           Text="{Binding RiskScore, StringFormat='{0}%'}"
+                                           FontSize="26" FontAttributes="Bold"
+                                           TextColor="{Binding RiskScoreColor}"
+                                           HorizontalOptions="End"
+                                           VerticalOptions="Center"/>
+
+                                    <!-- Bottom: timestamp · duration -->
+                                    <HorizontalStackLayout Grid.Column="0" Grid.Row="1"
+                                                           Spacing="6" VerticalOptions="Center">
+                                        <Label Text="{Binding TimeDisplay}"
+                                               FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#50FFFFFF}"/>
+                                        <Label Text="·" FontSize="12" TextColor="{AppThemeBinding Light=#8B9CAF, Dark=#30FFFFFF}"/>
+                                        <Label Text="{Binding DurationDisplay}"
+                                               FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#50FFFFFF}"/>
+                                    </HorizontalStackLayout>
+
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -170,43 +157,36 @@
 
                 <!-- Error State -->
                 <VerticalStackLayout x:Name="ErrorView"
-                                    IsVisible="False"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Center"
-                                    Spacing="16">
-                    
-                    <Border WidthRequest="80"
-                           HeightRequest="80"
-                           BackgroundColor="#7F1D1D"
-                           StrokeThickness="0"
-                           HorizontalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="40"/>
-                        </Border.StrokeShape>
-                        <Label Text="✕"
-                               FontSize="32"
-                               TextColor="#F87171"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"/>
+                                     IsVisible="False"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center"
+                                     Spacing="16">
+                    <Border WidthRequest="88" HeightRequest="88"
+                            BackgroundColor="#14EF4444" StrokeThickness="1"
+                            Stroke="#25EF4444" HorizontalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="44"/></Border.StrokeShape>
+                        <Label Text="✕" FontSize="32" TextColor="#F87171"
+                               HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Border>
-                    
                     <Label x:Name="ErrorMessageLabel"
-                              Text="{loc:Translate Key=History_Error}"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource DangerRed}"
+                           Text="{loc:Translate Key=History_Error}"
+                           FontSize="16" FontAttributes="Bold"
+                           TextColor="#F87171"
                            HorizontalOptions="Center"/>
-                    
-                          <Button Text="{loc:Translate Key=History_Retry}"
-                           FontSize="15"
-                           BackgroundColor="{StaticResource AccentBlue}"
-                           TextColor="White"
-                           CornerRadius="24"
-                           Padding="32,12"
-                           Clicked="OnRetryClicked"/>
+                    <Button Text="{loc:Translate Key=History_Retry}"
+                            FontSize="14" FontAttributes="Bold"
+                            TextColor="{AppThemeBinding Light=#1B2530, Dark=White}" CornerRadius="20"
+                            Padding="32,12"
+                            Clicked="OnRetryClicked">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#F97316" Offset="0"/>
+                                <GradientStop Color="#EA580C" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
                 </VerticalStackLayout>
             </Grid>
         </RefreshView>
     </Grid>
 </ContentPage>
-

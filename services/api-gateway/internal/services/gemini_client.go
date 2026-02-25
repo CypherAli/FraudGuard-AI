@@ -27,14 +27,20 @@ type GeminiRequest struct {
 	SafetySettings   []GeminiSafetySetting  `json:"safetySettings,omitempty"`
 }
 
-// GeminiContent represents content in Gemini API
+// GeminiContent represents content in Gemini API.
+// Role should be "user" or "model" for multi-turn / function-calling conversations.
 type GeminiContent struct {
+	Role  string       `json:"role,omitempty"`
 	Parts []GeminiPart `json:"parts"`
 }
 
-// GeminiPart represents a part of content
+// GeminiPart represents a part of content.
+// Only one field should be non-zero per part: Text, FunctionCall, or FunctionResponse.
+// FunctionCall and FunctionResponse are defined in gemini_agent.go (same package).
 type GeminiPart struct {
-	Text string `json:"text"`
+	Text             string            `json:"text,omitempty"`
+	FunctionCall     *FunctionCall     `json:"functionCall,omitempty"`
+	FunctionResponse *FunctionResponse `json:"functionResponse,omitempty"`
 }
 
 // GeminiGenerationConfig holds generation settings

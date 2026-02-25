@@ -18,25 +18,25 @@ namespace FraudGuardAI.Platforms.Android.Services
     [Service(Name = "com.fraudguard.ai.OverlayService", Exported = false)]
     public class OverlayService : Service
     {
-        private IWindowManager _windowManager;
-        private global::Android.Views.View _overlayView;
-        private TextView _riskText;
-        private TextView _deepfakeText;
-        private TextView _statusText;
-        private ImageView _closeButton;
+        private IWindowManager? _windowManager;
+        private global::Android.Views.View? _overlayView;
+        private TextView? _riskText;
+        private TextView? _deepfakeText;
+        private TextView? _statusText;
+        private ImageView? _closeButton;
         private bool _isShowing = false;
 
-        public override IBinder OnBind(Intent intent) => null;
+        public override IBinder? OnBind(Intent? intent) => null;
 
         public override void OnCreate()
         {
             base.OnCreate();
-            _windowManager = GetSystemService(WindowService).JavaCast<IWindowManager>();
+            _windowManager = GetSystemService(WindowService)?.JavaCast<IWindowManager>();
         }
 
-        public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
+        public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
-            string action = intent?.Action;
+            string? action = intent?.Action;
 
             switch (action)
             {
@@ -44,9 +44,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                     ShowOverlay();
                     break;
                 case "UPDATE":
-                    int riskScore = intent.GetIntExtra("risk_score", 0);
-                    int deepfakeScore = intent.GetIntExtra("deepfake_score", 0);
-                    string status = intent.GetStringExtra("status") ?? "Đang bảo vệ";
+                    int riskScore = intent?.GetIntExtra("risk_score", 0) ?? 0;
+                    int deepfakeScore = intent?.GetIntExtra("deepfake_score", 0) ?? 0;
+                    string status = intent?.GetStringExtra("status") ?? "Đang bảo vệ";
                     UpdateOverlay(riskScore, deepfakeScore, status);
                     break;
                 case "HIDE":
@@ -83,7 +83,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                 layoutParams.X = 20;
                 layoutParams.Y = 200;
 
-                _windowManager.AddView(_overlayView, layoutParams);
+                _windowManager?.AddView(_overlayView, layoutParams);
                 _isShowing = true;
 
                 // Enable drag
@@ -106,7 +106,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             };
             container.SetPadding(24, 16, 24, 16);
             container.SetBackgroundColor(Color.ParseColor("#1A1F2E"));
-            container.Background.Alpha = 230;
+            if (container.Background != null) container.Background.Alpha = 230;
 
             // Apply rounded corners via GradientDrawable
             var bg = new global::Android.Graphics.Drawables.GradientDrawable();
@@ -176,7 +176,7 @@ namespace FraudGuardAI.Platforms.Android.Services
 
         private void UpdateOverlay(int riskScore, int deepfakeScore, string status)
         {
-            if (!_isShowing || _riskText == null) return;
+            if (!_isShowing || _riskText == null || _statusText == null || _deepfakeText == null || _overlayView == null) return;
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -229,7 +229,7 @@ namespace FraudGuardAI.Platforms.Android.Services
 
             try
             {
-                _windowManager.RemoveView(_overlayView);
+                _windowManager?.RemoveView(_overlayView);
                 _isShowing = false;
                 System.Diagnostics.Debug.WriteLine("[Overlay] Bubble hidden");
             }
@@ -244,8 +244,10 @@ namespace FraudGuardAI.Platforms.Android.Services
             float initialX = 0, initialY = 0;
             float initialTouchX = 0, initialTouchY = 0;
 
+            if (_overlayView == null) return;
             _overlayView.Touch += (s, e) =>
             {
+                if (e.Event == null) return;
                 switch (e.Event.Action)
                 {
                     case MotionEventActions.Down:
@@ -259,7 +261,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                     case MotionEventActions.Move:
                         layoutParams.X = (int)(initialX - (e.Event.RawX - initialTouchX));
                         layoutParams.Y = (int)(initialY + (e.Event.RawY - initialTouchY));
-                        _windowManager.UpdateViewLayout(_overlayView, layoutParams);
+                        _windowManager?.UpdateViewLayout(_overlayView, layoutParams);
                         e.Handled = true;
                         break;
                 }

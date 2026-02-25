@@ -142,7 +142,7 @@ namespace FraudGuardAI.Services
         public async Task<string> LoginAsync(string email)
             => await SendOtpAsync(email);
 
-        public async Task LogoutAsync()
+        public Task LogoutAsync()
         {
             try
             {
@@ -155,6 +155,7 @@ namespace FraudGuardAI.Services
                 Debug.WriteLine($"[EmailOtpAuth] Logout error: {ex.Message}");
                 throw new Exception($"Không thể đăng xuất: {ex.Message}", ex);
             }
+            return Task.CompletedTask;
         }
 
         public async Task<User?> GetCurrentUserAsync()

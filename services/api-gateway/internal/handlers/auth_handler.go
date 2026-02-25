@@ -390,13 +390,11 @@ func generateSessionToken(email string) (string, error) {
 	return token, nil
 }
 
-func generateUserID(_ string) string {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err != nil {
-		// Fallback to timestamp-based ID
-		return fmt.Sprintf("user_%d", time.Now().UnixNano())
-	}
-	return fmt.Sprintf("user_%x", b)
+// generateUserID derives a stable, deterministic user ID from the email address.
+// Same email always produces the same ID — required for call history continuity across logins.
+func generateUserID(email string) string {
+	h := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return fmt.Sprintf("user_%x", h[:8]) // 16 hex chars, stable per email
 }
 
 // ValidateToken checks whether a bearer token is active and not expired.

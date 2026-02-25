@@ -388,7 +388,7 @@ Kết quả cuối cùng phải là JSON:
 
 	// Khởi tạo conversation với system prompt
 	messages := []GeminiContent{
-		{Parts: []GeminiPart{{Text: systemPrompt}}},
+		{Role: "user", Parts: []GeminiPart{{Text: systemPrompt}}},
 	}
 
 	result := &AgentAnalysisResult{
@@ -430,11 +430,13 @@ Kết quả cuối cùng phải là JSON:
 
 				// Thực thi tool
 				toolResult := executeTool(toolName, toolArgs)
-				toolResultJSON, _ := json.Marshal(toolResult)
 
 				// Thêm function response vào conversation
 				toolResponseParts = append(toolResponseParts, GeminiPart{
-					Text: fmt.Sprintf(`{"name": "%s", "response": %s}`, toolName, string(toolResultJSON)),
+					FunctionResponse: &FunctionResponse{
+						Name:     toolName,
+						Response: toolResult,
+					},
 				})
 			} else if part.Text != "" {
 				// Gemini trả text — có thể là kết quả cuối
@@ -457,20 +459,18 @@ Kết quả cuối cùng phải là JSON:
 
 		// Nếu có function call → thêm kết quả tools vào conversation và tiếp tục
 		if hasFunctionCall && len(toolResponseParts) > 0 {
-			// Convert []AgentPart → []GeminiPart để thêm vào conversation history
-			geminiParts := make([]GeminiPart, 0, len(parts))
+			// Add model turn with function call(s) — role: "model"
+			modelParts := make([]GeminiPart, 0, len(parts))
 			for _, p := range parts {
 				if p.Text != "" {
-					geminiParts = append(geminiParts, GeminiPart{Text: p.Text})
+					modelParts = append(modelParts, GeminiPart{Text: p.Text})
 				} else if p.FunctionCall != nil {
-					// Serialize function call thành text để Gemini hiểu context
-					fcJSON, _ := json.Marshal(p.FunctionCall)
-					geminiParts = append(geminiParts, GeminiPart{Text: string(fcJSON)})
+					modelParts = append(modelParts, GeminiPart{FunctionCall: p.FunctionCall})
 				}
 			}
-			messages = append(messages, GeminiContent{Parts: geminiParts})
-			// Thêm tool responses vào history
-			messages = append(messages, GeminiContent{Parts: toolResponseParts})
+			messages = append(messages, GeminiContent{Role: "model", Parts: modelParts})
+			// Add function responses as user turn — role: "user"
+			messages = append(messages, GeminiContent{Role: "user", Parts: toolResponseParts})
 		} else {
 			// Không có function call nữa → kết thúc loop
 			break

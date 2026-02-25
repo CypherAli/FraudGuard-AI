@@ -18,7 +18,7 @@ namespace FraudGuardAI.Platforms.Android.Services
     [IntentFilter(new[] { Telephony.Sms.Intents.SmsReceivedAction })]
     public class SmsReceiver : BroadcastReceiver
     {
-        public override void OnReceive(Context context, Intent intent)
+        public override void OnReceive(Context? context, Intent? intent)
         {
             if (intent?.Action != Telephony.Sms.Intents.SmsReceivedAction)
                 return;
@@ -37,16 +37,23 @@ namespace FraudGuardAI.Platforms.Android.Services
                 var bundle = intent.Extras;
                 if (bundle == null) return;
 
-                var pdus = (Java.Lang.Object[])bundle.Get("pdus");
+                var pdusObj = bundle.Get("pdus");
+                if (pdusObj == null) return;
+#pragma warning disable CS8600
+                var pdus = (Java.Lang.Object[])pdusObj;
+#pragma warning restore CS8600
                 if (pdus == null || pdus.Length == 0) return;
 
                 string format = intent.GetStringExtra("format") ?? "3gpp";
                 var messageBuilder = new StringBuilder();
-                string senderAddress = null;
+                string? senderAddress = null;
 
                 foreach (var pdu in pdus)
                 {
-                    var smsMessage = global::Android.Telephony.SmsMessage.CreateFromPdu((byte[])pdu, format);
+                    byte[]? pduBytes = null;
+                    try { pduBytes = (byte[])(object)pdu; } catch { continue; }
+                    if (pduBytes == null) continue;
+                    var smsMessage = global::Android.Telephony.SmsMessage.CreateFromPdu(pduBytes, format);
                     if (smsMessage != null)
                     {
                         messageBuilder.Append(smsMessage.MessageBody);
@@ -72,7 +79,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                 if (result.IsSuspicious)
                 {
                     Debug.WriteLine($"[SmsReceiver] SUSPICIOUS SMS detected! Score: {result.Score}, Level: {result.RiskLevel}");
-                    ShowSmsAlert(context, sender, result);
+                    if (context != null) ShowSmsAlert(context, sender, result);
                 }
                 else
                 {

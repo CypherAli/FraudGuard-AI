@@ -3,622 +3,461 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FraudGuardAI.Pages.SettingsPage"
              xmlns:loc="clr-namespace:FraudGuardAI.Localization"
-             Title="{loc:Translate Key=Settings_Title}"
-             Shell.NavBarIsVisible="False">
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{DynamicResource PageBackground}">
 
     <ScrollView>
-        <VerticalStackLayout Padding="20,48,20,32" Spacing="16">
-            
-            <!-- Header -->
-            <VerticalStackLayout Spacing="4" Margin="0,0,0,8">
-                  <Label FontSize="28"
-                      FontAttributes="Bold"
-                      TextColor="{DynamicResource TextPrimary}"
-                      Text="{loc:Translate Key=Settings_Title}"/>
-                
-                  <Label FontSize="14"
-                      TextColor="{DynamicResource TextSecondary}"
-                      Text="{loc:Translate Key=Settings_Subtitle}"/>
+        <VerticalStackLayout Padding="16,52,16,100" Spacing="12">
+
+            <!-- ══ Header ══ -->
+            <VerticalStackLayout Spacing="2" Margin="0,0,0,6">
+                <Label Text="FRAUDGUARD · V2.1"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="{AppThemeBinding Light=#808B9CAF, Dark=#40FFFFFF}"
+                       FontAttributes="Bold"/>
+                <Label Text="{loc:Translate Key=Settings_Title}"
+                       FontSize="36" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"/>
+                <Label FontSize="13"
+                       TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                       Text="{loc:Translate Key=Settings_Subtitle}"/>
             </VerticalStackLayout>
 
-            <!-- Profile Section -->
-            <Border BackgroundColor="{DynamicResource CardBg}"
-                   StrokeThickness="0"
-                   Padding="20">
+            <!-- ══ Profile Card ══ -->
+            <Border StrokeThickness="1" Padding="20">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#1414B8A6" Offset="0"/>
+                        <GradientStop Color="#000A0A0A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Stroke>
+                    <SolidColorBrush Color="#3314B8A6"/>
+                </Border.Stroke>
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="20"/>
+                    <RoundRectangle CornerRadius="24"/>
                 </Border.StrokeShape>
                 <Border.Shadow>
-                    <Shadow Brush="#000000" Opacity="0.25" Radius="16" Offset="0,6"/>
+                    <Shadow Brush="#14B8A6" Opacity="0.15" Radius="20" Offset="0,4"/>
                 </Border.Shadow>
 
-                <VerticalStackLayout Spacing="16">
+                <VerticalStackLayout Spacing="14">
                     <!-- Avatar -->
                     <Grid HorizontalOptions="Center">
-                           <Border WidthRequest="80"
-                               HeightRequest="80"
-                               BackgroundColor="{StaticResource TealIcon}"
-                               StrokeThickness="0">
+                        <Border WidthRequest="80" HeightRequest="80"
+                                StrokeThickness="2" HorizontalOptions="Center">
+                            <Border.Stroke>
+                                <SolidColorBrush Color="#4014B8A6"/>
+                            </Border.Stroke>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="40"/>
                             </Border.StrokeShape>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#14B8A6" Offset="0"/>
+                                    <GradientStop Color="#0D9488" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnChangeAvatarClicked"/>
+                            </Border.GestureRecognizers>
                             <Grid>
                                 <Image x:Name="AvatarImage"
-                                    Aspect="AspectFill"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    IsVisible="False"/>
+                                       Aspect="AspectFill"
+                                       HorizontalOptions="Fill"
+                                       VerticalOptions="Fill"
+                                       IsVisible="False"/>
                                 <Label x:Name="AvatarInitials"
-                                    Text="ND"
-                                    FontSize="28"
-                                    FontAttributes="Bold"
-                                    TextColor="White"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"/>
+                                       Text="ND"
+                                       FontSize="28" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
                             </Grid>
                         </Border>
-                        <!-- Camera Icon -->
-                        <Border WidthRequest="28"
-                               HeightRequest="28"
-                               BackgroundColor="{StaticResource TealIcon}"
-                               StrokeThickness="2"
-                               Stroke="{DynamicResource BackgroundColor}"
-                               HorizontalOptions="End"
-                               VerticalOptions="End"
-                               Margin="0,0,-4,-4">
+                        <!-- Change avatar indicator -->
+                        <Border WidthRequest="24" HeightRequest="24"
+                                BackgroundColor="#14B8A6"
+                                StrokeThickness="2" Stroke="#0A0A0A"
+                                HorizontalOptions="End" VerticalOptions="End"
+                                Margin="0,0,-2,-2">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14"/>
+                                <RoundRectangle CornerRadius="12"/>
                             </Border.StrokeShape>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnChangeAvatarClicked"/>
                             </Border.GestureRecognizers>
-                            <Label Text="📷" FontSize="12"
+                            <Label Text="+" FontSize="14" FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"/>
                         </Border>
                     </Grid>
-                    
+
                     <!-- Name & Email -->
                     <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                           <Label x:Name="UserNameLabel"
+                        <Label x:Name="UserNameLabel"
                                Text="{loc:Translate Key=Settings_DefaultUserName}"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{DynamicResource TextPrimary}"
+                               FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
                                HorizontalOptions="Center"/>
                         <Label x:Name="UserEmailLabel"
                                Text="user@example.com"
-                               FontSize="14"
-                               TextColor="{DynamicResource TextSecondary}"
+                               FontSize="13" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
-                    
-                    <!-- Phone Number Row -->
+
+                    <!-- Phone Row (tap to edit) -->
                     <Grid ColumnDefinitions="*,Auto">
-                           <Label FontSize="14"
-                               TextColor="{DynamicResource TextSecondary}"
-                               VerticalOptions="Center"
-                               Text="{loc:Translate Key=Settings_PhoneLabel}"/>
-                        <Label x:Name="PhoneNumberLabel"
-                               Grid.Column="1"
-                               Text="{loc:Translate Key=Settings_NotUpdated}"
-                               FontSize="14"
-                               TextColor="{DynamicResource TextPrimary}"
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnUpdatePhoneClicked"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label FontSize="13" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                                   Text="{loc:Translate Key=Settings_PhoneLabel}"/>
+                            <Label x:Name="PhoneNumberLabel"
+                                   Text="{loc:Translate Key=Settings_NotUpdated}"
+                                   FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="✎"
+                               FontSize="16" TextColor="#2DD4BF"
                                VerticalOptions="Center"/>
                     </Grid>
-                    
+
                     <!-- Edit Profile Button -->
-                    <Border BackgroundColor="{DynamicResource StatCardBg}"
-                           StrokeThickness="0"
-                           Padding="16,12"
-                           HorizontalOptions="Center">
+                    <Border BackgroundColor="{AppThemeBinding Light=#F0F6FF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                            Stroke="{AppThemeBinding Light=#C5D8F0, Dark=#20FFFFFF}" Padding="20,10"
+                            HorizontalOptions="Center">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="24"/>
+                            <RoundRectangle CornerRadius="20"/>
                         </Border.StrokeShape>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnEditProfileClicked"/>
                         </Border.GestureRecognizers>
-                        
-                        <HorizontalStackLayout Spacing="8">
-                            <Label Text="✏️" FontSize="14" VerticalOptions="Center"/>
-                            <Label FontSize="14"
-                                TextColor="{DynamicResource TextPrimary}"
-                                VerticalOptions="Center"
-                                Text="{loc:Translate Key=Settings_EditProfile}"/>
-                        </HorizontalStackLayout>
+                        <Label FontSize="13" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                               Text="{loc:Translate Key=Settings_EditProfile}"/>
                     </Border>
                 </VerticalStackLayout>
             </Border>
 
-            <!-- GIAO DIỆN Section -->
+            <!-- ══ GIAO DIỆN Section ══ -->
             <VerticalStackLayout Spacing="8">
-                  <Label FontSize="12"
-                      FontAttributes="Bold"
-                      TextColor="{DynamicResource TextSecondary}"
-                      Margin="4,8,0,0"
-                      Text="{loc:Translate Key=Settings_UISection}"/>
-                
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0"
-                       Padding="16">
+                <Label Text="{loc:Translate Key=Settings_UISection}"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="{AppThemeBinding Light=#F97316, Dark=#40FFFFFF}" FontAttributes="Bold"
+                       Margin="2,8,0,0"/>
+
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16,4">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16"/>
+                        <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
-                    
+
                     <VerticalStackLayout Spacing="0">
-                        <!-- Auto Protection Toggle -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                            <Border WidthRequest="36" HeightRequest="36"
-                                   BackgroundColor="#14B8A620"
-                                   StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                <Label Text="🛡" FontSize="16"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
-                            
-                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                    <Label FontSize="15"
-                                        TextColor="{DynamicResource TextPrimary}"
-                                        Text="{loc:Translate Key=Settings_AutoProtection}"/>
-                                    <Label FontSize="12"
-                                        TextColor="{DynamicResource TextSecondary}"
-                                        Text="{loc:Translate Key=Settings_AutoProtectionDesc}"/>
+                        <!-- Auto Protection -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,14">
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       Text="{loc:Translate Key=Settings_AutoProtection}"/>
+                                <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                                       Text="{loc:Translate Key=Settings_AutoProtectionDesc}"/>
                             </VerticalStackLayout>
-                            
-                            <Switch x:Name="AutoProtectionSwitch"
-                                   Grid.Column="2"
-                                   IsToggled="True"
-                                   OnColor="{StaticResource TealIcon}"
-                                   ThumbColor="White"/>
+                            <Switch x:Name="AutoProtectionSwitch" Grid.Column="1"
+                                    IsToggled="True" OnColor="#14B8A6" ThumbColor="White"
+                                    VerticalOptions="Center"/>
                         </Grid>
-                        
-                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="48,8,0,8"/>
-                        
-                        <!-- Dark Mode Toggle -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                            <Border WidthRequest="36" HeightRequest="36"
-                                   BackgroundColor="{StaticResource AccentBlue20}"
-                                   StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                    <Label Text="☀️" FontSize="16"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
-                            
-                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                                <Label FontSize="15"
-                                                    TextColor="{DynamicResource TextPrimary}"
-                                                    Text="{loc:Translate Key=Settings_LightMode}"/>
-                                                <Label FontSize="12"
-                                                    TextColor="{DynamicResource TextSecondary}"
-                                                    Text="{loc:Translate Key=Settings_LightModeDesc}"/>
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DDE5EF, Dark=#0DFFFFFF}"/>
+
+                        <!-- Dark Mode -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,14">
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       Text="{loc:Translate Key=Settings_LightMode}"/>
+                                <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                                       Text="{loc:Translate Key=Settings_LightModeDesc}"/>
                             </VerticalStackLayout>
-                            
-                            <Switch x:Name="DarkModeSwitch"
-                                   Grid.Column="2"
-                                IsToggled="False"
-                                   OnColor="{StaticResource TealIcon}"
-                                   ThumbColor="White"
-                                   Toggled="OnDarkModeToggled"/>
+                            <Switch x:Name="DarkModeSwitch" Grid.Column="1"
+                                    IsToggled="False" OnColor="#14B8A6" ThumbColor="White"
+                                    Toggled="OnDarkModeToggled" VerticalOptions="Center"/>
                         </Grid>
-                        
-                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="48,8,0,8"/>
-                        
-                        <!-- Language Selector -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DDE5EF, Dark=#0DFFFFFF}"/>
+
+                        <!-- Language -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,14">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnLanguageClicked"/>
                             </Grid.GestureRecognizers>
-                            
-                            <Border WidthRequest="36" HeightRequest="36"
-                                   BackgroundColor="#FBBF2420"
-                                   StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                <Label Text="🌐" FontSize="16"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
-                            
-                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                    <Label FontSize="15"
-                                        TextColor="{DynamicResource TextPrimary}"
-                                        Text="{loc:Translate Key=Settings_Language}"/>
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       Text="{loc:Translate Key=Settings_Language}"/>
                                 <Label x:Name="LanguageLabel"
-                                        Text="{loc:Translate Key=Language_Current}"
-                                       FontSize="12"
-                                       TextColor="{DynamicResource TextSecondary}"/>
+                                       Text="{loc:Translate Key=Language_Current}"
+                                       FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"/>
                             </VerticalStackLayout>
-                            
-                            <Label Grid.Column="2" Text="›"
-                                   FontSize="20"
-                                   TextColor="{DynamicResource TextSecondary}"
+                            <Label Grid.Column="1" Text="›"
+                                   FontSize="22" TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}"
                                    VerticalOptions="Center"/>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
 
-            <!-- BẢO MẬT Section -->
+            <!-- ══ BẢO MẬT Section ══ -->
             <VerticalStackLayout Spacing="8">
-                  <Label FontSize="12"
-                      FontAttributes="Bold"
-                      TextColor="{DynamicResource TextSecondary}"
-                      Margin="4,8,0,0"
-                      Text="{loc:Translate Key=Settings_SecuritySection}"/>
-                
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0"
-                       Padding="16">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnSecurityClicked"/>
-                    </Border.GestureRecognizers>
-                    
-                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                        <Border WidthRequest="36" HeightRequest="36"
-                               BackgroundColor="#EF444420"
-                               StrokeThickness="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10"/>
-                            </Border.StrokeShape>
-                            <Label Text="🔐" FontSize="16"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                        </Border>
-                        
-                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                            <Label FontSize="15"
-                                TextColor="#F87171"
-                                Text="{loc:Translate Key=Settings_AccountSecurity}"/>
-                            <Label FontSize="12"
-                                TextColor="{DynamicResource TextSecondary}"
-                                Text="{loc:Translate Key=Settings_AccountSecurityDesc}"/>
-                        </VerticalStackLayout>
-                        
-                        <Label Grid.Column="2" Text="›"
-                               FontSize="20"
-                               TextColor="{DynamicResource TextSecondary}"
-                               VerticalOptions="Center"/>
-                    </Grid>
-                </Border>
+                <Label Text="{loc:Translate Key=Settings_SecuritySection}"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="{AppThemeBinding Light=#F97316, Dark=#40FFFFFF}" FontAttributes="Bold"
+                       Margin="2,8,0,0"/>
 
-                <!-- Whitelist Management -->
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0" Padding="16">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                <!-- Whitelist -->
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="18"/></Border.StrokeShape>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnWhitelistClicked"/>
                     </Border.GestureRecognizers>
-                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                        <Border WidthRequest="36" HeightRequest="36"
-                               BackgroundColor="#14B8A620" StrokeThickness="0">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
-                            <Label Text="📇" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Border>
-                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                            <Label FontSize="15" TextColor="#14B8A6"
+                    <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label FontSize="14" TextColor="#2DD4BF"
                                    Text="{loc:Translate Key=Settings_Whitelist}"/>
-                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                            <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
                                    Text="{loc:Translate Key=Settings_WhitelistDesc}"/>
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="20"
-                               TextColor="{DynamicResource TextSecondary}" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="›"
+                               FontSize="22" TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}" VerticalOptions="Center"/>
                     </Grid>
                 </Border>
 
-                <!-- Auto-Reject Blacklisted Calls -->
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0" Padding="16">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
-                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                        <Border WidthRequest="36" HeightRequest="36"
-                               BackgroundColor="#EF444420" StrokeThickness="0">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
-                            <Label Text="🚫" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Border>
-                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                            <Label FontSize="15" TextColor="{DynamicResource TextPrimary}"
+                <!-- Auto-Reject Blacklisted -->
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="18"/></Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
                                    Text="{loc:Translate Key=Settings_AutoReject}"/>
-                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                            <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
                                    Text="{loc:Translate Key=Settings_AutoRejectDesc}"/>
                         </VerticalStackLayout>
-                        <Switch x:Name="AutoRejectSwitch" Grid.Column="2"
-                                OnColor="#EF4444" Toggled="OnAutoRejectToggled"
-                                VerticalOptions="Center"/>
+                        <Switch x:Name="AutoRejectSwitch" Grid.Column="1"
+                                OnColor="#EF4444" ThumbColor="White"
+                                Toggled="OnAutoRejectToggled" VerticalOptions="Center"/>
                     </Grid>
                 </Border>
 
-                <!-- SMS Fraud Detection -->
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0" Padding="16">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
-                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                        <Border WidthRequest="36" HeightRequest="36"
-                               BackgroundColor="#FBBF2420" StrokeThickness="0">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
-                            <Label Text="💬" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Border>
-                        <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                            <Label FontSize="15" TextColor="{DynamicResource TextPrimary}"
+                <!-- SMS Detection -->
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="18"/></Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
                                    Text="{loc:Translate Key=Settings_SmsDetection}"/>
-                            <Label FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                            <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
                                    Text="{loc:Translate Key=Settings_SmsDetectionDesc}"/>
                         </VerticalStackLayout>
-                        <Switch x:Name="SmsDetectionSwitch" Grid.Column="2"
-                                OnColor="#FBBF24" Toggled="OnSmsDetectionToggled"
-                                VerticalOptions="Center"/>
+                        <Switch x:Name="SmsDetectionSwitch" Grid.Column="1"
+                                OnColor="#FBBF24" ThumbColor="White"
+                                Toggled="OnSmsDetectionToggled" VerticalOptions="Center"/>
                     </Grid>
                 </Border>
             </VerticalStackLayout>
 
-            <!-- KẾT NỐI Section -->
+            <!-- ══ KẾT NỐI Section ══ -->
             <VerticalStackLayout Spacing="8">
-                  <Label FontSize="12"
-                      FontAttributes="Bold"
-                      TextColor="{DynamicResource TextSecondary}"
-                      Margin="4,8,0,0"
-                      Text="{loc:Translate Key=Settings_ConnectionSection}"/>
-                
-                <Border BackgroundColor="{DynamicResource CardBg}"
-                       StrokeThickness="0"
-                       Padding="16">
+                <Label Text="{loc:Translate Key=Settings_ConnectionSection}"
+                       FontSize="10" CharacterSpacing="2"
+                       TextColor="{AppThemeBinding Light=#F97316, Dark=#40FFFFFF}" FontAttributes="Bold"
+                       Margin="2,8,0,0"/>
+
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16"/>
+                        <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
-                    
-                    <VerticalStackLayout Spacing="12">
-                        <!-- Server Status -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                            <Border WidthRequest="36" HeightRequest="36"
-                                   BackgroundColor="{StaticResource AccentBlue20}"
-                                   StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                <Label Text="🔗" FontSize="16"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
-                            
-                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                    <Label FontSize="15"
-                                        TextColor="{DynamicResource TextPrimary}"
-                                        Text="{loc:Translate Key=Settings_ServerConnection}"/>
-                                <HorizontalStackLayout Spacing="6">
+
+                    <VerticalStackLayout Spacing="0">
+
+                        <!-- ── Collapsible Header (always visible) ── -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnConnectionSectionToggled"/>
+                            </Grid.GestureRecognizers>
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       Text="{loc:Translate Key=Settings_ServerConnection}"/>
+                                <HorizontalStackLayout Spacing="6" Margin="0,2,0,0">
                                     <Border x:Name="ServerStatusDot"
-                                           WidthRequest="8" HeightRequest="8"
-                                           BackgroundColor="{StaticResource SafeGreen}"
-                                           StrokeThickness="0">
+                                            WidthRequest="8" HeightRequest="8"
+                                            BackgroundColor="#14B8A6" StrokeThickness="0"
+                                            VerticalOptions="Center">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="4"/>
                                         </Border.StrokeShape>
                                     </Border>
                                     <Label x:Name="ServerStatusLabel"
-                                           Text=""
-                                           FontSize="12"
-                                           TextColor="{StaticResource SafeGreen}"/>
+                                           FontSize="12" TextColor="#2DD4BF"
+                                           VerticalOptions="Center"/>
                                 </HorizontalStackLayout>
                             </VerticalStackLayout>
+                            <!-- Expand / Collapse arrow -->
+                            <Label x:Name="ConnectionChevron"
+                                   Grid.Column="1" Text="›"
+                                   FontSize="22" TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}"
+                                   VerticalOptions="Center"
+                                   Rotation="0"/>
                         </Grid>
-                        
-                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="0,4"/>
-                        
-                        <!-- USB Mode Toggle -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                            <Border WidthRequest="36" HeightRequest="36"
-                                   BackgroundColor="#A855F720"
-                                   StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                <Label Text="🔌" FontSize="16"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                            </Border>
-                            
-                            <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                                    <Label FontSize="15"
-                                        TextColor="{DynamicResource TextPrimary}"
-                                        Text="{loc:Translate Key=Settings_USBMode}"/>
-                                    <Label FontSize="12"
-                                        TextColor="{DynamicResource TextSecondary}"
-                                        Text="{loc:Translate Key=Settings_USBModeDesc}"/>
-                            </VerticalStackLayout>
-                            
-                            <Switch x:Name="UsbModeSwitch"
-                                   Grid.Column="2"
-                                   OnColor="{StaticResource TealIcon}"
-                                   ThumbColor="White"
-                                   Toggled="OnUsbModeToggled"/>
-                        </Grid>
-                        
-                        <BoxView HeightRequest="1" BackgroundColor="{DynamicResource BorderColor}" Margin="0,4"/>
-                        
-                        <!-- Server Address -->
-                        <VerticalStackLayout Spacing="8">
-                            <HorizontalStackLayout Spacing="12">
-                                <Border WidthRequest="36" HeightRequest="36"
-                                       BackgroundColor="#14B8A620"
-                                       StrokeThickness="0">
+
+                        <!-- ── Collapsible Detail Panel ── -->
+                        <VerticalStackLayout x:Name="ConnectionDetailsPanel" IsVisible="False" Spacing="0">
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DDE5EF, Dark=#0DFFFFFF}" Margin="0,8,0,0"/>
+
+                            <!-- USB Mode -->
+                            <Grid ColumnDefinitions="*,Auto" Padding="0,14">
+                                <VerticalStackLayout VerticalOptions="Center">
+                                    <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                           Text="{loc:Translate Key=Settings_USBMode}"/>
+                                    <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
+                                           Text="{loc:Translate Key=Settings_USBModeDesc}"/>
+                                </VerticalStackLayout>
+                                <Switch x:Name="UsbModeSwitch" Grid.Column="1"
+                                        OnColor="#14B8A6" ThumbColor="White"
+                                        Toggled="OnUsbModeToggled" VerticalOptions="Center"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DDE5EF, Dark=#0DFFFFFF}"/>
+
+                            <!-- Server Address -->
+                            <VerticalStackLayout Spacing="10" Margin="0,14,0,6">
+                                <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                       Text="{loc:Translate Key=Settings_ServerAddress}"/>
+
+                                <!-- Input -->
+                                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#08FFFFFF}" StrokeThickness="1"
+                                        Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#1A14B8A6}" Padding="4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <Entry x:Name="ServerIPEntry"
+                                           Placeholder="https://xxxx.ngrok-free.app"
+                                           PlaceholderColor="#40FFFFFF"
+                                           TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                           BackgroundColor="Transparent"
+                                           FontSize="13" Keyboard="Url"
+                                           Margin="12,6"/>
+                                </Border>
+
+                                <!-- Hints -->
+                                <Border BackgroundColor="{AppThemeBinding Light=#F8FBFF, Dark=#05FFFFFF}" StrokeThickness="0" Padding="12">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="10"/>
                                     </Border.StrokeShape>
-                                    <Label Text="🌐" FontSize="16"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"/>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label FontSize="11" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#50FFFFFF}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{loc:Translate Key=Settings_NgrokLabel}"/>
+                                                    <Span Text="https://xxxx.ngrok-free.app" TextColor="#2DD4BF"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label FontSize="11" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#50FFFFFF}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{loc:Translate Key=Settings_LanLabel}"/>
+                                                    <Span Text="http://192.168.1.12:8080" TextColor="#818CF8"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </VerticalStackLayout>
                                 </Border>
-                                    <Label FontSize="15"
-                                        TextColor="{DynamicResource TextPrimary}"
-                                        VerticalOptions="Center"
-                                        Text="{loc:Translate Key=Settings_ServerAddress}"/>
-                            </HorizontalStackLayout>
-                            
-                            <!-- Server URL Input -->
-                            <Border BackgroundColor="{DynamicResource InputBg}"
-                                   StrokeThickness="1"
-                                   Stroke="{DynamicResource BorderColor}"
-                                   Padding="4">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12"/>
-                                </Border.StrokeShape>
-                                
-                                <Entry x:Name="ServerIPEntry"
-                                       Placeholder="https://xxxx.ngrok-free.app"
-                                       PlaceholderColor="#5C6B7A"
-                                       TextColor="{DynamicResource TextPrimary}"
-                                       BackgroundColor="Transparent"
-                                       FontSize="14"
-                                       Keyboard="Url"
-                                       Margin="12,8"/>
-                            </Border>
-                            
-                            <!-- Hints -->
-                            <Border BackgroundColor="{DynamicResource InputBg}"
-                                   StrokeThickness="0"
-                                   Padding="12">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                
-                                <VerticalStackLayout Spacing="4">
-                                    <Label FontSize="12" TextColor="{DynamicResource TextSecondary}">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="{loc:Translate Key=Settings_NgrokLabel}"/>
-                                                <Span Text="https://xxxx.ngrok-free.app" TextColor="{StaticResource SafeGreen}"/>
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
-                                    <Label FontSize="12" TextColor="{DynamicResource TextSecondary}">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="{loc:Translate Key=Settings_LanLabel}"/>
-                                                <Span Text="http://192.168.1.12:8080" TextColor="{StaticResource AccentBlue}"/>
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
+
+                                <!-- Current Config -->
+                                <VerticalStackLayout Spacing="3">
+                                    <Label FontSize="11" TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}"
+                                           Text="{loc:Translate Key=Settings_CurrentConfig}"/>
+                                    <Label x:Name="CurrentConfigLabel"
+                                           FontSize="12" TextColor="#2DD4BF"/>
                                 </VerticalStackLayout>
-                            </Border>
-                            
-                            <!-- Current Config -->
-                            <VerticalStackLayout Spacing="4">
-                                    <Label FontSize="12"
-                                        TextColor="{DynamicResource TextSecondary}"
-                                        Text="{loc:Translate Key=Settings_CurrentConfig}"/>
-                                <Label x:Name="CurrentConfigLabel"
-                                       Text=""
-                                       FontSize="12"
-                                       TextColor="{StaticResource AccentBlue}"/>
+
+                                <!-- Save / Test Buttons -->
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,4,0,0">
+                                    <Button x:Name="SaveButton" Grid.Column="0"
+                                            Text="{loc:Translate Key=Settings_Save}"
+                                            FontSize="14" FontAttributes="Bold"
+                                            TextColor="{AppThemeBinding Light=#1B2530, Dark=White}" CornerRadius="14"
+                                            HeightRequest="46"
+                                            Clicked="OnSaveButtonClicked">
+                                        <Button.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#F97316" Offset="0"/>
+                                                <GradientStop Color="#EA580C" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Button.Background>
+                                        <Button.Shadow>
+                                            <Shadow Brush="#F97316" Opacity="0.25" Radius="12" Offset="0,4"/>
+                                        </Button.Shadow>
+                                    </Button>
+                                    <Button x:Name="TestButton" Grid.Column="1"
+                                            Text="{loc:Translate Key=Settings_Test}"
+                                            FontSize="14" FontAttributes="Bold"
+                                            BackgroundColor="#0EFFFFFF"
+                                            TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
+                                            BorderColor="#20FFFFFF" BorderWidth="1"
+                                            CornerRadius="14" HeightRequest="46"
+                                            Clicked="OnTestConnectionClicked"/>
+                                </Grid>
                             </VerticalStackLayout>
-                            
-                            <!-- Action Buttons -->
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
-                                <Button x:Name="SaveButton"
-                                       Grid.Column="0"
-                                        Text="{loc:Translate Key=Settings_Save}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       BackgroundColor="{StaticResource TealIcon}"
-                                       TextColor="#0D1B2A"
-                                       CornerRadius="12"
-                                       HeightRequest="44"
-                                       Clicked="OnSaveButtonClicked"/>
-                                
-                                <Button x:Name="TestButton"
-                                       Grid.Column="1"
-                                        Text="{loc:Translate Key=Settings_Test}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       BackgroundColor="{DynamicResource StatCardBg}"
-                                       TextColor="{DynamicResource TextPrimary}"
-                                       CornerRadius="12"
-                                       HeightRequest="44"
-                                       Clicked="OnTestConnectionClicked"/>
-                            </Grid>
+
                         </VerticalStackLayout>
+                        <!-- ── End Collapsible ── -->
+
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
 
-            <!-- TRỢ GIÚP Section -->
-            <Border BackgroundColor="{DynamicResource CardBg}"
-                   StrokeThickness="0"
-                   Padding="16">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16"/>
-                </Border.StrokeShape>
+            <!-- ══ TRỢ GIÚP ══ -->
+            <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0EFFFFFF}" StrokeThickness="1"
+                    Stroke="{AppThemeBinding Light=#D8E4F0, Dark=#12FFFFFF}" Padding="16">
+                <Border.StrokeShape><RoundRectangle CornerRadius="18"/></Border.StrokeShape>
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnHelpClicked"/>
                 </Border.GestureRecognizers>
-                
-                <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8">
-                    <Border WidthRequest="36" HeightRequest="36"
-                           BackgroundColor="{StaticResource AccentBlue20}"
-                           StrokeThickness="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="10"/>
-                        </Border.StrokeShape>
-                        <Label Text="❓" FontSize="16"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"/>
-                    </Border>
-                    
-                    <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center">
-                           <Label FontSize="15"
-                               TextColor="{DynamicResource TextPrimary}"
+                <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label FontSize="14" TextColor="{AppThemeBinding Light=#1B2530, Dark=White}"
                                Text="{loc:Translate Key=Settings_HelpTitle}"/>
-                           <Label FontSize="12"
-                               TextColor="{DynamicResource TextSecondary}"
+                        <Label FontSize="12" TextColor="{AppThemeBinding Light=#5A6B7A, Dark=#60FFFFFF}"
                                Text="{loc:Translate Key=Settings_HelpDesc}"/>
                     </VerticalStackLayout>
-                    
-                    <Label Grid.Column="2" Text="›"
-                           FontSize="20"
-                           TextColor="{DynamicResource TextSecondary}"
-                           VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="›"
+                           FontSize="22" TextColor="{AppThemeBinding Light=#6B7C8D, Dark=#40FFFFFF}" VerticalOptions="Center"/>
                 </Grid>
             </Border>
 
-            <!-- Logout Button -->
-            <Border BackgroundColor="Transparent"
-                   StrokeThickness="1"
-                   Stroke="{StaticResource DangerRed}"
-                   Padding="16"
-                   Margin="0,16,0,0">
+            <!-- ══ Logout Button ══ -->
+            <Border BackgroundColor="Transparent" StrokeThickness="1"
+                    Stroke="#40EF4444" Padding="16" Margin="0,8,0,0">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12"/>
+                    <RoundRectangle CornerRadius="18"/>
                 </Border.StrokeShape>
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnLogoutClicked"/>
                 </Border.GestureRecognizers>
-                
-                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
-                    <Label Text="🚪" FontSize="16" VerticalOptions="Center"/>
-                          <Label FontSize="15"
-                              FontAttributes="Bold"
-                              TextColor="{StaticResource DangerRed}"
-                              VerticalOptions="Center"
-                              Text="{loc:Translate Key=Settings_Logout}"/>
-                </HorizontalStackLayout>
+                <Label FontSize="15" FontAttributes="Bold"
+                       TextColor="#F87171"
+                       HorizontalOptions="Center"
+                       Text="{loc:Translate Key=Settings_Logout}"/>
             </Border>
 
-            <!-- Version Info -->
-                 <Label FontSize="12"
-                     TextColor="{DynamicResource TextSecondary}"
-                     HorizontalOptions="Center"
-                     Margin="0,16,0,0"
-                     Text="{loc:Translate Key=Settings_Version}"/>
+            <!-- ══ Version ══ -->
+            <Label FontSize="11" TextColor="{AppThemeBinding Light=#8B9CAF, Dark=#30FFFFFF}"
+                   HorizontalOptions="Center"
+                   Margin="0,4,0,0"
+                   Text="{loc:Translate Key=Settings_Version}"/>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

@@ -69,6 +69,33 @@ namespace FraudGuardAI.Pages.Auth
                 if (isAuthenticated)
                 {
                     Application.Current!.MainPage = new AppShell();
+                    return;
+                }
+
+                // Detect "session expired" state:
+                // HandleExpiredToken() in MainPage removes only auth_token but keeps user_id & email.
+                // If userId exists but token is gone → user was logged in, session expired.
+                string? userId = null;
+                string? token  = null;
+                string? email  = null;
+                try
+                {
+                    userId = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("user_id");
+                    token  = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                    email  = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("email");
+                }
+                catch { /* SecureStorage may fail on some devices */ }
+
+                bool hadAccount   = !string.IsNullOrEmpty(userId);
+                bool tokenMissing = string.IsNullOrEmpty(token);
+
+                if (hadAccount && tokenMissing)
+                {
+                    // Pre-fill email so user doesn't have to type it again
+                    if (!string.IsNullOrEmpty(email))
+                        EmailEntry.Text = email;
+
+                    ShowWarning("⚠ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 }
             }
             catch (Exception ex)
@@ -153,7 +180,7 @@ namespace FraudGuardAI.Pages.Auth
                     return;
                 }
 
-                string email = await Application.Current.MainPage.DisplayPromptAsync(
+                string? email = await (Application.Current?.MainPage ?? this).DisplayPromptAsync(
                     Localization.LocalizationResourceManager.Instance["Login_RecoverTitle"],
                     Localization.LocalizationResourceManager.Instance["Login_RecoverPrompt"],
                     Localization.LocalizationResourceManager.Instance["Login_RecoverSend"],
@@ -218,6 +245,14 @@ namespace FraudGuardAI.Pages.Auth
         private void ShowError(string message)
         {
             ErrorLabel.Text = message;
+            ErrorLabel.TextColor = Color.FromArgb("#F87171"); // red
+            ErrorLabel.IsVisible = true;
+        }
+
+        private void ShowWarning(string message)
+        {
+            ErrorLabel.Text = message;
+            ErrorLabel.TextColor = Color.FromArgb("#FBBF24"); // amber/yellow
             ErrorLabel.IsVisible = true;
         }
 

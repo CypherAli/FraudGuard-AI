@@ -101,6 +101,39 @@ namespace FraudGuardAI.Services
             }
         }
 
+        /// <summary>
+        /// Add a phone number to local cache immediately (for instant blocking after report).
+        /// Also persists to storage so it survives app restart.
+        /// </summary>
+        public void AddToLocalCache(string phoneNumber)
+        {
+            if (string.IsNullOrEmpty(phoneNumber)) return;
+            string normalized = NormalizePhone(phoneNumber);
+            lock (_lock)
+            {
+                _cachedNumbers.Add(phoneNumber);
+                _cachedNumbers.Add(normalized);
+            }
+            // Persist in background
+            _ = PersistCacheAsync();
+            System.Diagnostics.Debug.WriteLine($"[BlacklistCache] Added to local cache: {phoneNumber} / {normalized}");
+        }
+
+        private async Task PersistCacheAsync()
+        {
+            try
+            {
+                List<string> snapshot;
+                lock (_lock) { snapshot = _cachedNumbers.ToList(); }
+                var serialized = JsonSerializer.Serialize(snapshot);
+                await Microsoft.Maui.Storage.SecureStorage.Default.SetAsync(CACHE_KEY, serialized);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BlacklistCache] Persist error: {ex.Message}");
+            }
+        }
+
         public int Count
         {
             get { lock (_lock) { return _cachedNumbers.Count; } }
@@ -155,13 +188,13 @@ namespace FraudGuardAI.Services
         private class BlacklistApiResponse
         {
             public bool Success { get; set; }
-            public List<BlacklistEntry> Data { get; set; }
+            public List<BlacklistEntry>? Data { get; set; }
         }
 
         private class BlacklistEntry
         {
-            public string PhoneNumber { get; set; }
-            public string Reason { get; set; }
+            public string? PhoneNumber { get; set; }
+            public string? Reason { get; set; }
             public double ConfidenceScore { get; set; }
             public int ReportedCount { get; set; }
         }
