@@ -96,7 +96,21 @@ namespace FraudGuardAI.Services
 
                 // Add device_id query parameter
                 string fullUrl = $"{webSocketUrl}?device_id={Uri.EscapeDataString(deviceId)}";
-                
+
+                // Attach auth token so backend middleware can validate
+                try
+                {
+                    var token = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                    if (!string.IsNullOrEmpty(token))
+                        fullUrl += $"&token={Uri.EscapeDataString(token)}";
+                    else
+                        System.Diagnostics.Debug.WriteLine("[AudioService] ⚠️ No auth token found in SecureStorage");
+                }
+                catch (Exception tokenEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AudioService] ⚠️ Could not read auth token: {tokenEx.Message}");
+                }
+
                 System.Diagnostics.Debug.WriteLine($"[AudioService] Connecting to: {fullUrl}");
 
                 _webSocket = new ClientWebSocket();

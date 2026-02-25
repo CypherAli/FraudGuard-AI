@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
@@ -407,6 +408,24 @@ func ValidateToken(token string) bool {
 	session, exists := sessionStore[token]
 	sessionMutex.RUnlock()
 	return exists && time.Now().Before(session.ExpiresAt)
+}
+
+// HandleValidateToken — GET /auth/validate-token
+// Lightweight pre-check used by the mobile app BEFORE attempting WebSocket connection.
+// Returns 200 {"valid":true} or 401 {"valid":false,"message":"..."}.
+func HandleValidateToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if token == "" {
+		token = r.URL.Query().Get("token")
+	}
+	if !ValidateToken(token) {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]any{"valid": false, "message": "Token hết hạn hoặc không hợp lệ"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{"valid": true})
 }
 
 // CleanupExpiredOTPs removes expired OTPs and sessions periodically

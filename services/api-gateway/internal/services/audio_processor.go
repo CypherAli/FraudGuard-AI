@@ -215,8 +215,13 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		return
 	}
 
-	// Per-channel buffer key: "deviceID|0" (mic) or "deviceID|1" (voip)
-	bufKey := fmt.Sprintf("%s|%d", deviceID, channel)
+	// Per-channel buffer key: "deviceID|mic" or "deviceID|voip"
+	// Must match the keys used in removeAudioBuffer and evictStaleDetectors.
+	channelSuffix := "mic"
+	if channel == ChannelVoIP {
+		channelSuffix = "voip"
+	}
+	bufKey := deviceID + "|" + channelSuffix
 	buf := getAudioBuffer(bufKey)
 
 	audioBufferMutex.Lock()
