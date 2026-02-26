@@ -26,6 +26,8 @@ namespace FraudGuardAI
         private bool _isProtectionActive = false;
         private bool _isConnecting = false;
         private bool _voipCaptureActive = false;
+        private bool _isHandlingExpiry = false;          // prevent duplicate expired-session dialogs
+        private DateTime _lastTokenCheckTime = DateTime.MinValue; // throttle OnAppearing token checks
         private CancellationTokenSource? _animationCts;
         private DashboardStats _stats = new();
         // Tracks which banner alert started the auto-dismiss timer (prevents race condition)
@@ -83,6 +85,7 @@ namespace FraudGuardAI
                 _audioService.AlertReceived += OnAlertReceived;
                 _audioService.ErrorOccurred += OnErrorOccurred;
                 _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
+                _audioService.SessionExpired += OnSessionExpiredFromService;
             }
             LocalizationResourceManager.Instance.PropertyChanged += _locChangeHandler;
 
@@ -93,6 +96,9 @@ namespace FraudGuardAI
 
             // Refresh dashboard stats each time user navigates back to MainPage
             _ = LoadDashboardStatsAsync();
+
+            // Background token validation — runs silently, redirects to login if expired
+            _ = CheckTokenOnResumeAsync();
         }
 
         protected override void OnDisappearing()
@@ -104,6 +110,7 @@ namespace FraudGuardAI
                 _audioService.AlertReceived -= OnAlertReceived;
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+                _audioService.SessionExpired -= OnSessionExpiredFromService;
             }
             LocalizationResourceManager.Instance.PropertyChanged -= _locChangeHandler;
 
@@ -654,6 +661,51 @@ namespace FraudGuardAI
                     Application.Current!.MainPage = new NavigationPage(new Pages.Auth.LoginPage());
                 }
             });
+        }
+
+        /// <summary>
+        /// Called by AudioService.SessionExpired event when WebSocket upgrade returns 401
+        /// or server sends PolicyViolation (1008) close frame.
+        /// </summary>
+        private void OnSessionExpiredFromService(object? sender, EventArgs e)
+        {
+            // Guard: only show dialog once even if multiple events fire simultaneously
+            if (_isHandlingExpiry) return;
+            _isHandlingExpiry = true;
+            _ = HandleExpiredToken().ContinueWith(_ => _isHandlingExpiry = false);
+        }
+
+        /// <summary>
+        /// Validates the stored token against the server on app resume.
+        /// Throttled to once per 30 minutes to avoid spamming the server.
+        /// Silently redirects to login if token is expired — only when protection is NOT active.
+        /// </summary>
+        private async Task CheckTokenOnResumeAsync()
+        {
+            try
+            {
+                // Throttle: skip if checked recently
+                if ((DateTime.UtcNow - _lastTokenCheckTime).TotalMinutes < 30) return;
+
+                // Skip if protection is currently active (ValidateTokenWithServerAsync runs before start anyway)
+                if (_isProtectionActive || _isConnecting) return;
+
+                var token = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                if (string.IsNullOrEmpty(token)) return; // Not logged in — nothing to check
+
+                _lastTokenCheckTime = DateTime.UtcNow;
+                var valid = await ValidateTokenWithServerAsync();
+                if (!valid && !_isHandlingExpiry)
+                {
+                    _isHandlingExpiry = true;
+                    await HandleExpiredToken();
+                    _isHandlingExpiry = false;
+                }
+            }
+            catch
+            {
+                // Network error on resume — skip silently, will be caught when user starts protection
+            }
         }
 
         private async Task ShowConnectionFailed()

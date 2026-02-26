@@ -49,6 +49,13 @@ namespace FraudGuardAI.Services
         public event EventHandler<ConnectionStatusEventArgs>? ConnectionStatusChanged;
 
         /// <summary>
+        /// Fired when the server rejects the connection/token with HTTP 401 or
+        /// WebSocket close code PolicyViolation (1008). MainPage handles this by
+        /// showing the "session expired" dialog and redirecting to LoginPage.
+        /// </summary>
+        public event EventHandler? SessionExpired;
+
+        /// <summary>
         /// Fired on every non-silent PCM read from the microphone.
         /// Subscribers (e.g. WaveformDrawable) use this to visualise real audio.
         /// Callback is (buffer, bytesRead); buffer is a shared internal array —
@@ -148,6 +155,18 @@ namespace FraudGuardAI.Services
             {
                 _isConnected = false;
                 Log.Error(TAG, $"❌ WebSocket connection FAILED: {ex.Message}");
+
+                // Detect HTTP 401: server rejected token during WebSocket upgrade
+                // .NET throws WebSocketException with message "status code '401'"
+                bool is401 = ex.Message.Contains("401") ||
+                             ex.Message.Contains("Unauthorized") ||
+                             ex.Message.Contains("PolicyViolation");
+                if (is401)
+                {
+                    OnSessionExpired();
+                    return false; // Don't emit generic error — caller handles expired session
+                }
+
                 OnConnectionStatusChanged(false, $"Failed: {ex.Message}");
                 OnError($"Connection failed: {ex.Message}", ex);
                 return false;
@@ -629,7 +648,15 @@ namespace FraudGuardAI.Services
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         _isConnected = false;
-                        OnConnectionStatusChanged(false, "Server closed");
+                        // PolicyViolation (1008) = server rejected token (expired or invalid)
+                        if (_webSocket?.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+                        {
+                            OnSessionExpired();
+                        }
+                        else
+                        {
+                            OnConnectionStatusChanged(false, "Server closed");
+                        }
                         break;
                     }
 
@@ -825,6 +852,12 @@ namespace FraudGuardAI.Services
         {
             Log.Error(TAG, $"[AudioService] Error: {message}");
             ErrorOccurred?.Invoke(this, new ErrorEventArgs(message, ex));
+        }
+
+        protected virtual void OnSessionExpired()
+        {
+            Log.Warn(TAG, "[AudioService] Session expired — token rejected by server (401/PolicyViolation)");
+            SessionExpired?.Invoke(this, EventArgs.Empty);
         }
 
         protected virtual void OnConnectionStatusChanged(bool isConnected, string status)

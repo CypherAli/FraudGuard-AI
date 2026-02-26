@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fraudguard/api-gateway/internal/db"
 )
 
 // OTP storage (in-memory for simplicity, use Redis/DB for production)
@@ -377,16 +379,34 @@ func generateSessionToken(email string) (string, error) {
 		return "", fmt.Errorf("failed to generate session token: %w", err)
 	}
 	token := fmt.Sprintf("%x", b)
+	expiresAt := time.Now().Add(sessionExpiry)
+	userID := generateUserID(email)
 
-	// Store session
+	// Store in memory
 	sessionMutex.Lock()
 	sessionStore[token] = &SessionEntry{
 		Email:     email,
 		Token:     token,
 		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(sessionExpiry),
+		ExpiresAt: expiresAt,
 	}
 	sessionMutex.Unlock()
+
+	// Persist to PostgreSQL so sessions survive server restarts
+	if db.Pool != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err := db.Pool.Exec(ctx,
+			`INSERT INTO sessions (token, email, user_id, created_at, expires_at)
+			 VALUES ($1, $2, $3, NOW(), $4)
+			 ON CONFLICT (token) DO NOTHING`,
+			token, email, userID, expiresAt,
+		)
+		if err != nil {
+			log.Printf("⚠️  [Auth] Failed to persist session to DB: %v", err)
+			// Not fatal — in-memory session still works until next restart
+		}
+	}
 
 	return token, nil
 }
@@ -399,15 +419,56 @@ func generateUserID(email string) string {
 }
 
 // ValidateToken checks whether a bearer token is active and not expired.
-// Used by auth middleware and WebSocket handler.
+// Checks in-memory cache first; falls back to PostgreSQL so sessions survive
+// server restarts (Render free tier spins down and wipes in-memory sessions).
 func ValidateToken(token string) bool {
 	if token == "" {
 		return false
 	}
+
+	// Fast path: in-memory cache
 	sessionMutex.RLock()
 	session, exists := sessionStore[token]
 	sessionMutex.RUnlock()
-	return exists && time.Now().Before(session.ExpiresAt)
+	if exists {
+		if time.Now().Before(session.ExpiresAt) {
+			return true
+		}
+		// Expired — evict from cache
+		sessionMutex.Lock()
+		delete(sessionStore, token)
+		sessionMutex.Unlock()
+		return false
+	}
+
+	// Cache miss → check PostgreSQL (token may exist from before server restart)
+	if db.Pool == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var email string
+	var expiresAt time.Time
+	err := db.Pool.QueryRow(ctx,
+		`SELECT email, expires_at FROM sessions WHERE token = $1 AND expires_at > NOW()`,
+		token,
+	).Scan(&email, &expiresAt)
+	if err != nil {
+		return false // Not found or expired
+	}
+
+	// Warm up in-memory cache so subsequent requests don't hit DB
+	sessionMutex.Lock()
+	sessionStore[token] = &SessionEntry{
+		Email:     email,
+		Token:     token,
+		CreatedAt: time.Now(),
+		ExpiresAt: expiresAt,
+	}
+	sessionMutex.Unlock()
+	log.Printf("🔄 [Auth] Session restored from DB for %s (cache miss after restart)", email)
+	return true
 }
 
 // HandleValidateToken — GET /auth/validate-token
@@ -449,7 +510,7 @@ func CleanupExpiredOTPs(ctx context.Context) {
 			}
 			otpMutex.Unlock()
 
-			// Cleanup expired sessions
+			// Cleanup expired sessions (in-memory)
 			sessionMutex.Lock()
 			for token, session := range sessionStore {
 				if now.After(session.ExpiresAt) {
@@ -457,6 +518,15 @@ func CleanupExpiredOTPs(ctx context.Context) {
 				}
 			}
 			sessionMutex.Unlock()
+
+			// Cleanup expired sessions (PostgreSQL)
+			if db.Pool != nil {
+				dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
+				if _, err := db.Pool.Exec(dbCtx, `DELETE FROM sessions WHERE expires_at < NOW()`); err != nil {
+					log.Printf("⚠️  [Auth] DB session cleanup warning: %v", err)
+				}
+				dbCancel()
+			}
 
 			// Cleanup send rate limiter
 			rateMutex.Lock()
