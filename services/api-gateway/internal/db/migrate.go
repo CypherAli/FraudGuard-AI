@@ -71,22 +71,21 @@ func AutoMigrate() error {
 	}
 	log.Println("✅ Tables created successfully")
 
-	// Add missing columns to existing tables (safe to run repeatedly — IF NOT EXISTS is idempotent)
-	alterSQL := `
-	ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'
-		CHECK (status IN ('active', 'inactive'));
-	ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS first_reported_at TIMESTAMP DEFAULT NOW();
-	ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS last_reported_at TIMESTAMP DEFAULT NOW();
-	ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-	ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
-
-	CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status);
-	`
-	if _, err := Pool.Exec(ctx, alterSQL); err != nil {
-		log.Printf("⚠️  Warning: ALTER TABLE failed (some columns may already exist): %v", err)
-	} else {
-		log.Println("✅ Schema columns verified/added")
+	// Add missing columns one-by-one — pgx Pool.Exec does not support multi-statement queries
+	alterStatements := []string{
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS first_reported_at TIMESTAMP DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS last_reported_at TIMESTAMP DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`,
+		`CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status)`,
 	}
+	for _, stmt := range alterStatements {
+		if _, err := Pool.Exec(ctx, stmt); err != nil {
+			log.Printf("⚠️  Warning: schema alter failed: %v", err)
+		}
+	}
+	log.Println("✅ Schema columns verified/added")
 
 	// Check if data already exists
 	var count int
