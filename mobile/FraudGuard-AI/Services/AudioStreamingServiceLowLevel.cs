@@ -49,6 +49,13 @@ namespace FraudGuardAI.Services
         public event EventHandler<ConnectionStatusEventArgs>? ConnectionStatusChanged;
 
         /// <summary>
+        /// Fired when the server rejects the connection/token with HTTP 401 or
+        /// WebSocket close code PolicyViolation (1008). MainPage handles this by
+        /// showing the "session expired" dialog and redirecting to LoginPage.
+        /// </summary>
+        public event EventHandler? SessionExpired;
+
+        /// <summary>
         /// Fired on every non-silent PCM read from the microphone.
         /// Subscribers (e.g. WaveformDrawable) use this to visualise real audio.
         /// Callback is (buffer, bytesRead); buffer is a shared internal array —
@@ -148,6 +155,18 @@ namespace FraudGuardAI.Services
             {
                 _isConnected = false;
                 Log.Error(TAG, $"❌ WebSocket connection FAILED: {ex.Message}");
+
+                // Detect HTTP 401: server rejected token during WebSocket upgrade
+                // .NET throws WebSocketException with message "status code '401'"
+                bool is401 = ex.Message.Contains("401") ||
+                             ex.Message.Contains("Unauthorized") ||
+                             ex.Message.Contains("PolicyViolation");
+                if (is401)
+                {
+                    OnSessionExpired();
+                    return false; // Don't emit generic error — caller handles expired session
+                }
+
                 OnConnectionStatusChanged(false, $"Failed: {ex.Message}");
                 OnError($"Connection failed: {ex.Message}", ex);
                 return false;
@@ -250,8 +269,9 @@ namespace FraudGuardAI.Services
                 {
                     try
                     {
-                        // Stop VoIP capture (parallel — has its own internal lock)
+                        // Stop VoIP and PSTN SCO captures (parallel — have their own internal locks)
                         await StopVoipCaptureAsync();
+                        await StopPstnScoAsync();
 
                         // Stop AudioRecord with timeout
                         var audioCleanupTask = Task.Run(() =>
@@ -387,6 +407,66 @@ namespace FraudGuardAI.Services
                 await _voipCapture.StopAsync();
                 _voipCapture.Dispose();
                 _voipCapture = null;
+            }
+        }
+
+        // ── PSTN SCO Capture (Virtual BT HFP) ────────────────────────────────
+        private PstnScoCallCaptureService? _pstnCapture;
+        private volatile bool _pstnCaptureActive;
+
+        /// <summary>
+        /// Status messages from the PSTN SCO capture layer forwarded to UI.
+        /// Key: strategy name if started, "PSTN_SCO_FAILED" if all strategies failed.
+        /// </summary>
+        public event Action<string>? PstnStatusChanged;
+
+        /// <summary>
+        /// Starts PSTN call audio capture using the Virtual BT HFP trick.
+        /// Tries 4 strategies: VOICE_CALL → VOICE_COMM+IN_CALL → SCO+VOICE_COMM → SCO+MIC.
+        /// Call after StartStreamingAsync() succeeds and VoIP capture fails/detects PSTN.
+        /// </summary>
+        public async Task<bool> StartPstnScoAsync()
+        {
+            if (_webSocket == null || _webSocket.State != WebSocketState.Open)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] StartPstnScoAsync: WebSocket not open");
+                return false;
+            }
+
+            if (_pstnCaptureActive)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] PSTN SCO capture already active");
+                return true;
+            }
+
+            _pstnCapture ??= new PstnScoCallCaptureService();
+            _pstnCapture.StatusChanged += (_, msg) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[PSTN-SCO] {msg}");
+                PstnStatusChanged?.Invoke(msg);
+            };
+
+            bool started = await _pstnCapture.StartAsync(
+                _webSocket,
+                _cancellationTokenSource?.Token ?? CancellationToken.None);
+
+            _pstnCaptureActive = started;
+            System.Diagnostics.Debug.WriteLine($"[AudioService] PSTN SCO capture {(started ? "STARTED ✅" : "FAILED ❌")}");
+            if (!started) PstnStatusChanged?.Invoke("PSTN_SCO_FAILED");
+            return started;
+        }
+
+        /// <summary>
+        /// Stops PSTN SCO capture and restores normal audio mode.
+        /// </summary>
+        public async Task StopPstnScoAsync()
+        {
+            _pstnCaptureActive = false;
+            if (_pstnCapture != null)
+            {
+                await _pstnCapture.StopAsync();
+                _pstnCapture.Dispose();
+                _pstnCapture = null;
             }
         }
 
@@ -568,7 +648,15 @@ namespace FraudGuardAI.Services
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         _isConnected = false;
-                        OnConnectionStatusChanged(false, "Server closed");
+                        // PolicyViolation (1008) = server rejected token (expired or invalid)
+                        if (_webSocket?.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+                        {
+                            OnSessionExpired();
+                        }
+                        else
+                        {
+                            OnConnectionStatusChanged(false, "Server closed");
+                        }
                         break;
                     }
 
@@ -766,6 +854,12 @@ namespace FraudGuardAI.Services
             ErrorOccurred?.Invoke(this, new ErrorEventArgs(message, ex));
         }
 
+        protected virtual void OnSessionExpired()
+        {
+            Log.Warn(TAG, "[AudioService] Session expired — token rejected by server (401/PolicyViolation)");
+            SessionExpired?.Invoke(this, EventArgs.Empty);
+        }
+
         protected virtual void OnConnectionStatusChanged(bool isConnected, string status)
         {
             ConnectionStatusChanged?.Invoke(this, new ConnectionStatusEventArgs(isConnected, status));
@@ -793,6 +887,9 @@ namespace FraudGuardAI.Services
 
                 try { _voipCapture?.Dispose(); } catch { }
                 _voipCapture = null;
+
+                try { _pstnCapture?.Dispose(); } catch { }
+                _pstnCapture = null;
 
                 try { _audioRecord?.Release(); } catch { }
                 try { _audioRecord?.Dispose(); } catch { }

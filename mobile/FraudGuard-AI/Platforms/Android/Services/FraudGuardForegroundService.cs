@@ -8,11 +8,12 @@ namespace FraudGuardAI.Platforms.Android.Services
 {
     /// <summary>
     /// Foreground Service để đảm bảo app chạy ngầm và phát cảnh báo ngay cả khi màn hình tắt.
-    /// TypeMediaProjection bắt buộc từ Android 14 (API 34) khi dùng MediaProjection (Call-Shield).
+    /// TypeMicrophone: dùng cho AudioRecord (MIC + PSTN-SCO đều capture qua AudioRecord).
+    /// NOTE: TypeMediaProjection KHÔNG được dùng ở đây vì yêu cầu active MediaProjection token
+    ///       (user consent qua MediaProjectionManager) — app dùng Bluetooth SCO, không dùng MediaProjection.
     /// </summary>
     [Service(ForegroundServiceType =
-        global::Android.Content.PM.ForegroundService.TypeMicrophone |
-        global::Android.Content.PM.ForegroundService.TypeMediaProjection)]
+        global::Android.Content.PM.ForegroundService.TypeMicrophone)]
     public class FraudGuardForegroundService : Service
     {
         private const int SERVICE_NOTIFICATION_ID = 1001;
@@ -36,17 +37,11 @@ namespace FraudGuardAI.Platforms.Android.Services
                 "Monitoring calls for fraud detection"
             );
 
-            // Android 14 (API 34+): StartForeground PHẢI chỉ định foreground service type.
-            // TypeMediaProjection bắt buộc phải khai báo TRƯỚC khi gọi getMediaProjection().
-            // Android 10–13 (API 29–33): chỉ cần TypeMicrophone.
-            // Android < 10 (API < 29): gọi StartForeground 2-tham số.
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.UpsideDownCake) // API 34 = Android 14
-            {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification,
-                    global::Android.Content.PM.ForegroundService.TypeMicrophone |
-                    global::Android.Content.PM.ForegroundService.TypeMediaProjection);
-            }
-            else if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+            // Android 10+ (API 29+): StartForeground PHẢI chỉ định foreground service type.
+            // TypeMicrophone đủ cho mọi trường hợp: MIC capture + PSTN-SCO đều dùng AudioRecord.
+            // TypeMediaProjection KHÔNG được dùng — yêu cầu active token từ MediaProjectionManager,
+            // không phù hợp với Bluetooth SCO routing (đây không phải screen capture).
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
             {
                 StartForeground(SERVICE_NOTIFICATION_ID, notification,
                     global::Android.Content.PM.ForegroundService.TypeMicrophone);
