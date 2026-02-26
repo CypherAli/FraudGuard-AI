@@ -85,6 +85,12 @@ namespace FraudGuardAI
                 _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
             }
             LocalizationResourceManager.Instance.PropertyChanged += _locChangeHandler;
+
+            // Resume animation timers that were paused in OnDisappearing
+            _radarTimer?.Start();
+            _waveformTimer?.Start();
+            _statusDotTimer?.Start();
+
             // Refresh dashboard stats each time user navigates back to MainPage
             _ = LoadDashboardStatsAsync();
         }
@@ -100,6 +106,12 @@ namespace FraudGuardAI
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
             }
             LocalizationResourceManager.Instance.PropertyChanged -= _locChangeHandler;
+
+            // Pause animation timers while page is not visible — saves ~10% CPU/battery.
+            // Timers are NOT destroyed; they resume in OnAppearing().
+            _radarTimer?.Stop();
+            _waveformTimer?.Stop();
+            _statusDotTimer?.Stop();
         }
 
         private async Task AutoStartProtectionIfEnabledAsync()

@@ -23,7 +23,7 @@ namespace FraudGuardAI.Services
 
         private HashSet<string> _cachedNumbers = new(StringComparer.OrdinalIgnoreCase);
         private readonly object _lock = new();
-        private bool _loaded = false;
+        private volatile bool _loaded = false;
 
         private static readonly HttpClient _httpClient = new()
         {

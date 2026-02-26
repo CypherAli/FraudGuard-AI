@@ -56,7 +56,8 @@ namespace FraudGuardAI.Platforms.Android.Services
                     var smsMessage = global::Android.Telephony.SmsMessage.CreateFromPdu(pduBytes, format);
                     if (smsMessage != null)
                     {
-                        messageBuilder.Append(smsMessage.MessageBody);
+                        if (!string.IsNullOrEmpty(smsMessage.MessageBody))
+                            messageBuilder.Append(smsMessage.MessageBody);
                         senderAddress ??= smsMessage.OriginatingAddress;
                     }
                 }

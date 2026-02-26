@@ -10,11 +10,12 @@
         android:networkSecurityConfig="@xml/network_security_config">
         
         <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
+        <!-- foregroundServiceType="microphone|mediaProjection" required for Android 14+ MediaProjection API -->
         <service
             android:name=".Platforms.Android.Services.FraudGuardForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="microphone|mediaProjection" />
 
         <!-- Overlay bubble service -->
         <service
@@ -50,6 +51,8 @@
     <!-- Foreground Service (nếu cần chạy background) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Android 14+ (API 34): required for MediaProjection in a foreground service (Call-Shield) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     
     <!-- Wake Lock (giữ app không sleep khi recording) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />

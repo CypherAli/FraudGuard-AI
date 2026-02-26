@@ -4,6 +4,18 @@ using System.Threading.Tasks;
 
 namespace FraudGuardAI.Helpers
 {
+#if ANDROID
+    /// <summary>
+    /// Custom MAUI permission wrapper for android.permission.ANSWER_PHONE_CALLS.
+    /// Required for TelecomManager.EndCall() (auto-reject blacklisted calls, Android 9+).
+    /// </summary>
+    public class AnswerPhoneCallPermission : Permissions.BasePlatformPermission
+    {
+        public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
+            new[] { (Android.Manifest.Permission.AnswerPhoneCalls, true) };
+    }
+#endif
+
     /// <summary>
     /// Manages app permissions with user-friendly dialogs
     /// </summary>
@@ -122,6 +134,21 @@ namespace FraudGuardAI.Helpers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[PermissionManager] SMS permission error: {ex.Message}");
+            }
+
+            // ANSWER_PHONE_CALLS — required for TelecomManager.EndCall() (auto-reject blacklist, Android 9+)
+            try
+            {
+                var answerStatus = await Permissions.CheckStatusAsync<AnswerPhoneCallPermission>();
+                if (answerStatus != PermissionStatus.Granted)
+                {
+                    answerStatus = await Permissions.RequestAsync<AnswerPhoneCallPermission>();
+                    System.Diagnostics.Debug.WriteLine($"[PermissionManager] AnswerPhoneCall permission: {answerStatus}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PermissionManager] AnswerPhoneCall permission error: {ex.Message}");
             }
             #endif
 

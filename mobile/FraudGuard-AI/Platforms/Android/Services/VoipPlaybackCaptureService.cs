@@ -100,15 +100,15 @@ namespace FraudGuardAI.Platforms.Android.Services
 
                 int bufSize = Math.Max(minBuf * 2, BUFFER_SIZE);
 
-                // SetChannelMask takes ChannelOut in the MAUI binding, but AudioPlaybackCapture
-                // internally needs the ChannelIn value (CHANNEL_IN_MONO = 16, not CHANNEL_OUT_MONO = 4).
-                // Explicit cast passes the correct integer 16 to the underlying Android API.
+                // AudioPlaybackCapture bắt âm thanh OUTPUT → dùng OUTPUT channel mask.
+                // ChannelOut.Mono = CHANNEL_OUT_MONO = 4 ✓  (đúng cho AudioPlaybackCapture)
+                // ChannelIn.Mono = CHANNEL_IN_MONO  = 16 ✗  (dành cho AudioRecord thông thường)
                 _audioRecord = new AudioRecord.Builder()
                     .SetAudioPlaybackCaptureConfig(captureConfig)
                     .SetAudioFormat(new AudioFormat.Builder()
                         .SetEncoding(global::Android.Media.Encoding.Pcm16bit)
                         .SetSampleRate(SAMPLE_RATE)
-                        .SetChannelMask((ChannelOut)(int)ChannelIn.Mono)  // int 16 = CHANNEL_IN_MONO
+                        .SetChannelMask(ChannelOut.Mono)  // CHANNEL_OUT_MONO = 4, correct for playback capture
                         .Build())
                     .SetBufferSizeInBytes(bufSize)
                     .Build();
@@ -149,14 +149,17 @@ namespace FraudGuardAI.Platforms.Android.Services
 
         public async Task StopAsync()
         {
-            if (!await _lock.WaitAsync(TimeSpan.FromSeconds(3)))
-                return;
+            // Signal stop immediately regardless of lock acquisition so the streaming
+            // loop terminates even if a concurrent StartAsync() holds the lock.
+            _isCapturing = false;
+            _cts?.Cancel();
+
+            bool lockAcquired = await _lock.WaitAsync(TimeSpan.FromSeconds(3));
 
             try
             {
-                _isCapturing = false;
-                _cts?.Cancel();
-
+                // Release AudioRecord whether or not we got the lock — prevents
+                // the resource staying open if lock timed out (e.g. StartAsync slow).
                 await Task.Run(() =>
                 {
                     try
@@ -181,7 +184,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             }
             finally
             {
-                _lock.Release();
+                if (lockAcquired) _lock.Release();
             }
         }
 

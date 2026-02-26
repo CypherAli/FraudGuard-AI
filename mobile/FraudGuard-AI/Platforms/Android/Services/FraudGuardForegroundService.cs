@@ -7,9 +7,12 @@ using AndroidX.Core.App;
 namespace FraudGuardAI.Platforms.Android.Services
 {
     /// <summary>
-    /// Foreground Service để đảm bảo app chạy ngầm và phát cảnh báo ngay cả khi màn hình tắt
+    /// Foreground Service để đảm bảo app chạy ngầm và phát cảnh báo ngay cả khi màn hình tắt.
+    /// TypeMediaProjection bắt buộc từ Android 14 (API 34) khi dùng MediaProjection (Call-Shield).
     /// </summary>
-    [Service(ForegroundServiceType = global::Android.Content.PM.ForegroundService.TypeMicrophone)]
+    [Service(ForegroundServiceType =
+        global::Android.Content.PM.ForegroundService.TypeMicrophone |
+        global::Android.Content.PM.ForegroundService.TypeMediaProjection)]
     public class FraudGuardForegroundService : Service
     {
         private const int SERVICE_NOTIFICATION_ID = 1001;
@@ -33,8 +36,25 @@ namespace FraudGuardAI.Platforms.Android.Services
                 "Monitoring calls for fraud detection"
             );
 
-            // Khởi động foreground service với notification
-            StartForeground(SERVICE_NOTIFICATION_ID, notification);
+            // Android 14 (API 34+): StartForeground PHẢI chỉ định foreground service type.
+            // TypeMediaProjection bắt buộc phải khai báo TRƯỚC khi gọi getMediaProjection().
+            // Android 10–13 (API 29–33): chỉ cần TypeMicrophone.
+            // Android < 10 (API < 29): gọi StartForeground 2-tham số.
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.UpsideDownCake) // API 34 = Android 14
+            {
+                StartForeground(SERVICE_NOTIFICATION_ID, notification,
+                    global::Android.Content.PM.ForegroundService.TypeMicrophone |
+                    global::Android.Content.PM.ForegroundService.TypeMediaProjection);
+            }
+            else if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+            {
+                StartForeground(SERVICE_NOTIFICATION_ID, notification,
+                    global::Android.Content.PM.ForegroundService.TypeMicrophone);
+            }
+            else
+            {
+                StartForeground(SERVICE_NOTIFICATION_ID, notification);
+            }
 
             System.Diagnostics.Debug.WriteLine("[ForegroundService] Service started - App will continue running in background");
 

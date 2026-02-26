@@ -152,7 +152,7 @@ func main() {
 		handlers.ServeWs(wsHub, w, r)
 	})
 
-	// API routes — protected by auth middleware
+	// API routes
 	r.Route("/api", func(r chi.Router) {
 		// Limit request body to 1MB to prevent DoS via large payloads
 		r.Use(func(next http.Handler) http.Handler {
@@ -161,14 +161,20 @@ func main() {
 				next.ServeHTTP(w, r)
 			})
 		})
-		r.Use(requireAuth)
+
+		// Public endpoints — no auth required (community reporting + blacklist lookup)
+		r.Post("/report", handlers.ReportFraud)
 		r.Get("/blacklist", handlers.GetBlacklist)
 		r.Get("/check", handlers.CheckNumber)
-		r.Get("/history", handlers.GetHistory)
-		r.Get("/call/{id}", handlers.GetCallDetail)
-		r.Post("/call-summary", handlers.GenerateCallSummary)
-		r.Post("/report", handlers.ReportFraud)
-		r.Post("/blacklist/import", handlers.ImportBlacklist)
+
+		// Protected endpoints — require valid Bearer token
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth)
+			r.Get("/history", handlers.GetHistory)
+			r.Get("/call/{id}", handlers.GetCallDetail)
+			r.Post("/call-summary", handlers.GenerateCallSummary)
+			r.Post("/blacklist/import", handlers.ImportBlacklist)
+		})
 	})
 
 	// Auth routes (OTP Email authentication)

@@ -11,6 +11,7 @@ namespace FraudGuardAI
     public partial class App : Application
     {
         private static AudioStreamingServiceLowLevel? _audioService;
+        private static readonly object _audioServiceLock = new(); // guards lazy-init of _audioService
         private const string PREF_LIGHT_THEME = "LightThemeEnabled";
         private const string PREF_LIGHT_THEME_USER_SET = "LightThemeUserSet";
         private const string PREF_APP_LANGUAGE = "AppLanguage";
@@ -114,12 +115,19 @@ namespace FraudGuardAI
         /// </summary>
         public static AudioStreamingServiceLowLevel GetAudioService()
         {
+            // Double-checked locking to prevent two threads creating separate instances
             if (_audioService == null)
             {
-                Debug.WriteLine("[App] Creating AudioStreamingServiceLowLevel (lazy init)");
-                var settings = Application.Current?.Handler?.MauiContext?.Services
-                    ?.GetService<IAppSettings>() ?? new AppSettings();
-                _audioService = new AudioStreamingServiceLowLevel(settings);
+                lock (_audioServiceLock)
+                {
+                    if (_audioService == null)
+                    {
+                        Debug.WriteLine("[App] Creating AudioStreamingServiceLowLevel (lazy init)");
+                        var settings = Application.Current?.Handler?.MauiContext?.Services
+                            ?.GetService<IAppSettings>() ?? new AppSettings();
+                        _audioService = new AudioStreamingServiceLowLevel(settings);
+                    }
+                }
             }
             return _audioService;
         }

@@ -71,9 +71,24 @@ namespace FraudGuardAI
             {
                 if (resultCode == Result.Ok && data != null && _projectionManager != null)
                 {
-                    var projection = _projectionManager.GetMediaProjection((int)resultCode, data);
-                    System.Diagnostics.Debug.WriteLine("[MainActivity] ✅ MediaProjection granted");
-                    _projectionTcs?.TrySetResult(projection);
+                    // CRITICAL: Wrapped in try-catch.
+                    // Android 14 (API 34) throws SecurityException/IllegalStateException if:
+                    //   - No foreground service with TypeMediaProjection is running.
+                    //   - Service was not started BEFORE createScreenCaptureIntent().
+                    // Without this catch the unhandled exception kills the process immediately.
+                    try
+                    {
+                        var projection = _projectionManager.GetMediaProjection((int)resultCode, data);
+                        System.Diagnostics.Debug.WriteLine("[MainActivity] ✅ MediaProjection granted");
+                        _projectionTcs?.TrySetResult(projection);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[MainActivity] ❌ GetMediaProjection threw: {ex.GetType().Name}: {ex.Message}");
+                        // Resolve the pending task so TryActivateCallShieldAsync() can handle it gracefully.
+                        _projectionTcs?.TrySetResult(null);
+                    }
                 }
                 else
                 {

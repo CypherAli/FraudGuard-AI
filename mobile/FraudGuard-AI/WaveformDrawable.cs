@@ -18,7 +18,8 @@ namespace FraudGuardAI
         // natural-looking decay rather than instant jump-to-zero.
         private readonly float[] _pcmLevels    = new float[BAR_COUNT];
         private readonly float[] _pcmTargets   = new float[BAR_COUNT];
-        private bool _hasPcmData = false;
+        // volatile: written from audio thread, read from UI thread — ensures visibility without lock
+        private volatile bool _hasPcmData = false;
         private const float SMOOTH_RISE  = 0.6f;  // fast rise on loud signal
         private const float SMOOTH_DECAY = 0.12f; // slow decay for smooth visual
 
