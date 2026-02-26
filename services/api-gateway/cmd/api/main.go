@@ -40,15 +40,29 @@ func main() {
 	log.Printf("🌐 Host: %s", cfg.Server.Host)
 	log.Printf("🔌 Port: %d", cfg.Server.Port)
 
-	// Initialize PostgreSQL database connection (optional - blacklist features)
-	if err := db.Connect(&cfg.Database); err != nil {
-		log.Printf("⚠️  Warning: PostgreSQL unavailable: %v", err)
-		log.Println("⚠️  Blacklist and database features will be disabled")
-	} else {
-		defer db.Close()
-		if err := db.AutoMigrate(); err != nil {
-			log.Printf("⚠️  Warning: Failed to run migrations: %v", err)
+	// Initialize PostgreSQL with retry — Render free tier has a cold-start race where
+	// the web service wakes up before the PostgreSQL instance is ready. Retrying with
+	// exponential backoff gives the DB time to accept connections.
+	dbConnected := false
+	for attempt := 1; attempt <= 6; attempt++ {
+		if err := db.Connect(&cfg.Database); err == nil {
+			dbConnected = true
+			defer db.Close()
+			if err := db.AutoMigrate(); err != nil {
+				log.Printf("⚠️  Warning: Failed to run migrations: %v", err)
+			}
+			break
+		} else {
+			log.Printf("⚠️  DB connect attempt %d/6 failed: %v", attempt, err)
+			if attempt < 6 {
+				backoff := time.Duration(attempt*5) * time.Second
+				log.Printf("⏳ Retrying in %v...", backoff)
+				time.Sleep(backoff)
+			}
 		}
+	}
+	if !dbConnected {
+		log.Println("⚠️  All DB connect attempts failed — blacklist and history features disabled")
 	}
 
 	// Initialize AI clients
