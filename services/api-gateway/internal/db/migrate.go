@@ -6,8 +6,9 @@ import (
 	"log"
 )
 
-// AutoMigrate creates tables and seeds initial data
-// BREAKING CHANGE (v2): Migrates from UUID to SERIAL ID for blacklist table
+// AutoMigrate creates tables and seeds initial data.
+// All statements are executed one-by-one — pgx v5 Pool.Exec does NOT support
+// multi-statement queries (uses extended query protocol).
 func AutoMigrate() error {
 	if Pool == nil {
 		return fmt.Errorf("database pool is nil, cannot run migrations")
@@ -15,79 +16,71 @@ func AutoMigrate() error {
 
 	log.Println("🔄 Running database migrations...")
 
-	// Guard: Pool must be initialized before migration
-	if Pool == nil {
-		log.Println("⚠️ Database pool is nil, skipping migration")
-		return fmt.Errorf("database pool not initialized")
-	}
-
 	ctx := context.Background()
 
-	// Check if old schema exists (UUID-based blacklists table)
+	// ── Step 1: Drop legacy table (UUID-based schema) ──────────────────────
 	var oldTableExists bool
-	err := Pool.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT FROM pg_tables 
-			WHERE tablename = 'blacklists'
-		)
+	_ = Pool.QueryRow(ctx, `
+		SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'blacklists')
 	`).Scan(&oldTableExists)
 
-	if err == nil && oldTableExists {
-		log.Println("⚠️  Detected old 'blacklists' table (UUID schema)")
-		log.Println("⚠️  Dropping old table to migrate to unified 'blacklist' schema...")
-		// CASCADE: Auto-removes dependent indexes, views, constraints
-		// Safe: We verified no FK references exist
+	if oldTableExists {
+		log.Println("⚠️  Detected old 'blacklists' table — dropping to migrate to unified schema...")
 		if _, err := Pool.Exec(ctx, "DROP TABLE IF EXISTS blacklists CASCADE"); err != nil {
 			log.Printf("❌ Failed to drop old table: %v", err)
 		} else {
-			log.Println("✅ Old table dropped successfully (CASCADE removed dependencies)")
+			log.Println("✅ Old table dropped")
 		}
 	}
 
-	// Create blacklist table (unified schema)
-	// SERIAL = auto-increment integer (never manually set ID in INSERT)
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS blacklist (
-		id SERIAL PRIMARY KEY,
-		phone_number VARCHAR(20) UNIQUE NOT NULL CHECK (phone_number ~ '^[+0-9]+$'),
-		reason TEXT NOT NULL,
-		confidence_score DECIMAL(3,2) DEFAULT 0.50 CHECK (confidence_score BETWEEN 0 AND 1),
-		reported_count INTEGER DEFAULT 1 CHECK (reported_count >= 0),
-		first_reported_at TIMESTAMP DEFAULT NOW(),
-		last_reported_at TIMESTAMP DEFAULT NOW(),
-		status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-		created_at TIMESTAMP DEFAULT NOW(),
-		updated_at TIMESTAMP DEFAULT NOW()
-	);
-
-	CREATE INDEX IF NOT EXISTS idx_phone_number ON blacklist(phone_number);
-	CREATE INDEX IF NOT EXISTS idx_confidence ON blacklist(confidence_score);
-	CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status);
-	`
-
-	ctx = context.Background()
-	if _, err := Pool.Exec(ctx, createTableSQL); err != nil {
-		return err
+	// ── Step 2: Create blacklist table (idempotent) ────────────────────────
+	// Run each statement individually — pgx v5 does not support multi-statement Exec
+	ddlStatements := []string{
+		`CREATE TABLE IF NOT EXISTS blacklist (
+			id               SERIAL PRIMARY KEY,
+			phone_number     VARCHAR(20) UNIQUE NOT NULL CHECK (phone_number ~ '^[+0-9]+$'),
+			reason           TEXT NOT NULL,
+			confidence_score DECIMAL(3,2) DEFAULT 0.50 CHECK (confidence_score BETWEEN 0 AND 1),
+			reported_count   INTEGER DEFAULT 1 CHECK (reported_count >= 0),
+			first_reported_at TIMESTAMP DEFAULT NOW(),
+			last_reported_at  TIMESTAMP DEFAULT NOW(),
+			status           VARCHAR(20) DEFAULT 'active',
+			created_at       TIMESTAMP DEFAULT NOW(),
+			updated_at       TIMESTAMP DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_phone_number ON blacklist(phone_number)`,
+		`CREATE INDEX IF NOT EXISTS idx_confidence   ON blacklist(confidence_score)`,
+		`CREATE INDEX IF NOT EXISTS idx_status       ON blacklist(status)`,
 	}
-	log.Println("✅ Tables created successfully")
 
-	// Add missing columns one-by-one — pgx Pool.Exec does not support multi-statement queries
+	for _, stmt := range ddlStatements {
+		if _, err := Pool.Exec(ctx, stmt); err != nil {
+			log.Printf("⚠️  DDL warning (may already exist): %v", err)
+		}
+	}
+	log.Println("✅ Base schema applied")
+
+	// ── Step 3: Add any missing columns (idempotent ALTER TABLE) ───────────
+	// Needed when table existed from an older schema without these columns.
 	alterStatements := []string{
-		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`,
-		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS first_reported_at TIMESTAMP DEFAULT NOW()`,
-		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS last_reported_at TIMESTAMP DEFAULT NOW()`,
-		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
-		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS status            VARCHAR(20)    DEFAULT 'active'`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS first_reported_at TIMESTAMP      DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS last_reported_at  TIMESTAMP      DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS created_at        TIMESTAMP      DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS updated_at        TIMESTAMP      DEFAULT NOW()`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS reported_count    INTEGER        DEFAULT 1`,
+		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS confidence_score  DECIMAL(3,2)   DEFAULT 0.50`,
 		`CREATE INDEX IF NOT EXISTS idx_status ON blacklist(status)`,
 	}
+
 	for _, stmt := range alterStatements {
 		if _, err := Pool.Exec(ctx, stmt); err != nil {
-			log.Printf("⚠️  Warning: schema alter failed: %v", err)
+			log.Printf("⚠️  Alter warning: %v", err)
 		}
 	}
 	log.Println("✅ Schema columns verified/added")
 
-	// Check if data already exists
+	// ── Step 4: Seed initial data (only if empty) ──────────────────────────
 	var count int
 	if err := Pool.QueryRow(ctx, "SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
 		return err
@@ -98,73 +91,77 @@ func AutoMigrate() error {
 		return nil
 	}
 
-	// Seed initial fraud data
 	log.Println("📦 Seeding fraud blacklist data...")
-	seedSQL := `
-	-- QUOC TE (11 số)
-	INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, first_reported_at, last_reported_at, status) VALUES
-	('+22375260052', 'Lua dao quoc te (Mali)', 0.95, 100, NOW(), NOW(), 'active'),
-	('+22382271520', 'Lua dao quoc te (Mali)', 0.95, 100, NOW(), NOW(), 'active'),
-	('+22379262886', 'Lua dao quoc te', 0.95, 100, NOW(), NOW(), 'active'),
-	('+8919008198', 'Lua dao quoc te', 0.95, 100, NOW(), NOW(), 'active'),
-	('+4422222202', 'Lua dao tu Anh', 0.95, 100, NOW(), NOW(), 'active'),
-	('+2240000000', 'Guinea - Wangiri', 0.75, 50, NOW(), NOW(), 'active'),
-	('+2310000000', 'Liberia - Wangiri', 0.75, 50, NOW(), NOW(), 'active'),
-	('+2320000000', 'Sierra Leone - Wangiri', 0.75, 50, NOW(), NOW(), 'active'),
-	('+2520000000', 'Somalia - Wangiri', 0.75, 50, NOW(), NOW(), 'active'),
-	('+2470000000', 'Ascension - Wangiri', 0.75, 50, NOW(), NOW(), 'active'),
-	('+3710000000', 'Latvia - Wangiri', 0.75, 50, NOW(), NOW(), 'active');
 
-	-- HA NOI 024 (6 số)  
-	INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, first_reported_at, last_reported_at, status) VALUES
-	('02499950060', 'Gia danh Cong an HN', 0.95, 100, NOW(), NOW(), 'active'),
-	('02499954266', 'Gia danh vien thong', 0.95, 100, NOW(), NOW(), 'active'),
-	('0249997041', 'Spam chung khoan', 0.75, 50, NOW(), NOW(), 'active'),
-	('02444508888', 'Robocall dau tu', 0.75, 50, NOW(), NOW(), 'active'),
-	('02499950412', 'Gia danh Cuc Thue', 0.95, 100, NOW(), NOW(), 'active'),
-	('02439446395', 'Gia danh Toa an', 0.95, 100, NOW(), NOW(), 'active');
-
-	-- HCM 028 (14 số)
-	INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, first_reported_at, last_reported_at, status) VALUES
-	('02899964439', 'Gia danh Cong an HCM', 0.95, 100, NOW(), NOW(), 'active'),
-	('02856786501', 'Gia danh EVN', 0.95, 100, NOW(), NOW(), 'active'),
-	('02899964438', 'Lua dao tuyen dung', 0.95, 100, NOW(), NOW(), 'active'),
-	('02899964437', 'Gia danh buu cuc', 0.95, 100, NOW(), NOW(), 'active'),
-	('02873034653', 'Spam vay tin chap', 0.75, 50, NOW(), NOW(), 'active'),
-	('02899950012', 'Spam ban dat', 0.75, 50, NOW(), NOW(), 'active'),
-	('02873065555', 'Telesale ky nghi', 0.75, 50, NOW(), NOW(), 'active'),
-	('02899964448', 'Gia danh Shopee', 0.95, 100, NOW(), NOW(), 'active'),
-	('02822000266', 'Spam khoa hoc lua dao', 0.75, 50, NOW(), NOW(), 'active'),
-	('0287108690', 'Gia danh ngan hang', 0.95, 100, NOW(), NOW(), 'active'),
-	('02899950015', 'Spam lien tuc', 0.75, 50, NOW(), NOW(), 'active'),
-	('02899958588', 'Lua dao trung thuong', 0.95, 100, NOW(), NOW(), 'active'),
-	('02871099082', 'Spam Forex', 0.75, 50, NOW(), NOW(), 'active'),
-	('02899996142', 'Gia danh Bo Y te', 0.95, 100, NOW(), NOW(), 'active');
-
-	-- DAU SO 1900 (11 số)
-	INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, first_reported_at, last_reported_at, status) VALUES
-	('19006600', 'Spam dich vu chuyen tien', 0.75, 50, NOW(), NOW(), 'active'),
-	('19001559', 'Spam bao hiem', 0.75, 50, NOW(), NOW(), 'active'),
-	('19002008', 'Telesale bat dong san', 0.75, 50, NOW(), NOW(), 'active'),
-	('19009999', 'Spam quang cao', 0.75, 50, NOW(), NOW(), 'active'),
-	('19008198', 'Spam tong dai gia mao', 0.75, 50, NOW(), NOW(), 'active'),
-	('19001900', 'Spam khao sat lua dao', 0.75, 50, NOW(), NOW(), 'active'),
-	('19003000', 'Spam the tin dung', 0.75, 50, NOW(), NOW(), 'active'),
-	('19005555', 'Robocall quang cao', 0.75, 50, NOW(), NOW(), 'active'),
-	('19007777', 'Spam dau tu chung khoan', 0.75, 50, NOW(), NOW(), 'active'),
-	('19008888', 'Telesale bat dong san', 0.75, 50, NOW(), NOW(), 'active'),
-	('19001234', 'Spam tong hop', 0.75, 50, NOW(), NOW(), 'active');
-	`
-
-	if _, err := Pool.Exec(ctx, seedSQL); err != nil {
-		return err
+	// Each INSERT is its own Exec call (pgx v5 multi-statement restriction)
+	seedRows := []struct {
+		phone, reason string
+		score         float64
+		cnt           int
+	}{
+		// International (Wangiri / impersonation)
+		{"+22375260052", "Lua dao quoc te (Mali)", 0.95, 100},
+		{"+22382271520", "Lua dao quoc te (Mali)", 0.95, 100},
+		{"+22379262886", "Lua dao quoc te", 0.95, 100},
+		{"+8919008198", "Lua dao quoc te", 0.95, 100},
+		{"+4422222202", "Lua dao tu Anh", 0.95, 100},
+		{"+2240000000", "Guinea - Wangiri", 0.75, 50},
+		{"+2310000000", "Liberia - Wangiri", 0.75, 50},
+		{"+2320000000", "Sierra Leone - Wangiri", 0.75, 50},
+		{"+2520000000", "Somalia - Wangiri", 0.75, 50},
+		{"+2470000000", "Ascension - Wangiri", 0.75, 50},
+		{"+3710000000", "Latvia - Wangiri", 0.75, 50},
+		// Hanoi 024
+		{"02499950060", "Gia danh Cong an HN", 0.95, 100},
+		{"02499954266", "Gia danh vien thong", 0.95, 100},
+		{"0249997041", "Spam chung khoan", 0.75, 50},
+		{"02444508888", "Robocall dau tu", 0.75, 50},
+		{"02499950412", "Gia danh Cuc Thue", 0.95, 100},
+		{"02439446395", "Gia danh Toa an", 0.95, 100},
+		// HCMC 028
+		{"02899964439", "Gia danh Cong an HCM", 0.95, 100},
+		{"02856786501", "Gia danh EVN", 0.95, 100},
+		{"02899964438", "Lua dao tuyen dung", 0.95, 100},
+		{"02899964437", "Gia danh buu cuc", 0.95, 100},
+		{"02873034653", "Spam vay tin chap", 0.75, 50},
+		{"02899950012", "Spam ban dat", 0.75, 50},
+		{"02873065555", "Telesale ky nghi", 0.75, 50},
+		{"02899964448", "Gia danh Shopee", 0.95, 100},
+		{"02822000266", "Spam khoa hoc lua dao", 0.75, 50},
+		{"0287108690", "Gia danh ngan hang", 0.95, 100},
+		{"02899950015", "Spam lien tuc", 0.75, 50},
+		{"02899958588", "Lua dao trung thuong", 0.95, 100},
+		{"02871099082", "Spam Forex", 0.75, 50},
+		{"02899996142", "Gia danh Bo Y te", 0.95, 100},
+		// 1900 numbers
+		{"19006600", "Spam dich vu chuyen tien", 0.75, 50},
+		{"19001559", "Spam bao hiem", 0.75, 50},
+		{"19002008", "Telesale bat dong san", 0.75, 50},
+		{"19009999", "Spam quang cao", 0.75, 50},
+		{"19008198", "Spam tong dai gia mao", 0.75, 50},
+		{"19001900", "Spam khao sat lua dao", 0.75, 50},
+		{"19003000", "Spam the tin dung", 0.75, 50},
+		{"19005555", "Robocall quang cao", 0.75, 50},
+		{"19007777", "Spam dau tu chung khoan", 0.75, 50},
+		{"19008888", "Telesale bat dong san", 0.75, 50},
+		{"19001234", "Spam tong hop", 0.75, 50},
 	}
 
-	// Verify
-	if err := Pool.QueryRow(ctx, "SELECT COUNT(*) FROM blacklist").Scan(&count); err != nil {
-		return err
+	seeded := 0
+	for _, r := range seedRows {
+		_, err := Pool.Exec(ctx,
+			`INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status)
+			 VALUES ($1, $2, $3, $4, 'active')
+			 ON CONFLICT (phone_number) DO NOTHING`,
+			r.phone, r.reason, r.score, r.cnt,
+		)
+		if err != nil {
+			log.Printf("⚠️  Seed warning for %s: %v", r.phone, err)
+		} else {
+			seeded++
+		}
 	}
 
-	log.Printf("✅ Seeded %d fraud phone numbers successfully!", count)
+	log.Printf("✅ Seeded %d fraud phone numbers successfully!", seeded)
 	return nil
 }
