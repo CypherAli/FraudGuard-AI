@@ -10,12 +10,12 @@
         android:networkSecurityConfig="@xml/network_security_config">
         
         <!-- Foreground Service để chạy ngầm khi màn hình tắt -->
-        <!-- foregroundServiceType="microphone|mediaProjection" required for Android 14+ MediaProjection API -->
+        <!-- foregroundServiceType="microphone": AudioRecord (MIC + PSTN-SCO via Bluetooth SCO) -->
         <service
             android:name=".Platforms.Android.Services.FraudGuardForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="microphone|mediaProjection" />
+            android:foregroundServiceType="microphone" />
 
         <!-- Overlay bubble service -->
         <service
@@ -51,8 +51,6 @@
     <!-- Foreground Service (nếu cần chạy background) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-    <!-- Android 14+ (API 34): required for MediaProjection in a foreground service (Call-Shield) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     
     <!-- Wake Lock (giữ app không sleep khi recording) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -77,6 +75,15 @@
 
     <!-- Receive SMS (SMS fraud detection) -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+    <!-- Bluetooth SCO / Virtual HFP — route PSTN call audio to AudioRecord -->
+    <!-- MODIFY_AUDIO_SETTINGS: needed to set AudioManager mode (IN_CALL) and BluetoothScoOn -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- BLUETOOTH: needed on API < 31 to start Bluetooth SCO -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+                     android:maxSdkVersion="30" />
+    <!-- BLUETOOTH_CONNECT: required on API 31+ (Android 12) for startBluetoothSco() -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- Khai báo audio recording feature -->
     <uses-feature

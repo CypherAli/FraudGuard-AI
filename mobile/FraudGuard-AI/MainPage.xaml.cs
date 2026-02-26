@@ -724,26 +724,15 @@ namespace FraudGuardAI
                     return;
                 }
 
-                // Subscribe to VoIP status BEFORE starting so we catch PSTN_OR_INIT_FAILED
+                // Subscribe to VoIP status BEFORE starting so we catch PSTN_OR_INIT_FAILED / PSTN_DETECTED
                 Action<string>? voipStatusHandler = null;
                 voipStatusHandler = (status) =>
                 {
                     if (status == "PSTN_DETECTED")
                     {
                         _audioService.VoipStatusChanged -= voipStatusHandler;
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            StatusLabel.Text = "📞 Cuộc gọi thường — Mic đang phân tích giọng bạn";
-                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
-                            // Suggest speakerphone for better capture
-                            _ = (Application.Current?.MainPage ?? this).DisplayAlert(
-                                "ℹ️ Cuộc gọi điện thoại thường",
-                                "Đây là cuộc gọi qua mạng di động (không phải VoIP).\n\n" +
-                                "Call-Shield không thể bắt giọng đầu dây bên kia theo giới hạn Android.\n\n" +
-                                "💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.",
-                                "OK"
-                            );
-                        });
+                        // VoIP confirmed this is a PSTN call — silently attempt SCO capture
+                        _ = TryPstnScoFallbackAsync();
                     }
                 };
                 _audioService.VoipStatusChanged += voipStatusHandler;
@@ -762,15 +751,56 @@ namespace FraudGuardAI
                     {
                         // Immediate init failure (PSTN_OR_INIT_FAILED or Android < 10)
                         _audioService.VoipStatusChanged -= voipStatusHandler; // clean up
+                        StatusLabel.Text = "⏳ Thử bắt âm thanh cuộc gọi...";
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                });
+
+                // If VoIP init failed immediately, also try SCO
+                if (!voipStarted)
+                {
+                    _ = TryPstnScoFallbackAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Call-Shield error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fallback: try Virtual BT HFP (SCO) capture when VoIP capture fails/detects PSTN.
+        /// Silently tries 4 strategies — only shows dialog if ALL strategies fail.
+        /// </summary>
+        private async Task TryPstnScoFallbackAsync()
+        {
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusLabel.Text = "⏳ Đang thử bắt âm thanh cuộc gọi (SCO)...";
+                    StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                });
+
+                bool scoStarted = await _audioService.StartPstnScoAsync();
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (scoStarted)
+                    {
+                        StatusLabel.Text = "🛡️ Bảo vệ toàn diện (Mic + PSTN-SCO)";
+                        StatusLabel.TextColor = Color.FromArgb("#22D3EE");
+                        System.Diagnostics.Debug.WriteLine("[MainPage] PSTN SCO capture STARTED ✅");
+                    }
+                    else
+                    {
+                        // All SCO strategies failed — fall back to speakerphone tip
                         StatusLabel.Text = "📞 Mic đang phân tích — bật Loa ngoài để nghe cả 2 bên";
                         StatusLabel.TextColor = Color.FromArgb("#FBBF24");
                         _ = (Application.Current?.MainPage ?? this).DisplayAlert(
-                            "ℹ️ Call-Shield không khởi động được",
-                            "Có thể do:\n" +
-                            "• Đây là cuộc gọi di động thông thường (giới hạn Android)\n" +
-                            "• Ứng dụng VoIP chưa có âm thanh\n" +
-                            "• Thiết bị cần Android 10+\n\n" +
-                            "💡 Bật Loa ngoài để FraudGuard thu được cả 2 giọng qua micro.",
+                            "ℹ️ Call-Shield không bắt được âm thanh",
+                            "FraudGuard đã thử tất cả phương pháp nhưng thiết bị không hỗ trợ bắt âm thanh cuộc gọi di động.\n\n" +
+                            "💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.",
                             "OK"
                         );
                     }
@@ -778,7 +808,7 @@ namespace FraudGuardAI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainPage] Call-Shield error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainPage] TryPstnScoFallbackAsync error: {ex.Message}");
             }
         }
 #endif
