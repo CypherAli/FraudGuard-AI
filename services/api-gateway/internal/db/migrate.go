@@ -51,6 +51,23 @@ func AutoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_phone_number ON blacklist(phone_number)`,
 		`CREATE INDEX IF NOT EXISTS idx_confidence   ON blacklist(confidence_score)`,
 		`CREATE INDEX IF NOT EXISTS idx_status       ON blacklist(status)`,
+		// call_logs stored in PostgreSQL (not SQLite) so data persists across deploys
+		`CREATE TABLE IF NOT EXISTS call_logs (
+			id             SERIAL PRIMARY KEY,
+			device_id      VARCHAR(255) NOT NULL,
+			start_time     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			end_time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			duration       BIGINT NOT NULL DEFAULT 0,
+			risk_score     INT NOT NULL DEFAULT 0,
+			deepfake_score INT NOT NULL DEFAULT 0,
+			is_fraud       BOOLEAN NOT NULL DEFAULT FALSE,
+			evidence       TEXT,
+			transcript     TEXT,
+			created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_call_logs_device_id  ON call_logs(device_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_call_logs_created_at ON call_logs(created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_call_logs_is_fraud   ON call_logs(is_fraud)`,
 	}
 
 	for _, stmt := range ddlStatements {

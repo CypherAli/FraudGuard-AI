@@ -26,9 +26,9 @@ func GetHistory(w http.ResponseWriter, r *http.Request) {
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
-			// Cap at 100 to prevent excessive data transfer
-			if limit > 100 {
-				limit = 100
+			// Cap at 500 to prevent excessive data transfer
+			if limit > 500 {
+				limit = 500
 			}
 		}
 	}

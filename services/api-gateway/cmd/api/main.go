@@ -15,7 +15,6 @@ import (
 	"github.com/fraudguard/api-gateway/internal/hub"
 	"github.com/fraudguard/api-gateway/internal/metrics"
 	customMiddleware "github.com/fraudguard/api-gateway/internal/middleware"
-	"github.com/fraudguard/api-gateway/internal/repository"
 	"github.com/fraudguard/api-gateway/internal/services"
 	"github.com/fraudguard/api-gateway/pkg/cache"
 	"github.com/fraudguard/api-gateway/pkg/config"
@@ -50,12 +49,6 @@ func main() {
 		if err := db.AutoMigrate(); err != nil {
 			log.Printf("⚠️  Warning: Failed to run migrations: %v", err)
 		}
-	}
-
-	// Initialize SQLite database (for call history logs)
-	if err := repository.InitSQLite(); err != nil {
-		log.Printf("⚠️  Warning: SQLite initialization failed: %v", err)
-		log.Println("⚠️  Call history logging will be disabled")
 	}
 
 	// Initialize AI clients
