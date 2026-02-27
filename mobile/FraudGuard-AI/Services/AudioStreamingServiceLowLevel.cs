@@ -540,7 +540,7 @@ namespace FraudGuardAI.Services
                             for (int i = 0; i < bytesRead; i += BYTES_PER_SAMPLE)
                             {
                                 short sample = (short)(buffer[i] | (buffer[i + 1] << 8));
-                                energy += Math.Abs(sample);
+                                energy += Math.Abs((int)sample); // cast to int first — Math.Abs(short.MinValue) throws OverflowException
                             }
                             if (sampleCount > 0)
                             {

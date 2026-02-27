@@ -607,6 +607,12 @@ namespace FraudGuardAI.Pages
             }
         }
 
+        private void OnAutoProtectionToggled(object sender, ToggledEventArgs e)
+        {
+            Preferences.Set(PREF_AUTO_PROTECTION, e.Value);
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Auto protection: {e.Value}");
+        }
+
         private void OnDarkModeToggled(object sender, ToggledEventArgs e)
         {
             Preferences.Set(PREF_LIGHT_THEME_USER_SET, true);
@@ -824,11 +830,11 @@ namespace FraudGuardAI.Pages
                 if (current == notUpdated) current = "";
 
                 string newPhone = await DisplayPromptAsync(
-                    "Cập nhật số điện thoại",
-                    "Nhập số điện thoại của bạn:",
-                    "Lưu",
-                    "Hủy",
-                    placeholder: "0912345678",
+                    T("Settings_UpdatePhone_Title"),
+                    T("Settings_UpdatePhone_Prompt"),
+                    T("Settings_EditProfile_Save"),
+                    T("Settings_EditProfile_Cancel"),
+                    placeholder: T("Settings_UpdatePhone_Placeholder"),
                     initialValue: current,
                     keyboard: Keyboard.Telephone
                 );

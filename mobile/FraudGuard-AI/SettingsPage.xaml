@@ -163,7 +163,7 @@
                             </VerticalStackLayout>
                             <Switch x:Name="AutoProtectionSwitch" Grid.Column="1"
                                     IsToggled="True" OnColor="#14B8A6" ThumbColor="White"
-                                    VerticalOptions="Center"/>
+                                    Toggled="OnAutoProtectionToggled" VerticalOptions="Center"/>
                         </Grid>
 
                         <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DDE5EF, Dark=#0DFFFFFF}"/>
