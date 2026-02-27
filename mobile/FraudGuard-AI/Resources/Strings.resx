@@ -154,6 +154,51 @@ Consider ending the call immediately.</value>
   <data name="Main_ReportSuccessMessage" xml:space="preserve">
     <value>Reported number {0}</value>
   </data>
+  <data name="Main_ReportSubmitting" xml:space="preserve">
+    <value>⏳ Submitting…</value>
+  </data>
+  <data name="Main_ReportLocalSaveUnauth" xml:space="preserve">
+    <value>\n(Saved locally — log in again to sync with server)</value>
+  </data>
+  <data name="Main_ReportLocalSaveError" xml:space="preserve">
+    <value>\n(Saved locally — will sync with server later)</value>
+  </data>
+  <data name="Main_ReportLocalSaveOffline" xml:space="preserve">
+    <value>\n(Saved locally — no network connection)</value>
+  </data>
+  <data name="Main_CallShieldTitle" xml:space="preserve">
+    <value>🛡️ Call-Shield Mode</value>
+  </data>
+  <data name="Main_CallShieldMessage" xml:space="preserve">
+    <value>Enable to let FraudGuard analyze the scammer's voice (other end of the call).\n\n⚠️ Note: Call-Shield only works with VoIP calls through apps (Zalo, Messenger, WhatsApp, Telegram...).\n\n📞 Regular phone calls (mobile network): the other side's audio goes through the hardware modem chip — Android does not allow any app to capture it. This is an OS limitation, not an app bug.\n\nAndroid will show a "Start recording" dialog — FraudGuard does NOT record your screen.</value>
+  </data>
+  <data name="Main_CallShieldEnable" xml:space="preserve">
+    <value>Enable Call-Shield (VoIP)</value>
+  </data>
+  <data name="Main_CallShieldLater" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Main_CallShieldScoFailTitle" xml:space="preserve">
+    <value>ℹ️ Call-Shield cannot capture audio</value>
+  </data>
+  <data name="Main_CallShieldScoFailMessage" xml:space="preserve">
+    <value>FraudGuard tried all methods but this device does not support capturing mobile call audio.\n\n💡 Tip: Enable Speakerphone so the microphone can pick up both voices and FraudGuard can analyze the full conversation.</value>
+  </data>
+  <data name="Main_StatusFullProtectionVoip" xml:space="preserve">
+    <value>🛡️ Full protection (Mic + VoIP)</value>
+  </data>
+  <data name="Main_StatusTryingCallAudio" xml:space="preserve">
+    <value>⏳ Trying to capture call audio...</value>
+  </data>
+  <data name="Main_StatusScoStarting" xml:space="preserve">
+    <value>⏳ Attempting call audio capture (SCO)...</value>
+  </data>
+  <data name="Main_StatusFullProtectionSco" xml:space="preserve">
+    <value>🛡️ Full protection (Mic + PSTN-SCO)</value>
+  </data>
+  <data name="Main_StatusSpeakerphoneTip" xml:space="preserve">
+    <value>📞 Mic analyzing — enable Speakerphone to capture both sides</value>
+  </data>
   <data name="Main_Effectiveness" xml:space="preserve">
     <value>PROTECTION EFFECTIVENESS</value>
   </data>
@@ -201,6 +246,15 @@ Consider ending the call immediately.</value>
   </data>
   <data name="Settings_NotUpdated" xml:space="preserve">
     <value>Not updated</value>
+  </data>
+  <data name="Settings_UpdatePhone_Title" xml:space="preserve">
+    <value>Update phone number</value>
+  </data>
+  <data name="Settings_UpdatePhone_Prompt" xml:space="preserve">
+    <value>Enter your phone number:</value>
+  </data>
+  <data name="Settings_UpdatePhone_Placeholder" xml:space="preserve">
+    <value>+84 912 345 678</value>
   </data>
   <data name="Settings_EditProfile" xml:space="preserve">
     <value>Edit profile</value>

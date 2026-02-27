@@ -37,8 +37,9 @@ namespace FraudGuardAI.Platforms.Android.Services
         public const byte CHANNEL_PSTN = 0x01;
 
         // ── AudioSource values (Android API constants) ───────────────────────
-        private const AudioSource SRC_VOICE_CALL  = (AudioSource)4; // both uplink+downlink
-        private const AudioSource SRC_VOICE_COMM  = (AudioSource)7; // VOICE_COMMUNICATION
+        private const AudioSource SRC_VOICE_CALL     = (AudioSource)4; // both uplink+downlink (needs CAPTURE_AUDIO_OUTPUT)
+        private const AudioSource SRC_VOICE_DOWNLINK = (AudioSource)3; // caller-side only     (needs CAPTURE_AUDIO_OUTPUT)
+        private const AudioSource SRC_VOICE_COMM     = (AudioSource)7; // VOICE_COMMUNICATION  (app permission)
 
         // ── State ────────────────────────────────────────────────────────────
         private AudioRecord?             _audioRecord;
@@ -81,39 +82,73 @@ namespace FraudGuardAI.Platforms.Android.Services
 
                 _savedMode = _audioManager.Mode;
 
-                AudioRecord? ar  = null;
+                AudioRecord? ar    = null;
                 string       strat = "";
 
-                // ── Strategy 1: VOICE_CALL (usually needs system permission) ──
+                // ── S1: VOICE_CALL alone — ideal (both uplink+downlink) ───────
+                // Usually blocked by CAPTURE_AUDIO_OUTPUT system permission,
+                // but worth one attempt before touching audio routing.
                 ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
                 if (ar != null) strat = "VOICE_CALL";
 
-                // ── Strategy 2: VOICE_COMMUNICATION + MODE_IN_CALL (Samsung) ──
+                // ── S2: VOICE_DOWNLINK alone — explicit caller audio ──────────
+                // Same permission wall as VOICE_CALL on stock Android,
+                // but some OEM HALs (Exynos/Snapdragon) expose it without it.
+                if (ar == null)
+                {
+                    ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
+                    if (ar != null) strat = "VOICE_DOWNLINK";
+                }
+
+                // ── S3–S6: BT SCO virtual-HFP trick (Samsung OneUI / MediaTek) ─
+                // startBluetoothSco() forces the audio HAL to create a software
+                // SCO path even without a real BT headset.  In MODE_IN_CALL that
+                // path carries call audio in BOTH directions, so VOICE_COMMUNICATION
+                // (and sometimes MIC) AudioRecord can capture the caller's voice.
+                // We start SCO once here and share it across all SCO strategies.
+                if (ar == null)
+                {
+                    _audioManager.Mode = Mode.InCall;
+                    bool scoUp = await StartBluetoothScoAsync(ctx);
+                    Log.Info(TAG, $"BT SCO result: {scoUp}");
+
+                    // S3: SCO + VOICE_CALL (some HALs bypass permission when SCO is active)
+                    ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
+                    if (ar != null) strat = scoUp ? "SCO+VOICE_CALL" : "SCO_STARTED+VOICE_CALL";
+
+                    // S4: SCO + VOICE_DOWNLINK (explicit downlink channel via SCO path)
+                    if (ar == null)
+                    {
+                        ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
+                        if (ar != null) strat = scoUp ? "SCO+VOICE_DOWNLINK" : "SCO_STARTED+VOICE_DOWNLINK";
+                    }
+
+                    // S5: SCO + VOICE_COMMUNICATION + IN_CALL  ← BEST SAMSUNG BET
+                    // Samsung HAL routes the full call audio chain (both directions)
+                    // into VOICE_COMMUNICATION source when BT SCO is active in IN_CALL mode.
+                    if (ar == null)
+                    {
+                        ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                        if (ar != null) strat = scoUp ? "SCO+VOICE_COMM+IN_CALL" : "SCO_STARTED+VOICE_COMM+IN_CALL";
+                    }
+
+                    // S6: SCO + MIC — last SCO attempt; some Snapdragon HALs route
+                    // call audio to MIC source via the SCO path
+                    if (ar == null)
+                    {
+                        ar = TryAudioRecord(AudioSource.Mic, useCallMode: false);
+                        if (ar != null) strat = scoUp ? "SCO+MIC" : "SCO_STARTED+MIC";
+                    }
+                }
+
+                // ── S7: VOICE_COMMUNICATION + IN_CALL without SCO (mic-only fallback) ──
+                // Captures uplink (user's mic) only.  Sends as channel 0x01 so backend
+                // can still transcribe the conversation from one side.
                 if (ar == null)
                 {
                     _audioManager.Mode = Mode.InCall;
                     ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                    if (ar != null) strat = "VOICE_COMM+IN_CALL";
-                }
-
-                // ── Strategy 3 & 4: Bluetooth SCO virtual HFP trick ───────────
-                if (ar == null)
-                {
-                    bool scoUp = await StartBluetoothScoAsync(ctx);
-                    Log.Info(TAG, $"BT SCO result: {scoUp}");
-
-                    // S3: SCO + VOICE_COMMUNICATION
-                    ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                    if (ar != null)
-                    {
-                        strat = scoUp ? "SCO_CONN+VOICE_COMM" : "SCO_STARTED+VOICE_COMM";
-                    }
-                    else
-                    {
-                        // S4: SCO + MIC (most likely to succeed — picks up SCO audio path)
-                        ar = TryAudioRecord(AudioSource.Mic, useCallMode: false);
-                        if (ar != null) strat = scoUp ? "SCO_CONN+MIC" : "SCO_STARTED+MIC";
-                    }
+                    if (ar != null) strat = "FALLBACK_VOICE_COMM+IN_CALL";
                 }
 
                 if (ar == null)
@@ -369,7 +404,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             for (int i = 0; i < len; i += BYTES_PER_SAMPLE)
             {
                 short s = (short)(buf[i] | (buf[i + 1] << 8));
-                energy += Math.Abs(s);
+                energy += Math.Abs((int)s); // cast to int first — Math.Abs(short.MinValue) throws OverflowException
             }
             return samples > 0 && (energy / samples) < 80;
         }
@@ -387,13 +422,22 @@ namespace FraudGuardAI.Platforms.Android.Services
 
     /// <summary>
     /// BroadcastReceiver lắng nghe thay đổi trạng thái Bluetooth SCO.
-    /// ACTION_SCO_AUDIO_STATE_UPDATED: EXTRA_SCO_AUDIO_STATE = 0 (disc) | 1 (conn) | 3 (error)
+    ///
+    /// Android luôn bắn một broadcast DISCONNECTED (0) ngay khi startBluetoothSco()
+    /// được gọi để báo "trạng thái hiện tại trước khi thử kết nối".
+    /// Sequence đúng: 0 (init) → 2 (connecting) → 1 (connected) | 0 (failed).
+    ///
+    /// Bug cũ: TCS được resolve ngay tại broadcast 0 đầu tiên → scoUp luôn = false.
+    /// Fix: chỉ resolve TCS sau khi đã thấy state=2 (CONNECTING), xác nhận SCO
+    /// thực sự đã được thử. Broadcast DISCONNECTED đầu tiên (init) bị bỏ qua.
     /// </summary>
     // No [BroadcastReceiver] attribute — registered dynamically via RegisterReceiver(), not in manifest
     internal sealed class ScoStateReceiver : BroadcastReceiver
     {
-        private const int SCO_AUDIO_STATE_CONNECTED = 1;
+        private const int SCO_AUDIO_STATE_CONNECTED  = 1;
+        private const int SCO_AUDIO_STATE_CONNECTING = 2;
         private readonly TaskCompletionSource<bool> _tcs;
+        private bool _seenConnecting = false; // set to true when state=CONNECTING observed
 
         public ScoStateReceiver(TaskCompletionSource<bool> tcs) => _tcs = tcs;
 
@@ -402,7 +446,22 @@ namespace FraudGuardAI.Platforms.Android.Services
             if (intent?.Action != "android.media.ACTION_SCO_AUDIO_STATE_UPDATED") return;
             int state = intent.GetIntExtra("android.media.extra.SCO_AUDIO_STATE", -1);
             Log.Debug("FraudGuard.SCO", $"SCO state update: {state}");
-            _tcs.TrySetResult(state == SCO_AUDIO_STATE_CONNECTED);
+
+            if (state == SCO_AUDIO_STATE_CONNECTING)
+            {
+                _seenConnecting = true; // SCO handshake in progress — wait for final state
+                return;
+            }
+
+            // Only resolve TCS once we have seen CONNECTING, meaning the hardware
+            // actually attempted a connection. The very first broadcast from Android
+            // is always DISCONNECTED (reporting current state on registration) and
+            // must NOT resolve the TCS — it is not the result of our SCO request.
+            if (_seenConnecting || state == SCO_AUDIO_STATE_CONNECTED)
+            {
+                _tcs.TrySetResult(state == SCO_AUDIO_STATE_CONNECTED);
+            }
+            // else: initial DISCONNECTED (init state) — ignore, keep waiting
         }
     }
 }

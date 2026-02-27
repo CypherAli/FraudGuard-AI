@@ -399,7 +399,7 @@ namespace FraudGuardAI
             if (SubmitReportButton != null)
             {
                 SubmitReportButton.IsEnabled = false;
-                SubmitReportButton.Text = "⏳ Đang gửi…";
+                SubmitReportButton.Text = T("Main_ReportSubmitting");
                 SubmitReportButton.Opacity = 0.7;
             }
 
@@ -440,8 +440,8 @@ namespace FraudGuardAI
                 string suffix = response.IsSuccessStatusCode
                     ? string.Empty
                     : response.StatusCode == System.Net.HttpStatusCode.Unauthorized
-                        ? "\n(Lưu cục bộ — đăng nhập lại để đồng bộ server)"
-                        : "\n(Đã lưu cục bộ — sẽ đồng bộ server sau)";
+                        ? T("Main_ReportLocalSaveUnauth")
+                        : T("Main_ReportLocalSaveError");
 
                 await DisplayAlert(
                     T("Main_ReportSuccessTitle"),
@@ -457,7 +457,7 @@ namespace FraudGuardAI
                     T("Main_ReportSuccessTitle"),
                     string.Format(CultureInfo.CurrentCulture,
                         T("Main_ReportSuccessMessage"), phoneNumber)
-                        + "\n(Đã lưu cục bộ — không có kết nối mạng)",
+                        + T("Main_ReportLocalSaveOffline"),
                     T("Common_OK"));
             }
         }
@@ -750,16 +750,10 @@ namespace FraudGuardAI
 
                 bool accepted = await MainThread.InvokeOnMainThreadAsync(() =>
                     (Application.Current?.MainPage ?? this).DisplayAlert(
-                        "🛡️ Chế độ Call-Shield",
-                        "Bật để FraudGuard phân tích cả giọng kẻ lừa đảo (đầu dây bên kia).\n\n" +
-                        "⚠️ Lưu ý: Call-Shield chỉ hoạt động với cuộc gọi VoIP qua ứng dụng " +
-                        "(Zalo, Messenger, WhatsApp, Telegram...).\n\n" +
-                        "📞 Cuộc gọi điện thoại thông thường (mạng di động): âm thanh đầu dây bên kia " +
-                        "đi qua chip modem phần cứng, Android không cho phép ứng dụng nào bắt được — " +
-                        "đây là giới hạn của hệ điều hành, không phải lỗi ứng dụng.\n\n" +
-                        "Android sẽ hiển thị hộp thoại \"Bắt đầu ghi màn hình\" — FraudGuard KHÔNG ghi màn hình.",
-                        "Bật Call-Shield (VoIP)",
-                        "Để sau"
+                        T("Main_CallShieldTitle"),
+                        T("Main_CallShieldMessage"),
+                        T("Main_CallShieldEnable"),
+                        T("Main_CallShieldLater")
                     )
                 );
 
@@ -772,7 +766,18 @@ namespace FraudGuardAI
 
                 if (projection == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[MainPage] MediaProjection denied by user");
+                    // Either user denied OR SecurityException (ForegroundService lacks TypeMediaProjection).
+                    // VoIP capture is unavailable.  Only attempt PSTN SCO immediately if there
+                    // is already an active phone call (user opened Call-Shield mid-call).
+                    // Otherwise, CallStateReceiver will start PSTN SCO automatically on OFFHOOK —
+                    // no need to hold AudioMode.InCall 24/7 waiting for a future call.
+                    System.Diagnostics.Debug.WriteLine("[MainPage] MediaProjection unavailable — falling back to SCO");
+#if ANDROID
+                    if (FraudGuardAI.Platforms.Android.Services.CallStateReceiver.IsCallActive)
+                        _ = TryPstnScoFallbackAsync();
+                    else
+                        System.Diagnostics.Debug.WriteLine("[MainPage] No active call — PSTN SCO will start on next OFFHOOK via CallStateReceiver");
+#endif
                     return;
                 }
 
@@ -796,22 +801,28 @@ namespace FraudGuardAI
                 {
                     if (voipStarted)
                     {
-                        StatusLabel.Text = "🛡️ Bảo vệ toàn diện (Mic + VoIP)";
+                        StatusLabel.Text = T("Main_StatusFullProtectionVoip");
                         StatusLabel.TextColor = Color.FromArgb("#22D3EE");
                     }
                     else
                     {
                         // Immediate init failure (PSTN_OR_INIT_FAILED or Android < 10)
                         _audioService.VoipStatusChanged -= voipStatusHandler; // clean up
-                        StatusLabel.Text = "⏳ Thử bắt âm thanh cuộc gọi...";
+                        StatusLabel.Text = T("Main_StatusTryingCallAudio");
                         StatusLabel.TextColor = Color.FromArgb("#FBBF24");
                     }
                 });
 
-                // If VoIP init failed immediately, also try SCO
+                // If VoIP init failed immediately, try SCO only during an active call.
+                // (Same rule: avoid occupying AudioMode.InCall outside of a real call.)
                 if (!voipStarted)
                 {
-                    _ = TryPstnScoFallbackAsync();
+#if ANDROID
+                    if (FraudGuardAI.Platforms.Android.Services.CallStateReceiver.IsCallActive)
+                        _ = TryPstnScoFallbackAsync();
+                    else
+                        System.Diagnostics.Debug.WriteLine("[MainPage] VoIP failed, no active call — PSTN SCO deferred to next OFFHOOK");
+#endif
                 }
             }
             catch (Exception ex)
@@ -830,7 +841,7 @@ namespace FraudGuardAI
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    StatusLabel.Text = "⏳ Đang thử bắt âm thanh cuộc gọi (SCO)...";
+                    StatusLabel.Text = T("Main_StatusScoStarting");
                     StatusLabel.TextColor = Color.FromArgb("#FBBF24");
                 });
 
@@ -840,20 +851,19 @@ namespace FraudGuardAI
                 {
                     if (scoStarted)
                     {
-                        StatusLabel.Text = "🛡️ Bảo vệ toàn diện (Mic + PSTN-SCO)";
+                        StatusLabel.Text = T("Main_StatusFullProtectionSco");
                         StatusLabel.TextColor = Color.FromArgb("#22D3EE");
                         System.Diagnostics.Debug.WriteLine("[MainPage] PSTN SCO capture STARTED ✅");
                     }
                     else
                     {
                         // All SCO strategies failed — fall back to speakerphone tip
-                        StatusLabel.Text = "📞 Mic đang phân tích — bật Loa ngoài để nghe cả 2 bên";
+                        StatusLabel.Text = T("Main_StatusSpeakerphoneTip");
                         StatusLabel.TextColor = Color.FromArgb("#FBBF24");
                         _ = (Application.Current?.MainPage ?? this).DisplayAlert(
-                            "ℹ️ Call-Shield không bắt được âm thanh",
-                            "FraudGuard đã thử tất cả phương pháp nhưng thiết bị không hỗ trợ bắt âm thanh cuộc gọi di động.\n\n" +
-                            "💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.",
-                            "OK"
+                            T("Main_CallShieldScoFailTitle"),
+                            T("Main_CallShieldScoFailMessage"),
+                            T("Common_OK")
                         );
                     }
                 });
