@@ -19,6 +19,22 @@ var (
 	deepfakeRegistry         = make(map[string]*audio.DeepfakeDetector)
 	deepfakeMutex            sync.RWMutex
 	audioProcessingSemaphore = make(chan struct{}, 50) // Max 50 concurrent goroutines
+
+	// Per-channel high-pass filter registry.
+	// Key: "deviceID|mic" or "deviceID|voip"  (same as audioBufferRegistry).
+	// The filter is applied to incoming PCM chunks inside audioBufferMutex to
+	// guarantee sequential, race-free application of the stateful IIR filter.
+	hpfRegistry = make(map[string]*audio.HighPassFilter)
+
+	// Per-channel Voice Activity Detection registry.
+	// Key: "deviceID|mic" or "deviceID|voip" — same convention as hpfRegistry.
+	// VAD is invoked synchronously in ProcessAudioStream (before spawning the STT
+	// goroutine), which is itself called sequentially from the WebSocket read-loop
+	// goroutine — one goroutine per connected device.  Because there is therefore
+	// at most one concurrent caller per VADProcessor, no per-processor mutex is
+	// needed; vadMutex only protects map reads/writes.
+	vadRegistry = make(map[string]*audio.VADProcessor)
+	vadMutex    sync.Mutex
 )
 
 const detectorTTL = 30 * time.Minute
@@ -73,8 +89,18 @@ func evictStaleDetectors() {
 		delete(audioBufferRegistry, deviceID+"|mic")
 		delete(audioBufferRegistry, deviceID+"|voip")
 		delete(audioBufferRegistry, deviceID) // legacy key
+		delete(hpfRegistry, deviceID+"|mic")
+		delete(hpfRegistry, deviceID+"|voip")
 	}
 	audioBufferMutex.Unlock()
+
+	// Clean up VAD processors for evicted devices
+	vadMutex.Lock()
+	for _, deviceID := range stale {
+		delete(vadRegistry, deviceID+"|mic")
+		delete(vadRegistry, deviceID+"|voip")
+	}
+	vadMutex.Unlock()
 
 	log.Printf("🗑️ Evicted %d stale detector(s) (TTL=%v): %v", len(stale), detectorTTL, stale)
 }
@@ -115,10 +141,39 @@ func getAudioBuffer(key string) *AudioBuffer {
 
 func removeAudioBuffer(deviceID string) {
 	audioBufferMutex.Lock()
-	defer audioBufferMutex.Unlock()
 	delete(audioBufferRegistry, deviceID+"|mic")
 	delete(audioBufferRegistry, deviceID+"|voip")
 	delete(audioBufferRegistry, deviceID) // legacy key (pre-dual-stream clients)
+	// Clean up HPF state for this device (same mutex, same keys)
+	delete(hpfRegistry, deviceID+"|mic")
+	delete(hpfRegistry, deviceID+"|voip")
+	audioBufferMutex.Unlock()
+
+	// Clean up VAD state — separate mutex, must NOT be held together with audioBufferMutex
+	vadMutex.Lock()
+	delete(vadRegistry, deviceID+"|mic")
+	delete(vadRegistry, deviceID+"|voip")
+	vadMutex.Unlock()
+}
+
+// getVADProcessor retrieves or lazily creates a VADProcessor for the given buffer key.
+// aggressiveness=2 is WebRTC "Low bitrate / telephony" mode — ideal for Vietnamese call audio.
+// frameDurationMs=20 is the standard WebRTC frame size.
+// The processor must only be called from one goroutine at a time (enforced by the
+// WebSocket read-loop caller; see vadRegistry comment above).
+func getVADProcessor(bufKey string) *audio.VADProcessor {
+	vadMutex.Lock()
+	defer vadMutex.Unlock()
+	if vad, ok := vadRegistry[bufKey]; ok {
+		return vad
+	}
+	vad, err := audio.NewVADProcessor(16000, 2, 20)
+	if err != nil {
+		log.Printf("⚠️ [VAD] Failed to create processor for %q: %v", bufKey, err)
+		return nil
+	}
+	vadRegistry[bufKey] = vad
+	return vad
 }
 
 // GetOrCreateFraudDetector retrieves or creates a fraud detector for a device.
@@ -225,6 +280,20 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 	buf := getAudioBuffer(bufKey)
 
 	audioBufferMutex.Lock()
+	// Apply high-pass filter to remove low-frequency noise (wind, handling, HVAC)
+	// before buffering.  The HPF is stateful (IIR), so it must run sequentially
+	// inside the same mutex that guards the audio buffer — this guarantees that
+	// chunks are filtered in the exact order they are buffered, preserving the
+	// filter's prevInput/prevOutput state without any additional locking.
+	if hpf, ok := hpfRegistry[bufKey]; ok {
+		pcmData = hpf.Process(pcmData)
+	} else {
+		// First chunk for this device+channel — create a 300 Hz HPF.
+		// 300 Hz is the standard lower bound of telephone speech bandwidth.
+		newHPF := audio.NewHighPassFilter(16000, 300.0)
+		hpfRegistry[bufKey] = newHPF
+		pcmData = newHPF.Process(pcmData)
+	}
 	buf.data = append(buf.data, pcmData...)
 	bufferSize := len(buf.data)
 	timeSinceFlush := time.Since(buf.lastFlush)
@@ -241,6 +310,29 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 	if flushData == nil {
 		return
+	}
+
+	// ── VAD: discard silence-only chunks before hitting Deepgram ─────────────
+	// ProcessAudioStream is driven by the WebSocket read-loop (one goroutine per
+	// device), so getVADProcessor / ProcessBufferWithPadding are always called
+	// sequentially for a given bufKey — no extra locking needed on the processor.
+	//
+	// Edge-case: if speech straddles a flush boundary (v.lastSpeechDetected==true
+	// at the start of the next call) the VAD may return speechData with hasSpeech==false
+	// (speech start was signalled in the previous call).  We therefore skip STT
+	// only when BOTH hasSpeech==false AND speechData is empty — i.e. pure silence.
+	if vad := getVADProcessor(bufKey); vad != nil {
+		speechData, hasSpeech, _, silenceMs := vad.ProcessBufferWithPadding(flushData, time.Now().UnixMilli())
+		if !hasSpeech && len(speechData) == 0 {
+			log.Printf("🔇 [%s] VAD: silence (%dms) — STT call skipped", deviceID, silenceMs)
+			return
+		}
+		if len(speechData) > 0 && len(speechData) < len(flushData) {
+			log.Printf("🗣️ [%s] VAD: speech %d→%d bytes (saved %.0f%%)",
+				deviceID, len(flushData), len(speechData),
+				float64(len(flushData)-len(speechData))/float64(len(flushData))*100)
+			flushData = speechData
+		}
 	}
 
 	log.Printf("[%s] Flushing audio buffer: %d bytes (%.1fs accumulated)", deviceID, len(flushData), timeSinceFlush.Seconds())

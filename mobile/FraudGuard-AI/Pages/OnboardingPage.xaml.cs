@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Maui.Controls;
 using FraudGuardAI.Helpers;
 using FraudGuardAI.Localization;
@@ -6,9 +8,18 @@ using FraudGuardAI.Pages.Auth;
 
 namespace FraudGuardAI.Pages
 {
+    // ── Data model for a single onboarding slide ─────────────────────────────
+    public sealed class SlideData
+    {
+        public string Icon        { get; init; } = "";
+        public string Title       { get; init; } = "";
+        public string Description { get; init; } = "";
+    }
+
     public partial class OnboardingPage : ContentPage
     {
-        private readonly (string Icon, string TitleKey, string DescKey)[] _slides = new[]
+        // Slide metadata: (emoji, localization title key, localization description key)
+        private static readonly (string Icon, string TitleKey, string DescKey)[] SlideMeta =
         {
             ("🛡️", "Onboarding_Slide1_Title", "Onboarding_Slide1_Desc"),
             ("📡", "Onboarding_Slide2_Title", "Onboarding_Slide2_Desc"),
@@ -21,117 +32,82 @@ namespace FraudGuardAI.Pages
         public OnboardingPage()
         {
             InitializeComponent();
-            // We use the CurrentItemChanged event to update slide content
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            UpdateSlideContent(0);
+
+            // Build slide list with the current locale.
+            // Setting ItemsSource here (not in XAML) ensures that localized strings
+            // are resolved after LocalizationResourceManager is fully initialized.
+            OnboardingCarousel.ItemsSource = SlideMeta
+                .Select(s => new SlideData
+                {
+                    Icon        = s.Icon,
+                    Title       = T(s.TitleKey),
+                    Description = T(s.DescKey),
+                })
+                .ToList();
+
+            _currentIndex = 0;
+            UpdateButtonState(0);
         }
+
+        // ── CarouselView position change ──────────────────────────────────────
 
         private void OnCurrentItemChanged(object sender, CurrentItemChangedEventArgs e)
         {
-            if (OnboardingCarousel.Position >= 0 && OnboardingCarousel.Position < _slides.Length)
+            var pos = OnboardingCarousel.Position;
+            if (pos >= 0 && pos < SlideMeta.Length)
             {
-                _currentIndex = OnboardingCarousel.Position;
-                UpdateSlideContent(_currentIndex);
+                _currentIndex = pos;
+                UpdateButtonState(_currentIndex);
             }
         }
 
-        private void UpdateSlideContent(int index)
-        {
-            bool isLastSlide = index == _slides.Length - 1;
+        // ── Update Next/GetStarted button and Skip visibility ─────────────────
 
-            // Update button text
+        private void UpdateButtonState(int index)
+        {
+            bool isLastSlide = index == SlideMeta.Length - 1;
             GetStartedButton.Text = isLastSlide ? T("Onboarding_GetStarted") : T("Onboarding_Next");
-            SkipLabel.IsVisible = !isLastSlide;
-
-            // Update the visible carousel item content
-            // Since DataTemplate doesn't support direct binding to slide data easily,
-            // we update the carousel's children directly using the VisualTreeHelper approach
-            UpdateCarouselItemContent(index);
+            SkipLabel.IsVisible   = !isLastSlide;
         }
 
-        private void UpdateCarouselItemContent(int index)
-        {
-            // Carousel items are generated from DataTemplate, so we need to manually update
-            // the content of the current visible item. This approach works with MAUI CarouselView.
-            try
-            {
-                var slide = _slides[index];
-                // Find the current visible item's VisualStack
-                // The CarouselView renders DataTemplates, but we handle content via events
-                // For simplicity, we rely on the visual tree if available
-#pragma warning disable CS0618
-                foreach (var child in OnboardingCarousel.LogicalChildren)
-                {
-                    if (child is VisualElement ve)
-                    {
-                        UpdateVisualElement(ve, slide);
-                    }
-                }
-#pragma warning restore CS0618
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Onboarding] Update error: {ex.Message}");
-            }
-        }
-
-        private void UpdateVisualElement(Element element, (string Icon, string TitleKey, string DescKey) slide)
-        {
-            if (element is VerticalStackLayout stack && stack.Children.Count >= 3)
-            {
-                // Icon container
-                if (stack.Children[0] is Border border && border.Content is Label iconLabel)
-                    iconLabel.Text = slide.Icon;
-                // Title
-                if (stack.Children[1] is Label titleLabel)
-                    titleLabel.Text = T(slide.TitleKey);
-                // Description
-                if (stack.Children[2] is Label descLabel)
-                    descLabel.Text = T(slide.DescKey);
-            }
-
-#pragma warning disable CS0618
-            foreach (var child in element.LogicalChildren)
-#pragma warning restore CS0618
-            {
-                if (child is Element childElement)
-                    UpdateVisualElement(childElement, slide);
-            }
-        }
+        // ── Button handlers ───────────────────────────────────────────────────
 
         private void OnSkipClicked(object sender, EventArgs e)
         {
-            // Jump to last slide
-            OnboardingCarousel.ScrollTo(_slides.Length - 1);
+            // Jump directly to the last slide
+            OnboardingCarousel.ScrollTo(SlideMeta.Length - 1);
         }
 
         private async void OnActionClicked(object sender, EventArgs e)
         {
-            if (_currentIndex < _slides.Length - 1)
+            if (_currentIndex < SlideMeta.Length - 1)
             {
-                // Next slide
+                // Advance to next slide
                 OnboardingCarousel.ScrollTo(_currentIndex + 1);
             }
             else
             {
-                // Get Started — complete onboarding
+                // Final slide — complete onboarding
                 Preferences.Set("OnboardingCompleted", true);
 
-                // Request permissions
+                // Request all required permissions before landing on the main flow
                 await PermissionManager.RequestAllPermissionsAsync();
 
                 // Navigate to login
                 Application.Current!.MainPage = new NavigationPage(new LoginPage())
                 {
                     BarBackgroundColor = Color.FromArgb("#0D1B2A"),
-                    BarTextColor = Color.FromArgb("#E0E6ED")
+                    BarTextColor       = Color.FromArgb("#E0E6ED"),
                 };
             }
         }
+
+        // ── Localization helper ───────────────────────────────────────────────
 
         private static string T(string key) => LocalizationResourceManager.Instance[key];
     }

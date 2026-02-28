@@ -54,7 +54,7 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 	return &Client{
 		hub:      hub,
 		conn:     conn,
-		send:     make(chan []byte, 512), // Buffer 512 alerts; overflow drops with log warning
+		send:     make(chan []byte, 1024), // Buffer 1024 alerts; overflow drops with log warning
 		deviceID: deviceID,
 		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}

@@ -47,6 +47,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                     int riskScore = intent?.GetIntExtra("risk_score", 0) ?? 0;
                     int deepfakeScore = intent?.GetIntExtra("deepfake_score", 0) ?? 0;
                     string status = intent?.GetStringExtra("status") ?? "Đang bảo vệ";
+                    // Auto-show overlay if it hasn't been shown yet (e.g. first high-risk alert)
+                    if (!_isShowing)
+                        ShowOverlay();
                     UpdateOverlay(riskScore, deepfakeScore, status);
                     break;
                 case "HIDE":
