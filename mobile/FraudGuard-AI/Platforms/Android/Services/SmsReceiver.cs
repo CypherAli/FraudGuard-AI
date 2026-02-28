@@ -60,13 +60,14 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 catch
                 {
-                    // Fallback: direct cast (works on most API levels via Xamarin bridge)
-                    try { pdus = (Java.Lang.Object[])pdusObj; } catch { return; }
+                    // Fallback: direct cast (works on most API levels via Xamarin bridge).
+                    // pdusObj is guaranteed non-null here (null check at line 41 already returned).
+                    try { pdus = (Java.Lang.Object[])pdusObj!; } catch { return; }
                 }
 
                 if (pdus == null || pdus.Length == 0) return;
 
-                string format = intent.GetStringExtra("format") ?? "3gpp";
+                string format = intent?.GetStringExtra("format") ?? "3gpp";
                 var messageBuilder = new StringBuilder();
                 string? senderAddress = null;
 

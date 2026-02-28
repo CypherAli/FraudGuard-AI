@@ -930,4 +930,10 @@ Check:
   <data name="Register_Password_Strong" xml:space="preserve">
     <value>Strong password</value>
   </data>
+  <data name="Service_NotificationTitle" xml:space="preserve">
+    <value>🛡️ Protection Active</value>
+  </data>
+  <data name="Service_NotificationContent" xml:space="preserve">
+    <value>Monitoring calls for fraud detection</value>
+  </data>
 </root>

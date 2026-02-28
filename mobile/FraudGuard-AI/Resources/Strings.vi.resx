@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="Common_OK" xml:space="preserve">
     <value>OK</value>
@@ -929,5 +929,11 @@ Kiểm tra:
   </data>
   <data name="Register_Password_Strong" xml:space="preserve">
     <value>Mật khẩu mạnh</value>
+  </data>
+  <data name="Service_NotificationTitle" xml:space="preserve">
+    <value>🛡️ Đang bảo vệ</value>
+  </data>
+  <data name="Service_NotificationContent" xml:space="preserve">
+    <value>Đang giám sát cuộc gọi để phát hiện lừa đảo</value>
   </data>
 </root>
