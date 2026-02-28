@@ -780,7 +780,10 @@ namespace FraudGuardAI.Pages
                     return;
                 }
 
-                // Logout
+                // Logout — stop audio service FIRST to close WebSocket cleanly
+                // before the auth token is invalidated server-side.
+                await App.CleanupAudioService();
+
                 await _authService.LogoutAsync();
 
                 // Navigate to login page

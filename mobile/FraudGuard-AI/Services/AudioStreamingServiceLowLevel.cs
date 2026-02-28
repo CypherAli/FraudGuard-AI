@@ -10,6 +10,7 @@ using Android.Media;
 using Android.Util;
 using Android.Media.Projection;
 using FraudGuardAI.Models;
+using FraudGuardAI.Platforms.Android;
 using FraudGuardAI.Platforms.Android.Services;
 
 namespace FraudGuardAI.Services
@@ -26,6 +27,7 @@ namespace FraudGuardAI.Services
 
         private ClientWebSocket? _webSocket;
         private AudioRecord? _audioRecord;
+        private AudioEffectsManager? _audioEffectsManager;
         private CancellationTokenSource? _cancellationTokenSource;
         private volatile bool _isStreaming;
         private volatile bool _isConnected;
@@ -229,6 +231,14 @@ namespace FraudGuardAI.Services
                 _isStreaming = true;
                 Log.Info(TAG, $"🎤 Audio recording STARTED - BufferSize={bufferSize}, MinBuffer={minBufferSize}");
 
+                // Apply hardware AEC + Noise Suppressor to reduce echo and background noise.
+                // This improves Deepgram STT accuracy, especially when caller audio leaks
+                // through the earpiece into the microphone.
+                _audioEffectsManager?.Dispose();
+                _audioEffectsManager = new AudioEffectsManager(_audioRecord.AudioSessionId);
+                _audioEffectsManager.EnableEffects(enableEchoCanceler: true, enableNoiseSuppressor: true);
+                Log.Info(TAG, $"🎛️ [AudioService] Audio effects: {_audioEffectsManager.GetStatusMessage()}");
+
                 // Bắt đầu streaming loop
                 _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource!.Token));
 
@@ -273,11 +283,15 @@ namespace FraudGuardAI.Services
                         await StopVoipCaptureAsync();
                         await StopPstnScoAsync();
 
-                        // Stop AudioRecord with timeout
+                        // Stop AudioRecord and audio effects with timeout
                         var audioCleanupTask = Task.Run(() =>
                         {
                             try
                             {
+                                // Disable and dispose hardware audio effects first
+                                try { _audioEffectsManager?.Dispose(); } catch { }
+                                _audioEffectsManager = null;
+
                                 if (_audioRecord != null)
                                 {
                                     if (_audioRecord.RecordingState == RecordState.Recording)
@@ -393,6 +407,15 @@ namespace FraudGuardAI.Services
 
             _voipCaptureActive = started;
             System.Diagnostics.Debug.WriteLine($"[AudioService] VoIP capture {(started ? "STARTED ✅" : "FAILED ❌")}");
+
+            // If start failed, dispose immediately so the next call gets a fresh instance
+            // (prevents stale event handler accumulation on reuse via ??=)
+            if (!started)
+            {
+                try { _voipCapture.Dispose(); } catch { }
+                _voipCapture = null;
+            }
+
             return started;
         }
 
@@ -452,7 +475,17 @@ namespace FraudGuardAI.Services
 
             _pstnCaptureActive = started;
             System.Diagnostics.Debug.WriteLine($"[AudioService] PSTN SCO capture {(started ? "STARTED ✅" : "FAILED ❌")}");
-            if (!started) PstnStatusChanged?.Invoke("PSTN_SCO_FAILED");
+
+            if (!started)
+            {
+                // Dispose immediately so the next retry gets a fresh instance.
+                // Without this, ??= at line entry would reuse the same object and
+                // accumulate another StatusChanged subscription on each failed attempt.
+                try { _pstnCapture.Dispose(); } catch { }
+                _pstnCapture = null;
+                PstnStatusChanged?.Invoke("PSTN_SCO_FAILED");
+            }
+
             return started;
         }
 
@@ -827,11 +860,27 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                if (!_isConnected)
+                if (_isConnected) return; // Already reconnected by another concurrent call
+
+                Log.Info(TAG, "[AudioService] Attempting reconnect...");
+
+                // Dispose the old (broken) WebSocket before creating a new one
+                try { _webSocket?.Abort(); } catch { }
+                try { _webSocket?.Dispose(); } catch { }
+                _webSocket = null;
+
+                // Create a fresh CancellationTokenSource if the old one was cancelled.
+                // Without this, the new ReceiveMessagesAsync launched inside ConnectAsync
+                // would immediately exit because its token is already cancelled.
+                if (_cancellationTokenSource?.IsCancellationRequested == true)
                 {
-                    Log.Info(TAG, "[AudioService] Attempting reconnect...");
-                    await ConnectAsync();
+                    var oldCts = _cancellationTokenSource;
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    try { oldCts.Dispose(); } catch { }
+                    Log.Info(TAG, "[AudioService] Created new CancellationTokenSource for reconnect");
                 }
+
+                await ConnectAsync();
             }
             catch (Exception ex)
             {
@@ -890,6 +939,9 @@ namespace FraudGuardAI.Services
 
                 try { _pstnCapture?.Dispose(); } catch { }
                 _pstnCapture = null;
+
+                try { _audioEffectsManager?.Dispose(); } catch { }
+                _audioEffectsManager = null;
 
                 try { _audioRecord?.Release(); } catch { }
                 try { _audioRecord?.Dispose(); } catch { }

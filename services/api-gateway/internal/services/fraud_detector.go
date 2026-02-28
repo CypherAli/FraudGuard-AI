@@ -364,8 +364,10 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 	// Determine alert level based on accumulated score
 
-	// Spam guards: cooldown áp dụng cho MEDIUM/HIGH, nhưng CRITICAL luôn được gửi
-	// (kẻ lừa đảo có thể lợi dụng cooldown để che khuất alert thứ 3+)
+	// Spam guards: cooldown áp dụng cho MEDIUM/HIGH, nhưng CRITICAL luôn được gửi.
+	// Lý do: kẻ lừa đảo có thể cố ý kích trigger nhiều MEDIUM/HIGH alert trước
+	// để "làm cạn" MaxAlertsPerSession, rồi mới đưa ra nội dung lừa đảo thực sự
+	// ở mức CRITICAL — nếu CRITICAL bị suppress thì nạn nhân không được cảnh báo.
 	alertsExhausted := fd.session.AlertsSent >= fd.config.MaxAlertsPerSession
 	cooldownActive := fd.config.AlertCooldownMs > 0 &&
 		!fd.session.LastAlertTime.IsZero() &&
@@ -374,16 +376,14 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 	case currentScore >= fd.config.CriticalThreshold:
 		result.Action = "CRITICAL"
 		result.Message = fmt.Sprintf("CẢNH BÁO NGHIÊM TRỌNG: Phát hiện dấu hiệu lừa đảo rất cao! (Điểm rủi ro: %d/100)", currentScore)
-		// CRITICAL không bị cooldown suppress — chỉ bị cap bởi MaxAlertsPerSession
-		if !alertsExhausted {
-			result.IsAlert = true
-			fd.session.AlertsSent++
-			fd.session.LastAlertTime = time.Now()
-			fd.alertCount++
-			log.Printf("[%s] CRITICAL ALERT: Score=%d, Patterns=%v", fd.deviceID, currentScore, patterns)
-		} else {
-			log.Printf("[%s] CRITICAL suppressed (alerts exhausted: %d/%d)", fd.deviceID, fd.session.AlertsSent, fd.config.MaxAlertsPerSession)
-		}
+		// CRITICAL bypasses BOTH cooldown AND alertsExhausted — a genuine high-risk
+		// call must always alert the victim regardless of previous alert history.
+		result.IsAlert = true
+		fd.session.AlertsSent++
+		fd.session.LastAlertTime = time.Now()
+		fd.alertCount++
+		log.Printf("[%s] CRITICAL ALERT: Score=%d, Patterns=%v (alerts_total=%d)",
+			fd.deviceID, currentScore, patterns, fd.session.AlertsSent)
 
 	case currentScore >= fd.config.HighThreshold:
 		result.Action = "HIGH"
