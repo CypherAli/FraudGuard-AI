@@ -93,13 +93,15 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Per-device connection limit — reject before upgrade to save resources
-	if count := incrementDeviceConnections(deviceID); count > maxConnectionsPerDevice {
+	// Per-device connection limit — reject before upgrade to save resources.
+	// Snapshot the count from the atomic increment so we never read the map without the lock.
+	activeCount := incrementDeviceConnections(deviceID)
+	if activeCount > maxConnectionsPerDevice {
 		decrementDeviceConnections(deviceID)
 		http.Error(w, `{"success":false,"error":"Too many concurrent connections for this device"}`,
 			http.StatusTooManyRequests)
 		log.Printf("⛔ [%s] Connection rejected: per-device limit %d exceeded (active=%d)",
-			deviceID, maxConnectionsPerDevice, count)
+			deviceID, maxConnectionsPerDevice, activeCount)
 		return
 	}
 
@@ -126,5 +128,5 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 	}()
 
 	log.Printf("✅ WebSocket connection established for device: %s (active=%d)",
-		deviceID, deviceConnCount[deviceID])
+		deviceID, activeCount)
 }

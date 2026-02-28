@@ -189,33 +189,44 @@ namespace FraudGuardAI
             {
                 var deviceId = _settings.GetDeviceId();
                 var allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
-                var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
 
-                _stats.BlockedTotal  = fraudCalls.Count;
-                _stats.BlockedToday  = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
-                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD);
-
-                // ── Protection efficiency (overall) ──────────────────────────────
-                _stats.ProtectionEfficiency = allCalls.Count > 0
-                    ? Math.Min(100, (fraudCalls.Count / (double)allCalls.Count) * 100)
-                    : 0;
-
-                // ── Weekly change: fraud calls blocked in the last 7 days ────────
-                var sevenDaysAgo   = DateTime.Today.AddDays(-7);
+                // ── Single-pass aggregation — tránh lặp qua list nhiều lần ──────
+                var sevenDaysAgo    = DateTime.Today.AddDays(-7);
                 var fourteenDaysAgo = DateTime.Today.AddDays(-14);
+                var today           = DateTime.Today;
 
-                int thisWeekFraud = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
-                int lastWeekFraud = fraudCalls.Count(c =>
-                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
-                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+                int totalFraud      = 0;
+                int fraudToday      = 0;
+                int seriousThreats  = 0;
+                int thisWeekFraud   = 0;
+                int lastWeekFraud   = 0;
+                int thisWeekAll     = 0;
+                int lastWeekAll     = 0;
 
-                _stats.WeeklyChange = thisWeekFraud; // "+X this week"
+                foreach (var c in allCalls)
+                {
+                    var callDate = c.Timestamp.ToLocalTime().Date;
+                    bool isFraud = c.IsFraud;
 
-                // ── Efficiency change: this week vs previous week ─────────────────
-                int thisWeekAll = allCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
-                int lastWeekAll = allCalls.Count(c =>
-                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
-                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+                    if (isFraud)
+                    {
+                        totalFraud++;
+                        if (callDate == today)                              fraudToday++;
+                        if (c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD) seriousThreats++;
+                        if (callDate >= sevenDaysAgo)                       thisWeekFraud++;
+                        else if (callDate >= fourteenDaysAgo)               lastWeekFraud++;
+                    }
+
+                    if (callDate >= sevenDaysAgo)                           thisWeekAll++;
+                    else if (callDate >= fourteenDaysAgo)                   lastWeekAll++;
+                }
+
+                _stats.BlockedTotal      = totalFraud;
+                _stats.BlockedToday      = fraudToday;
+                _stats.SeriousThreats    = seriousThreats;
+                _stats.ProtectionEfficiency = allCalls.Count > 0
+                    ? Math.Min(100, (totalFraud / (double)allCalls.Count) * 100) : 0;
+                _stats.WeeklyChange = thisWeekFraud;
 
                 double thisWeekEff = thisWeekAll > 0
                     ? Math.Min(100, (thisWeekFraud / (double)thisWeekAll) * 100) : 0;

@@ -31,11 +31,19 @@ namespace FraudGuardAI.Platforms.Android.Services
 
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
-            // Tạo notification để hiển thị service đang chạy
-            var notification = CreateNotification(
-                "🛡️ Protection Active",
-                "Monitoring calls for fraud detection"
-            );
+            // Dùng localized strings nếu LocalizationResourceManager đã được khởi tạo.
+            // Fallback sang English nếu chưa sẵn sàng (e.g. service restart sau khi app bị kill).
+            string notifTitle   = "🛡️ Protection Active";
+            string notifContent = "Monitoring calls for fraud detection";
+            try
+            {
+                var rm = FraudGuardAI.Localization.LocalizationResourceManager.Instance;
+                notifTitle   = rm["Service_NotificationTitle"]   ?? notifTitle;
+                notifContent = rm["Service_NotificationContent"] ?? notifContent;
+            }
+            catch { /* LocalizationResourceManager chưa init — dùng fallback */ }
+
+            var notification = CreateNotification(notifTitle, notifContent);
 
             // Android 10+ (API 29+): StartForeground PHẢI chỉ định foreground service type.
             // TypeMicrophone đủ cho mọi trường hợp: MIC capture + PSTN-SCO đều dùng AudioRecord.
