@@ -25,6 +25,10 @@ namespace FraudGuardAI.Platforms.Android.Services
         // already activated protection manually before the call started.
         private static volatile bool _wasPstnScoAutoStarted = false;
 
+        // Pre-warm: WebSocket được connect sẵn trong lúc RINGING để giảm latency sau OFFHOOK.
+        // Nếu cuộc gọi bị reject/missed → disconnect WS trong IDLE handler.
+        private static volatile bool _wasPreConnected = false;
+
         // Debounce IDLE events: speakerphone toggle / audio re-route cũng fire IDLE,
         // cần chờ 1.5s để xác nhận cuộc gọi thực sự kết thúc (không phải chỉ đổi audio route)
         private static CancellationTokenSource? _idleDebounceToken;
@@ -80,6 +84,11 @@ namespace FraudGuardAI.Platforms.Android.Services
                         }
                     }
 
+                    // Pre-warm WebSocket trong lúc chuông reo để giảm latency sau OFFHOOK.
+                    // Người dùng thường mất 3-8s để nhấc máy — dùng khoảng thời gian này để
+                    // kết nối WebSocket trước, tiết kiệm ~200-500ms sau khi nhấc máy.
+                    PreWarmConnection();
+
                     OnCallStateChanged(CallState.Ringing, phoneNumber);
                 }
                 else if (stateStr == TelephonyManager.ExtraStateOffhook)
@@ -94,6 +103,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                         _idleDebounceToken = null;
                     }
 
+                    // Pre-warm đã được consume — AutoStartProtection sẽ dùng WS đã connect sẵn
+                    _wasPreConnected = false;
+
                     _isCallActive = true;
                     OnCallStateChanged(CallState.Active, phoneNumber);
 
@@ -102,6 +114,29 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 else if (stateStr == TelephonyManager.ExtraStateIdle)
                 {
+                    // Missed/rejected: RINGING → IDLE mà không qua OFFHOOK.
+                    // Pre-warmed WebSocket chưa được dùng → disconnect để tránh connection leak.
+                    if (!_isCallActive && _wasPreConnected)
+                    {
+                        _wasPreConnected = false;
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            try
+                            {
+                                var svc = App.GetAudioService();
+                                if (svc != null && svc.IsConnected && !svc.IsStreaming)
+                                {
+                                    await svc.StopStreamingAsync();
+                                    Debug.WriteLine("[CallReceiver] 🔌 Pre-warmed WS disconnected (call missed/rejected)");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[CallReceiver] Pre-warm cleanup error: {ex.Message}");
+                            }
+                        });
+                    }
+
                     // IDLE có thể do: (1) cuộc gọi thực sự kết thúc, hoặc (2) speakerphone toggle / audio re-route
                     // Dùng debounce 1.5s: nếu sau 1.5s không có OFFHOOK mới → cuộc gọi thực sự ended
                     if (_isCallActive)
@@ -146,6 +181,42 @@ namespace FraudGuardAI.Platforms.Android.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"[CallReceiver] Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pre-warm WebSocket connection trong lúc chuông reo để giảm latency sau OFFHOOK.
+        /// Chỉ kết nối nếu chưa có connection — hoàn toàn không-destructive.
+        /// ConnectAsync() idempotent: nếu đã connected thì return ngay.
+        /// </summary>
+        private void PreWarmConnection()
+        {
+            try
+            {
+                var audioService = App.GetAudioService();
+                if (audioService == null || audioService.IsConnected) return;
+
+                _wasPreConnected = true;
+                Debug.WriteLine("[CallReceiver] 🔌 Pre-warming WebSocket during ring...");
+
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
+                    {
+                        bool ok = await audioService.ConnectAsync();
+                        Debug.WriteLine($"[CallReceiver] Pre-warm: {(ok ? "✅ WS connected" : "❌ failed")}");
+                        if (!ok) _wasPreConnected = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CallReceiver] Pre-warm error: {ex.Message}");
+                        _wasPreConnected = false;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] PreWarmConnection error: {ex.Message}");
             }
         }
 
