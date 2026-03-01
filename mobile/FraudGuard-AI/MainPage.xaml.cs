@@ -34,6 +34,7 @@ namespace FraudGuardAI
         private string _lastBannerAlertId = string.Empty;
         // Stored handler reference so we can unsubscribe in OnDisappearing (prevents memory leak)
         private System.ComponentModel.PropertyChangedEventHandler _locChangeHandler;
+        private Action<byte[], int>? _pcmDataHandler;
 
         // ── UI Animation fields ──
         private RadarDrawable _radarDrawable = new();
@@ -111,6 +112,8 @@ namespace FraudGuardAI
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
                 _audioService.SessionExpired -= OnSessionExpiredFromService;
+                if (_pcmDataHandler != null)
+                    _audioService.PcmDataAvailable -= _pcmDataHandler;
             }
             LocalizationResourceManager.Instance.PropertyChanged -= _locChangeHandler;
 
@@ -153,7 +156,8 @@ namespace FraudGuardAI
                 _audioService = App.GetAudioService();
 
                 // Wire PCM data to the waveform visualiser (fire-and-forget; no UI thread needed)
-                _audioService.PcmDataAvailable += (buf, len) => _waveformDrawable.UpdateFromPcm(buf, len);
+                _pcmDataHandler = (buf, len) => _waveformDrawable.UpdateFromPcm(buf, len);
+                _audioService.PcmDataAvailable += _pcmDataHandler;
 
                 // NOTE: event subscriptions moved to OnAppearing() to prevent memory leaks
                 // Check if already streaming from previous session

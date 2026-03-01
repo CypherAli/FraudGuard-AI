@@ -148,9 +148,12 @@ namespace FraudGuardAI.Platforms.Android.Services
                         WakeLockFlags.Partial, // Chỉ giữ CPU, không giữ màn hình
                         "FraudGuard::AudioProcessing"
                     );
-                    // Timeout 4 giờ để tránh drain pin vô hạn
-                    _wakeLock?.Acquire(4 * 60 * 60 * 1000L);
-                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired with 4h timeout");
+                    // Acquire indefinite WakeLock — the ForegroundService lifecycle (OnDestroy →
+                    // ReleaseWakeLock) ensures it is always released when protection stops.
+                    // A fixed timeout (e.g. 4 h) would silently drop the WakeLock mid-call,
+                    // causing the CPU to sleep and halting audio recording.
+                    _wakeLock?.Acquire();
+                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired (indefinite, released on service stop)");
                 }
             }
             catch (Exception ex)

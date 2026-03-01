@@ -60,6 +60,15 @@ func GetBlacklist(w http.ResponseWriter, r *http.Request) {
 		blacklists = append(blacklists, bl)
 	}
 
+	// Fix 39: Check for iterator-level errors (e.g. DB connection dropped mid-scan).
+	// Without this, a partial blacklists slice is silently returned as HTTP 200,
+	// causing the mobile cache to accept an incomplete list — false negatives in fraud detection.
+	if err := rows.Err(); err != nil {
+		log.Printf("❌ Error iterating blacklist rows: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// Return JSON response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{

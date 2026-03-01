@@ -543,7 +543,10 @@ namespace FraudGuardAI.Services
                 
                 while (_isStreaming && !cancellationToken.IsCancellationRequested)
                 {
-                    if (_audioRecord?.RecordingState != RecordState.Recording)
+                    // Capture _audioRecord to a local to avoid race where StopStreamingAsync()
+                    // sets _audioRecord = null between the null-check and the ReadAsync call.
+                    var audioRecord = _audioRecord;
+                    if (audioRecord?.RecordingState != RecordState.Recording)
                     {
                         System.Diagnostics.Debug.WriteLine("[AudioService] AudioRecord not recording, stopping...");
                         break;
@@ -552,7 +555,7 @@ namespace FraudGuardAI.Services
                     try
                     {
                         // Đọc audio data trực tiếp từ microphone
-                        int bytesRead = await _audioRecord.ReadAsync(buffer, 0, buffer.Length);
+                        int bytesRead = await audioRecord.ReadAsync(buffer, 0, buffer.Length);
 
                         if (bytesRead > 0)
                         {
@@ -614,6 +617,11 @@ namespace FraudGuardAI.Services
                             }
                             else
                             {
+                                // Only attempt reconnect if we are still meant to be streaming.
+                                // StopStreamingAsync() sets _isStreaming = false before cancelling
+                                // the token — check this to avoid a dangling reconnect race where
+                                // ReconnectAsync() opens a new WebSocket while stop is in progress.
+                                if (!_isStreaming) break;
                                 System.Diagnostics.Debug.WriteLine("[AudioService] WebSocket not open, attempting reconnect...");
                                 await ReconnectAsync();
                             }
@@ -949,6 +957,9 @@ namespace FraudGuardAI.Services
 
                 try { _webSocket?.Dispose(); } catch { }
                 _webSocket = null;
+
+                // Clear event subscribers to prevent callbacks into disposed state
+                PcmDataAvailable = null;
 
                 _startStopLock.Dispose();
             }

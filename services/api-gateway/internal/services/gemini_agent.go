@@ -441,6 +441,12 @@ Kết quả cuối cùng phải là JSON:
 		}
 
 		candidate := agentResp.Candidates[0]
+		// Guard against safety-filtered candidates: Content.Parts will be empty
+		// and FinishReason will be "SAFETY" or similar non-STOP reason.
+		if len(candidate.Content.Parts) == 0 {
+			log.Printf("⚠️ [Agent] Candidate has no Parts (FinishReason=%s, safety filter?) — stopping agentic loop", candidate.FinishReason)
+			break
+		}
 		parts := candidate.Content.Parts
 
 		// Kiểm tra từng part trong response
@@ -461,6 +467,12 @@ Kết quả cuối cùng phải là JSON:
 				if toolName == "auto_report" {
 					reportPhone, _ := toolArgs["phone_number"].(string)
 					reportPhone = strings.TrimSpace(reportPhone)
+					// Normalize Vietnamese phone: "0xxx" ↔ "+84xxx" so the same number
+					// isn't reported twice just because Gemini formats it differently
+					// across turns (e.g. "+84912345678" vs "0912345678").
+					if strings.HasPrefix(reportPhone, "0") && len(reportPhone) >= 10 {
+						reportPhone = "+84" + reportPhone[1:]
+					}
 					if _, alreadyReported := reportedNumbers[reportPhone]; alreadyReported {
 						log.Printf("⚠️ [Agent] auto_report duplicate skipped for %q", reportPhone)
 						toolResponseParts = append(toolResponseParts, GeminiPart{

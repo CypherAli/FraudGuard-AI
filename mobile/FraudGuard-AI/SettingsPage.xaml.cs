@@ -541,8 +541,8 @@ namespace FraudGuardAI.Pages
 
                 if (!string.IsNullOrEmpty(newName))
                 {
-                    UserNameLabel.Text = newName;
-                    AvatarInitials.Text = GetInitials(newName);
+                    if (UserNameLabel != null) UserNameLabel.Text = newName;
+                    if (AvatarInitials != null) AvatarInitials.Text = GetInitials(newName);
                     Preferences.Set("DisplayName", newName);
                     await DisplayAlert(
                         T("Settings_EditProfile_SuccessTitle"),

@@ -317,6 +317,10 @@ namespace FraudGuardAI.Platforms.Android.Services
         {
             _cts?.Cancel();
             _cts?.Dispose();
+            // Fix 40: Release the MediaProjection token so the system can reclaim the
+            // screen-capture resource. Without Stop(), the token stays alive until GC,
+            // which can block new MediaProjection requests on some Samsung/Pixel devices.
+            try { _mediaProjection?.Stop(); _mediaProjection = null; } catch { }
             try { _audioRecord?.Release(); } catch { }
             try { _audioRecord?.Dispose(); } catch { }
             _lock.Dispose();
