@@ -145,6 +145,16 @@ func (c *Client) handleTextMessage(message []byte) {
 
 // sendAlert sends an alert message to this specific client
 func (c *Client) sendAlert(alert models.AlertMessage) {
+	// Fix 38: recover from "send on closed channel" panic that can occur when
+	// the Hub closes c.send (client disconnect) while an audio-processing goroutine
+	// is still completing and calling sendAlert. The panic is safe to swallow here
+	// because the client is already gone — the alert is inherently undeliverable.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("⚠️ [%s] sendAlert: recovered panic (channel closed on disconnect): %v", c.deviceID, r)
+		}
+	}()
+
 	log.Printf("📨 [%s] ===== SENDING ALERT TO CLIENT =====", c.deviceID)
 	log.Printf("📨 [%s] Alert: Type=%s, AlertType=%s, Confidence=%.2f",
 		c.deviceID, alert.Type, alert.AlertType, alert.Confidence)

@@ -376,6 +376,17 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 		deepfakeChan := make(chan int, 1)
 		if audio.IsEnabled() && channel == ChannelVoIP {
 			go func() {
+				// Fix 37: recover from any panic inside deepfake analysis so the buffered
+				// channel always receives a value. Without this, a panic leaves deepfakeChan
+				// empty and the caller blocks forever at `<-deepfakeChan`, hanging the
+				// entire audio-processing goroutine (context timeout does NOT rescue it
+				// because that receive is not select-ed against ctx.Done()).
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("⚠️ [%s] Deepfake goroutine panic: %v — using score=0", deviceID, r)
+						deepfakeChan <- 0
+					}
+				}()
 				dd := GetDeepfakeDetector(deviceID)
 				analysis := dd.AnalyzeChunk(flushData)
 				score := dd.GetRollingScore() // Use rolling average for stability

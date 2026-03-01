@@ -55,10 +55,20 @@ namespace FraudGuardAI.Services
             var response = await _http.SendAsync(await AuthGet(url));
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<HistoryResponse>();
-            return result?.Success == true && result.Data != null
-                ? new List<CallLog>(result.Data)
-                : new List<CallLog>();
+            // Fix 42: ReadFromJsonAsync throws JsonException when the response body is
+            // not valid JSON (e.g. reverse-proxy 502 HTML error page delivered with 200).
+            try
+            {
+                var result = await response.Content.ReadFromJsonAsync<HistoryResponse>();
+                return result?.Success == true && result.Data != null
+                    ? new List<CallLog>(result.Data)
+                    : new List<CallLog>();
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HistoryService] JSON parse error: {ex.Message}");
+                return new List<CallLog>();
+            }
         }
 
         /// <inheritdoc/>

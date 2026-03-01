@@ -9,33 +9,29 @@ using System.Net.WebSockets;
 namespace FraudGuardAI.Platforms.Android.Services
 {
     /// <summary>
-    /// Bắt âm thanh cuộc gọi PSTN (điện thoại di động thông thường) bằng kỹ thuật
-    /// "Virtual Bluetooth HFP" kết hợp setCommunicationDevice (API 31+).
+    /// Bắt âm thanh cuộc gọi PSTN bằng kỹ thuật "Virtual Bluetooth HFP" + setCommunicationDevice.
     ///
-    /// Chiến lược (thử theo thứ tự, dừng ở cái đầu tiên thành công):
-    ///   S0:       VOICE_COMM_NORMAL          — MIUI/ColorOS/OriginOS OEM fast path (zero side-effects)
-    ///   S_A31_IC: API31 + earpiece + IN_CALL + VOICE_COMM   — Pixel/Nokia/OnePlus Android 12-14
-    ///   S_A31_IN: API31 + earpiece + IN_COMM + VOICE_COMM   — AOSP Android 14 strict (IN_CALL blocked)
-    ///   S1:       VOICE_CALL                 — ideal (thường cần CAPTURE_AUDIO_OUTPUT, hiếm thành công)
-    ///   S2:       VOICE_DOWNLINK             — explicit caller side (thường cần CAPTURE_AUDIO_OUTPUT)
-    ///   S3:       SCO + VOICE_CALL           — virtual-HFP trick
-    ///   S4:       SCO + VOICE_DOWNLINK       — virtual-HFP trick
-    ///   S5:       SCO + VOICE_COMM + IN_CALL — Samsung OneUI best bet (cả 2 chiều)
-    ///   S6:       SCO + MIC                  — Snapdragon SCO fallback
-    ///   S_VR:     VOICE_RECOGNITION          — Huawei/HiSilicon HAL (source = 6)
-    ///   S7:       VOICE_COMM + IN_CALL       — mic-only fallback (uplink only)
-    ///   S8:       UNPROCESSED_ADC            — Qualcomm DSP raw output (API 24+)
-    ///   S_B28:    AudioRecord.Builder + setPreferredDevice(earpiece) — API 28+ last resort
+    /// ── SAMSUNG ONEUI FAST PATH (ưu tiên cao nhất) ──────────────────────────────────────────
+    ///   SS0:    MODE_IN_CALL + VOICE_COMM (không SCO) — Galaxy S23/S24/A54/A55 (~1.5s verify)
+    ///   SS1:    BT SCO (2000ms×2) + VOICE_COMM+IN_CALL — Samsung OneUI champion (cả 2 chiều)
+    ///   SS2:    BT SCO + MIC                           — Snapdragon Samsung fallback
+    ///   SS3:    BT SCO + VOICE_DOWNLINK                — Exynos Samsung fallback
+    ///   SS_FB:  VOICE_COMM (mic-only)                  — last resort, uplink analysis
     ///
-    /// Android 14+ (API 34) improvements vs. trước đây:
-    ///   • S_A31_IC/IN: setCommunicationDevice() thay thế startBluetoothSco() deprecated (API 31)
-    ///   • SetModeInCallSafe(): MODE_IN_CALL → fallback IN_COMMUNICATION nếu bị SecurityException
-    ///   • StartBluetoothScoWithRetryAsync(): 3 lần thử, timeout 3s/lần (tăng từ 2.5s)
-    ///   • S_VR: VOICE_RECOGNITION path riêng cho Huawei/HiSilicon
-    ///   • S_B28: AudioRecord.Builder + SetPrivacySensitive(false) + SetPreferredDevice
-    ///   • RestoreAudio(): ClearCommunicationDevice() để dọn dẹp đúng cách
+    /// ── GENERIC PATH (Xiaomi/OPPO/Pixel/Nokia/Huawei/ASUS) ─────────────────────────────────
+    ///   S0:     VOICE_COMM_NORMAL           — MIUI/ColorOS/OriginOS OEM fast path (~1s verify)
+    ///   S_A31_IC: earpiece+IN_CALL+VOICE_COMM  — Pixel/Nokia/OnePlus Android 12-14 (API 31+)
+    ///   S_A31_IN: earpiece+IN_COMM+VOICE_COMM  — AOSP Android 14 strict (IN_CALL blocked)
+    ///   S1:     VOICE_CALL                  — ideal, cần CAPTURE_AUDIO_OUTPUT (hiếm)
+    ///   S2:     VOICE_DOWNLINK              — caller-side, cần CAPTURE_AUDIO_OUTPUT
+    ///   S3-S6:  BT SCO (3000ms×3) + VOICE_CALL/DOWNLINK/COMM/MIC
+    ///   S_VR:   VOICE_RECOGNITION (source=6) — Huawei/HiSilicon HAL
+    ///   S7:     VOICE_COMM + IN_CALL        — mic-only uplink fallback
+    ///   S8:     UNPROCESSED_ADC             — Qualcomm DSP raw (API 24+)
+    ///   S_B28:  AudioRecord.Builder + setPreferredDevice(earpiece) — API 28+ last resort
     ///
-    /// Gửi audio qua WebSocket với prefix 0x01 (CHANNEL_PSTN / downlink).
+    /// Gửi PCM qua WebSocket với prefix 0x01 (CHANNEL_PSTN).
+    /// VerifyAudioHasContentAsync() dùng ReadAsync → không block main thread.
     /// </summary>
     public class PstnScoCallCaptureService : IDisposable
     {
@@ -126,9 +122,10 @@ namespace FraudGuardAI.Platforms.Android.Services
                     // Samsung S23/S24 Ultra (OneUI 6.x, Exynos + Snapdragon), Galaxy A54/A55:
                     // HAL route cả 2 chiều vào VOICE_COMM khi MODE_IN_CALL được set.
                     // Zero SCO overhead — thử trước khi khởi động BT stack.
+                    // maxBuffers=6 (~1.5s): Samsung HAL settle sau MODE_IN_CALL chậm hơn OEM khác.
                     SetModeInCallSafe();
                     ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                    if (ar != null && VerifyAudioHasContent(ar))
+                    if (ar != null && await VerifyAudioHasContentAsync(ar, maxBuffers: 6))
                     {
                         strat = "SAM_INCALL+VOICE_COMM"; // OneUI fast path, no SCO needed
                     }
@@ -181,8 +178,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                     // Một số OEM (Xiaomi MIUI 15, Realme UI, OPPO ColorOS, Vivo OriginOS, Huawei)
                     // expose call audio qua VOICE_COMMUNICATION mà không cần thay đổi audio mode.
                     // Zero side effects — thử trước nhất.
+                    // maxBuffers=4 (~1s): OEM HAL settle nhanh khi đã active call audio path.
                     ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                    if (ar != null && VerifyAudioHasContent(ar))
+                    if (ar != null && await VerifyAudioHasContentAsync(ar, maxBuffers: 4))
                     {
                         strat = "VOICE_COMM_NORMAL";
                     }
@@ -335,6 +333,8 @@ namespace FraudGuardAI.Platforms.Android.Services
         {
             _isCapturing = false;
             _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
 
             bool acquired = await _lock.WaitAsync(TimeSpan.FromSeconds(3));
             try
@@ -791,33 +791,38 @@ namespace FraudGuardAI.Platforms.Android.Services
         }
 
         /// <summary>
-        /// Kiểm tra AudioRecord có thực sự capture call audio không.
-        /// Dùng cho S0 (VOICE_COMM_NORMAL) để loại OEM HAL không route call audio vào VOICE_COMM.
+        /// Kiểm tra AudioRecord có thực sự capture call audio không (async — không block main thread).
         ///
-        /// Đọc tối đa 4 buffers (~1 giây) — dừng sớm ngay khi phát hiện audio thật.
-        /// Lý do tăng từ 1→4 buffers: caller vừa nhấc máy thường im lặng 300-700ms đầu
-        /// trước khi nói "Xin chào" → verify 256ms (1 buffer) cũ hay bị false-negative.
+        /// Dùng ReadAsync thay vì Read để tránh block UI thread → ANR risk.
+        /// Đọc tối đa <paramref name="maxBuffers"/> buffers, dừng sớm khi phát hiện audio thật.
+        ///
+        /// maxBuffers=4 (~1s)  : cho generic OEM (MIUI/ColorOS — HAL settle nhanh)
+        /// maxBuffers=6 (~1.5s): cho Samsung SS0 — HAL cần thêm thời gian settle sau MODE_IN_CALL
         /// </summary>
-        private static bool VerifyAudioHasContent(AudioRecord ar)
+        private static async Task<bool> VerifyAudioHasContentAsync(AudioRecord ar, int maxBuffers = 4)
         {
+            bool started = false;
             try
             {
                 ar.StartRecording();
+                started = true;
                 var buf = new byte[BUFFER_SIZE];
-                for (int i = 0; i < 4; i++) // tối đa ~1s (4 × 256ms/buffer)
+                for (int i = 0; i < maxBuffers; i++)
                 {
-                    int bytesRead = ar.Read(buf, 0, buf.Length);
+                    int bytesRead = await ar.ReadAsync(buf, 0, buf.Length); // ← async, không block UI
                     if (bytesRead > 0 && !IsAbsoluteSilence(buf, bytesRead))
                     {
                         ar.Stop();
-                        return true; // có audio thật — dừng sớm, không cần đọc thêm
+                        return true; // có audio thật — dừng sớm
                     }
                 }
                 ar.Stop();
-                return false; // 1s toàn silence → OEM không route call audio qua path này
+                return false; // toàn silence → HAL không route call audio qua path này
             }
             catch
             {
+                // Ensure AudioRecord is stopped on any exception to avoid resource leak
+                if (started) { try { ar.Stop(); } catch { } }
                 return false;
             }
         }
@@ -852,7 +857,13 @@ namespace FraudGuardAI.Platforms.Android.Services
 
         public void Dispose()
         {
-            _scoReceiver?.Dispose();
+            // Fix 41: If Dispose() is called without StopAsync() (e.g. emergency cleanup),
+            // ensure we: (a) stop the streaming loop, (b) restore audio mode to prevent
+            // Android audio routing corruption, and (c) properly unregister + dispose the
+            // ScoStateReceiver. RestoreAudio() handles all three for _scoReceiver.
+            _isCapturing = false;
+            _cts?.Cancel();
+            RestoreAudio();       // restores AudioManager mode + unregisters & disposes _scoReceiver
             _audioRecord?.Dispose();
             _cts?.Dispose();
         }
