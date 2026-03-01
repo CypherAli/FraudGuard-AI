@@ -47,6 +47,17 @@ namespace FraudGuardAI.Platforms.Android.Services
         // Same channel byte as VoIP — backend treats as caller-side audio
         public const byte CHANNEL_PSTN = 0x01;
 
+        // ── Device detection ─────────────────────────────────────────────────
+        // Detect Samsung để dùng Samsung-optimized strategy order.
+        // Samsung OneUI HAL có đặc tính riêng: setCommunicationDevice() bị block,
+        // VOICE_CALL/DOWNLINK cần CAPTURE_AUDIO_OUTPUT (không bao giờ granted cho non-system app),
+        // nhưng SCO+VOICE_COMM+IN_CALL (S5) hoạt động rất tốt.
+        private static readonly bool IsSamsung =
+            string.Equals(
+                global::Android.OS.Build.Manufacturer,
+                "samsung",
+                StringComparison.OrdinalIgnoreCase);
+
         // ── AudioSource values (Android API constants) ────────────────────────
         private const AudioSource SRC_VOICE_CALL     = (AudioSource)4; // uplink+downlink (CAPTURE_AUDIO_OUTPUT)
         private const AudioSource SRC_VOICE_DOWNLINK = (AudioSource)3; // caller-side     (CAPTURE_AUDIO_OUTPUT)
@@ -98,94 +109,155 @@ namespace FraudGuardAI.Platforms.Android.Services
                 AudioRecord? ar    = null;
                 string       strat = "";
 
-                // ── S0: VOICE_COMM_NORMAL — MIUI/ColorOS/OriginOS OEM fast path ─────────
-                // Một số OEM (Xiaomi MIUI 15, Realme UI, OPPO ColorOS, Vivo OriginOS, Huawei)
-                // expose call audio qua VOICE_COMMUNICATION mà không cần thay đổi audio mode.
-                // Zero side effects — thử trước nhất.
-                ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                if (ar != null && VerifyAudioHasContent(ar))
+                if (IsSamsung)
                 {
-                    strat = "VOICE_COMM_NORMAL";
+                    // ════════════════════════════════════════════════════════════════════
+                    // SAMSUNG ONEUI FAST PATH
+                    // Samsung HAL đặc thù: setCommunicationDevice() bị restrict, VOICE_CALL/
+                    // DOWNLINK cần CAPTURE_AUDIO_OUTPUT (không bao giờ granted → skip ngay).
+                    // Chiến lược tối ưu: IN_CALL + VOICE_COMM trước (không cần SCO trên một
+                    // số model), rồi mới SCO+VOICE_COMM. Timeout SCO 2000ms (Samsung BT stack
+                    // nhanh hơn generic Android — thường kết nối trong 1-1.5s).
+                    // ════════════════════════════════════════════════════════════════════
+
+                    Log.Info(TAG, "📱 Samsung OneUI detected — using Samsung-optimized strategy");
+
+                    // ── SS0: IN_CALL + VOICE_COMM (không BT SCO) ─────────────────────────
+                    // Samsung S23/S24 Ultra (OneUI 6.x, Exynos + Snapdragon), Galaxy A54/A55:
+                    // HAL route cả 2 chiều vào VOICE_COMM khi MODE_IN_CALL được set.
+                    // Zero SCO overhead — thử trước khi khởi động BT stack.
+                    SetModeInCallSafe();
+                    ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                    if (ar != null && VerifyAudioHasContent(ar))
+                    {
+                        strat = "SAM_INCALL+VOICE_COMM"; // OneUI fast path, no SCO needed
+                    }
+                    else
+                    {
+                        SafeRelease(ref ar);
+
+                        // ── SS1-SS2: BT SCO → S5 first (Samsung best bet) ────────────────
+                        // Samsung BT stack: timeout 2000ms × tối đa 2 lần thử (vs generic 3000ms×3).
+                        // S5 (SCO+VOICE_COMM+IN_CALL) thử TRƯỚC S3/S4 vì Samsung HAL ưu tiên
+                        // VOICE_COMM path — không lãng phí thời gian với VOICE_CALL/DOWNLINK.
+                        bool scoUp = await StartBluetoothScoWithRetryAsync(ctx, timeoutMs: 2000, maxRetries: 2);
+                        Log.Info(TAG, $"Samsung BT SCO: {scoUp}");
+
+                        // SS1: SCO + VOICE_COMM + IN_CALL ← Samsung OneUI champion
+                        ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                        if (ar != null) strat = scoUp ? "SAM_SCO+VOICE_COMM+INCALL" : "SAM_SCO_TRY+VOICE_COMM";
+
+                        // SS2: SCO + MIC — Snapdragon Samsung (Galaxy S23/S24 FE, A-series Snapdragon)
+                        if (ar == null)
+                        {
+                            ar = TryAudioRecord(AudioSource.Mic, useCallMode: false);
+                            if (ar != null) strat = scoUp ? "SAM_SCO+MIC" : "SAM_SCO_TRY+MIC";
+                        }
+
+                        // SS3: SCO + VOICE_DOWNLINK — Samsung Exynos đôi khi expose downlink qua đây
+                        if (ar == null)
+                        {
+                            ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
+                            if (ar != null) strat = scoUp ? "SAM_SCO+VOICE_DOWNLINK" : "SAM_SCO_TRY+VOICE_DOWNLINK";
+                        }
+                    }
+
+                    // ── SS_FB: Samsung fallback — VOICE_COMM không SCO (uplink only) ────
+                    // Nếu tất cả fail, vẫn bắt được giọng người dùng để phân tích ngữ nghĩa 1 chiều.
+                    if (ar == null)
+                    {
+                        SetModeInCallSafe();
+                        ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                        if (ar != null) strat = "SAM_FALLBACK_VOICE_COMM";
+                    }
                 }
                 else
                 {
-                    SafeRelease(ref ar);
-                }
+                    // ════════════════════════════════════════════════════════════════════
+                    // GENERIC PATH — Xiaomi/OPPO/Vivo/Pixel/Nokia/Huawei/ASUS...
+                    // ════════════════════════════════════════════════════════════════════
 
-                // ── S_A31_IC: setCommunicationDevice(earpiece) + MODE_IN_CALL (API 31+) ──
-                // Android 12-14+: setCommunicationDevice() là API chính thức thay thế cho
-                // startBluetoothSco() đã deprecated. Force call audio HAL route qua earpiece
-                // communication path → AudioRecord(VOICE_COMM) bắt được cả 2 chiều.
-                // Hiệu quả nhất trên: Pixel 6-8, Nokia, OnePlus, ASUS ZenFone.
-                if (ar == null && OperatingSystem.IsAndroidVersionAtLeast(31))
-                {
-                    ar = TrySetCommunicationDeviceStrategy(Mode.InCall, SRC_VOICE_COMM);
-                    if (ar != null) strat = "A31_EARPIECE+IN_CALL";
-                }
+                    // ── S0: VOICE_COMM_NORMAL — MIUI/ColorOS/OriginOS OEM fast path ────
+                    // Một số OEM (Xiaomi MIUI 15, Realme UI, OPPO ColorOS, Vivo OriginOS, Huawei)
+                    // expose call audio qua VOICE_COMMUNICATION mà không cần thay đổi audio mode.
+                    // Zero side effects — thử trước nhất.
+                    ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                    if (ar != null && VerifyAudioHasContent(ar))
+                    {
+                        strat = "VOICE_COMM_NORMAL";
+                    }
+                    else
+                    {
+                        SafeRelease(ref ar);
+                    }
 
-                // ── S_A31_IN: setCommunicationDevice(earpiece) + MODE_IN_COMMUNICATION (API 31+) ─
-                // AOSP Android 14 strict: MODE_IN_CALL có thể bị block với SecurityException
-                // cho non-telephony apps. MODE_IN_COMMUNICATION luôn được phép.
-                if (ar == null && OperatingSystem.IsAndroidVersionAtLeast(31))
-                {
-                    ar = TrySetCommunicationDeviceStrategy(Mode.InCommunication, SRC_VOICE_COMM);
-                    if (ar != null) strat = "A31_EARPIECE+IN_COMM";
-                }
+                    // ── S_A31_IC: setCommunicationDevice(earpiece) + MODE_IN_CALL (API 31+) ──
+                    // Android 12-14+: setCommunicationDevice() là API chính thức thay thế cho
+                    // startBluetoothSco() đã deprecated. Force call audio HAL route qua earpiece
+                    // communication path → AudioRecord(VOICE_COMM) bắt được cả 2 chiều.
+                    // Hiệu quả nhất trên: Pixel 6-8, Nokia, OnePlus, ASUS ZenFone.
+                    if (ar == null && OperatingSystem.IsAndroidVersionAtLeast(31))
+                    {
+                        ar = TrySetCommunicationDeviceStrategy(Mode.InCall, SRC_VOICE_COMM);
+                        if (ar != null) strat = "A31_EARPIECE+IN_CALL";
+                    }
 
-                // ── S1: VOICE_CALL alone — ideal (both uplink+downlink) ───────────────────
-                // Thường bị block bởi CAPTURE_AUDIO_OUTPUT permission nhưng thử 1 lần
-                // trước khi kích hoạt BT SCO để tránh side effects không cần thiết.
-                if (ar == null)
-                {
-                    ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
-                    if (ar != null) strat = "VOICE_CALL";
-                }
+                    // ── S_A31_IN: setCommunicationDevice(earpiece) + MODE_IN_COMMUNICATION (API 31+) ─
+                    // AOSP Android 14 strict: MODE_IN_CALL có thể bị block với SecurityException
+                    // cho non-telephony apps. MODE_IN_COMMUNICATION luôn được phép.
+                    if (ar == null && OperatingSystem.IsAndroidVersionAtLeast(31))
+                    {
+                        ar = TrySetCommunicationDeviceStrategy(Mode.InCommunication, SRC_VOICE_COMM);
+                        if (ar != null) strat = "A31_EARPIECE+IN_COMM";
+                    }
 
-                // ── S2: VOICE_DOWNLINK alone — explicit caller audio ─────────────────────
-                // Cùng permission wall nhưng một số OEM HAL (Exynos/Snapdragon) expose
-                // downlink channel mà không cần system permission.
-                if (ar == null)
-                {
-                    ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
-                    if (ar != null) strat = "VOICE_DOWNLINK";
-                }
+                    // ── S1: VOICE_CALL alone ─────────────────────────────────────────────
+                    // Thường bị block bởi CAPTURE_AUDIO_OUTPUT permission nhưng thử 1 lần.
+                    if (ar == null)
+                    {
+                        ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
+                        if (ar != null) strat = "VOICE_CALL";
+                    }
 
-                // ── S3–S6: BT SCO virtual-HFP trick ──────────────────────────────────────
-                // startBluetoothSco() (deprecated API 31) + Mode.InCall buộc audio HAL tạo
-                // software SCO path. Trên Samsung OneUI 6.0 (API 34), cơ chế này vẫn hoạt
-                // động tốt vì Samsung giữ backward compatibility.
-                // Retry 3 lần với timeout 3s/lần (tăng từ 2.5s cho Android 14 Bluetooth stack chậm hơn).
-                if (ar == null)
-                {
-                    SetModeInCallSafe();
-                    bool scoUp = await StartBluetoothScoWithRetryAsync(ctx);
-                    Log.Info(TAG, $"BT SCO result: {scoUp}");
-
-                    // S3: SCO + VOICE_CALL
-                    ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
-                    if (ar != null) strat = scoUp ? "SCO+VOICE_CALL" : "SCO_TRY+VOICE_CALL";
-
-                    // S4: SCO + VOICE_DOWNLINK
+                    // ── S2: VOICE_DOWNLINK alone ─────────────────────────────────────────
+                    // Một số OEM HAL (Exynos/Snapdragon non-Samsung) expose downlink channel.
                     if (ar == null)
                     {
                         ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
-                        if (ar != null) strat = scoUp ? "SCO+VOICE_DOWNLINK" : "SCO_TRY+VOICE_DOWNLINK";
+                        if (ar != null) strat = "VOICE_DOWNLINK";
                     }
 
-                    // S5: SCO + VOICE_COMM + IN_CALL ← SAMSUNG ONEUI BEST BET
-                    // Samsung HAL route full call audio (cả 2 chiều) vào VOICE_COMMUNICATION
-                    // khi BT SCO đang active trong IN_CALL mode.
+                    // ── S3–S6: BT SCO virtual-HFP trick (generic, timeout 3000ms×3) ────
                     if (ar == null)
                     {
-                        ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
-                        if (ar != null) strat = scoUp ? "SCO+VOICE_COMM+IN_CALL" : "SCO_TRY+VOICE_COMM+IN_CALL";
-                    }
+                        SetModeInCallSafe();
+                        bool scoUp = await StartBluetoothScoWithRetryAsync(ctx);
+                        Log.Info(TAG, $"BT SCO result: {scoUp}");
 
-                    // S6: SCO + MIC — Snapdragon HAL đôi khi route call audio qua MIC source
-                    if (ar == null)
-                    {
-                        ar = TryAudioRecord(AudioSource.Mic, useCallMode: false);
-                        if (ar != null) strat = scoUp ? "SCO+MIC" : "SCO_TRY+MIC";
+                        // S3: SCO + VOICE_CALL
+                        ar = TryAudioRecord(SRC_VOICE_CALL, useCallMode: false);
+                        if (ar != null) strat = scoUp ? "SCO+VOICE_CALL" : "SCO_TRY+VOICE_CALL";
+
+                        // S4: SCO + VOICE_DOWNLINK
+                        if (ar == null)
+                        {
+                            ar = TryAudioRecord(SRC_VOICE_DOWNLINK, useCallMode: false);
+                            if (ar != null) strat = scoUp ? "SCO+VOICE_DOWNLINK" : "SCO_TRY+VOICE_DOWNLINK";
+                        }
+
+                        // S5: SCO + VOICE_COMM + IN_CALL
+                        if (ar == null)
+                        {
+                            ar = TryAudioRecord(SRC_VOICE_COMM, useCallMode: false);
+                            if (ar != null) strat = scoUp ? "SCO+VOICE_COMM+IN_CALL" : "SCO_TRY+VOICE_COMM+IN_CALL";
+                        }
+
+                        // S6: SCO + MIC — Snapdragon HAL fallback
+                        if (ar == null)
+                        {
+                            ar = TryAudioRecord(AudioSource.Mic, useCallMode: false);
+                            if (ar != null) strat = scoUp ? "SCO+MIC" : "SCO_TRY+MIC";
+                        }
                     }
                 }
 
@@ -502,10 +574,17 @@ namespace FraudGuardAI.Platforms.Android.Services
         }
 
         /// <summary>
-        /// Khởi động BT SCO với retry. Trên API 31+ thử setCommunicationDevice(BT_SCO) trước.
-        /// Retry tối đa 3 lần, timeout 3s/lần (tăng từ 2.5s cho Bluetooth stack Android 14+).
+        /// Khởi động BT SCO với retry.
+        ///
+        /// Samsung: timeoutMs=2000, maxRetries=2 — BT stack Samsung nhanh hơn (~1-1.5s).
+        /// Generic: timeoutMs=3000, maxRetries=3 — Android 14 BT stack có thể chậm hơn.
+        ///
+        /// Trên API 31+: thử setCommunicationDevice(BT_SCO) trước (nhanh và reliable hơn
+        /// startBluetoothSco() deprecated). Samsung thường không có BT device thật nhưng
+        /// startBluetoothSco() vẫn tạo software SCO path trong audio HAL.
         /// </summary>
-        private async Task<bool> StartBluetoothScoWithRetryAsync(Context ctx)
+        private async Task<bool> StartBluetoothScoWithRetryAsync(
+            Context ctx, int timeoutMs = 3000, int maxRetries = 3)
         {
             // API 31+: nếu có BT SCO device đang kết nối, dùng setCommunicationDevice() mới
             // Nhanh hơn và reliable hơn startBluetoothSco() deprecated.
@@ -533,18 +612,17 @@ namespace FraudGuardAI.Platforms.Android.Services
             }
 
             // Legacy SCO API (deprecated API 31 nhưng vẫn hoạt động trên Samsung/Xiaomi API 34)
-            const int MAX_RETRIES = 3;
-            for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                bool result = await StartBluetoothScoAsync(ctx, timeoutMs: 3000);
+                bool result = await StartBluetoothScoAsync(ctx, timeoutMs: timeoutMs);
                 if (result)
                 {
-                    Log.Info(TAG, $"BT SCO connected on attempt {attempt}/{MAX_RETRIES}");
+                    Log.Info(TAG, $"BT SCO connected on attempt {attempt}/{maxRetries}");
                     return true;
                 }
-                Log.Warn(TAG, $"BT SCO attempt {attempt}/{MAX_RETRIES} failed");
-                if (attempt < MAX_RETRIES)
-                    await Task.Delay(500);
+                Log.Warn(TAG, $"BT SCO attempt {attempt}/{maxRetries} failed");
+                if (attempt < maxRetries)
+                    await Task.Delay(300); // giảm từ 500ms — Samsung reconnect nhanh hơn
             }
             return false;
         }
@@ -713,9 +791,12 @@ namespace FraudGuardAI.Platforms.Android.Services
         }
 
         /// <summary>
-        /// Test nhanh AudioRecord: start → read 1 buffer (≈256ms) → check energy.
-        /// Dùng cho S0 (VOICE_COMM_NORMAL) để phát hiện OEM HAL không có call audio.
-        /// Trả về true nếu phát hiện audio energy > threshold.
+        /// Kiểm tra AudioRecord có thực sự capture call audio không.
+        /// Dùng cho S0 (VOICE_COMM_NORMAL) để loại OEM HAL không route call audio vào VOICE_COMM.
+        ///
+        /// Đọc tối đa 4 buffers (~1 giây) — dừng sớm ngay khi phát hiện audio thật.
+        /// Lý do tăng từ 1→4 buffers: caller vừa nhấc máy thường im lặng 300-700ms đầu
+        /// trước khi nói "Xin chào" → verify 256ms (1 buffer) cũ hay bị false-negative.
         /// </summary>
         private static bool VerifyAudioHasContent(AudioRecord ar)
         {
@@ -723,9 +804,17 @@ namespace FraudGuardAI.Platforms.Android.Services
             {
                 ar.StartRecording();
                 var buf = new byte[BUFFER_SIZE];
-                int bytesRead = ar.Read(buf, 0, buf.Length);
+                for (int i = 0; i < 4; i++) // tối đa ~1s (4 × 256ms/buffer)
+                {
+                    int bytesRead = ar.Read(buf, 0, buf.Length);
+                    if (bytesRead > 0 && !IsAbsoluteSilence(buf, bytesRead))
+                    {
+                        ar.Stop();
+                        return true; // có audio thật — dừng sớm, không cần đọc thêm
+                    }
+                }
                 ar.Stop();
-                return bytesRead > 0 && !IsAbsoluteSilence(buf, bytesRead);
+                return false; // 1s toàn silence → OEM không route call audio qua path này
             }
             catch
             {
