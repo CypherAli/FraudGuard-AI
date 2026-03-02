@@ -214,12 +214,17 @@ namespace FraudGuardAI.Platforms.Android.Services
             {
                 while (_isCapturing && !ct.IsCancellationRequested)
                 {
-                    if (_audioRecord == null || _audioRecord.RecordingState != RecordState.Recording)
+                    // Fix 47: Capture _audioRecord to a local before the null/state check.
+                    // StopAsync() can run concurrently and set _audioRecord=null between the
+                    // check and ReadAsync(), causing ObjectDisposedException (same pattern as
+                    // Fix 30 applied to AudioStreamingServiceLowLevel.cs).
+                    var ar = _audioRecord;
+                    if (ar == null || ar.RecordingState != RecordState.Recording)
                         break;
 
                     try
                     {
-                        int bytesRead = await _audioRecord.ReadAsync(pcmBuf, 0, pcmBuf.Length);
+                        int bytesRead = await ar.ReadAsync(pcmBuf, 0, pcmBuf.Length);
 
                         if (bytesRead <= 0)
                         {

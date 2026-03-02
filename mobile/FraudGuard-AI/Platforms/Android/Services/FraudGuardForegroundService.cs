@@ -49,14 +49,27 @@ namespace FraudGuardAI.Platforms.Android.Services
             // TypeMicrophone đủ cho mọi trường hợp: MIC capture + PSTN-SCO đều dùng AudioRecord.
             // TypeMediaProjection KHÔNG được dùng — yêu cầu active token từ MediaProjectionManager,
             // không phù hợp với Bluetooth SCO routing (đây không phải screen capture).
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+            // Fix 48: Wrap StartForeground() in try/catch. On Android 14+ (API 34),
+            // startForeground() can throw ForegroundServiceStartNotAllowedException if the
+            // app was not in the foreground recently. An uncaught exception here crashes the
+            // service process. We degrade gracefully instead of hard-crashing.
+            try
             {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification,
-                    global::Android.Content.PM.ForegroundService.TypeMicrophone);
+                if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+                {
+                    StartForeground(SERVICE_NOTIFICATION_ID, notification,
+                        global::Android.Content.PM.ForegroundService.TypeMicrophone);
+                }
+                else
+                {
+                    StartForeground(SERVICE_NOTIFICATION_ID, notification);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification);
+                System.Diagnostics.Debug.WriteLine($"[ForegroundService] StartForeground failed: {ex.Message}");
+                StopSelf();
+                return StartCommandResult.NotSticky;
             }
 
             System.Diagnostics.Debug.WriteLine("[ForegroundService] Service started - App will continue running in background");

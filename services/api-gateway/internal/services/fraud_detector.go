@@ -282,6 +282,15 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 			}
 			ch := make(chan agentOutcome, 1)
 			go func() {
+				// Fix 44: recover() inside inner goroutine. The outer goroutine's recover()
+				// does NOT protect panics in this nested goroutine — each goroutine needs its own
+				// defer/recover. Without this, a Gemini client panic crashes the whole server.
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("⚠️ [%s] Recovered panic in Gemini agent goroutine: %v", deviceID, r)
+						ch <- agentOutcome{nil, fmt.Errorf("gemini agent panic: %v", r)}
+					}
+				}()
 				r, e := GlobalGeminiClient.RunFraudDetectionAgent(txt, history)
 				ch <- agentOutcome{r, e}
 			}()

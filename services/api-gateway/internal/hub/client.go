@@ -136,7 +136,13 @@ func (c *Client) handleTextMessage(message []byte) {
 	}
 
 	// Process the report (add to blacklist, etc.)
+	// Fix 43: add recover() so a panic inside ProcessFraudReport cannot crash the server.
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("⚠️ [%s] Recovered panic in ProcessFraudReport: %v", c.deviceID, r)
+			}
+		}()
 		if err := services.ProcessFraudReport(report); err != nil {
 			log.Printf("⚠️ [%s] ProcessFraudReport error: %v", c.deviceID, err)
 		}

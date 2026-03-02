@@ -443,8 +443,16 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 			}
 		}
 
-		// Receive deepfake score (blocks until goroutine sends, or immediately if disabled)
-		deepfakeScore := <-deepfakeChan
+		// Fix 45: select with ctx.Done() as an extra safety net alongside Fix 37's recover().
+		// If the goroutine somehow panics before recover() fires (e.g. runtime.Goexit()),
+		// ctx timeout guarantees the pipeline is never permanently blocked.
+		var deepfakeScore int
+		select {
+		case deepfakeScore = <-deepfakeChan:
+		case <-ctx.Done():
+			deepfakeScore = 0
+			log.Printf("⚠️ [%s] Deepfake analysis timed out — using score=0", deviceID)
+		}
 
 		if transcript == "" {
 			return
