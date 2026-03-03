@@ -93,7 +93,11 @@ type AgentAnalysisResult struct {
 	Explanation  string   `json:"explanation"`
 	Confidence   string   `json:"confidence"`
 	ToolsUsed    []string `json:"tools_used"`    // tools Gemini đã gọi
-	AutoReported bool     `json:"auto_reported"` // có tự report vào blacklist không
+	AutoReported bool     `json:"auto_reported"` // đã xác nhận đủ điều kiện để report
+
+	// Human-in-the-loop: khi Gemini muốn report nhưng cần user xác nhận
+	PendingReportPhone  string `json:"pending_report_phone,omitempty"`
+	PendingReportReason string `json:"pending_report_reason,omitempty"`
 }
 
 // --- Tool definitions cố định ---
@@ -130,18 +134,44 @@ var fraudDetectionTools = []AgentTool{
 				},
 			},
 			{
-				Name:        "auto_report",
-				Description: "Tự động báo cáo số điện thoại lừa đảo vào blacklist cộng đồng khi có bằng chứng rõ ràng (độ tin cậy cao). Chỉ gọi khi CHẮC CHẮN là lừa đảo.",
+				Name: "verify_scam_intent",
+				Description: "BẮt BUỘC gọi trước auto_report. Xác minh NGƯỜI GỊI (không phải chủ điện thoại) " +
+					"có đủ ít nhất 2 dấu hiệu lừa đảo cụ thể: đòi OTP/mã xác nhận, yêu cầu chuyển tiền vào số lạ, " +
+					"yêu cầu cài app điều khiển từ xa (AnyDesk/Teamviewer), giả mạo danh tính kết hợp đe dọa/áp lực.",
 				Parameters: FunctionParams{
 					Type: "object",
 					Properties: map[string]Property{
 						"phone_number": {
 							Type:        "string",
-							Description: "Số điện thoại cần report",
+							Description: "Số điện thoại của NGƯỜI GỊI cần xác minh",
+						},
+						"scam_signals": {
+							Type:        "string",
+							Description: "Liệt kê dấu hiệu lừa đảo cụ thể từ lời nói NGƯỜI GỊI (không phải người nghe)",
+						},
+						"caller_context": {
+							Type:        "string",
+							Description: "Người gọi tự xưng là ai (công an, ngân hàng, bưu điện, người quen...)",
+						},
+					},
+					Required: []string{"phone_number", "scam_signals"},
+				},
+			},
+			{
+				Name: "auto_report",
+				Description: "Gửi yêu cầu chặn số lừa đảo để người dùng xác nhận — KHÔNG ghi thẳng vào blacklist. " +
+					"CHỈ gọi SAU KHI verify_scam_intent đã trả về verify_ok=true. " +
+					"KHÔNG gọi nếu: số trong danh bạ, là ngân hàng/tổ chức hợp pháp, hoặc chưa gọi verify_scam_intent.",
+				Parameters: FunctionParams{
+					Type: "object",
+					Properties: map[string]Property{
+						"phone_number": {
+							Type:        "string",
+							Description: "Số điện thoại NGƯỜI GỊI cần report",
 						},
 						"reason": {
 							Type:        "string",
-							Description: "Lý do báo cáo: bao gồm loại lừa đảo và bằng chứng ngắn gọn từ transcript (ví dụ: 'Giả mạo công an, yêu cầu chuyển tiền 50 triệu để giải quyết vụ án')",
+							Description: "Bằng chứng lừa đảo cụ thể từ transcript",
 						},
 					},
 					Required: []string{"phone_number", "reason"},
@@ -160,6 +190,8 @@ func executeTool(toolName string, args map[string]interface{}) map[string]interf
 		return executeCheckBlacklist(args)
 	case "get_fraud_stats":
 		return executeGetFraudStats(args)
+	case "verify_scam_intent":
+		return executeVerifyScamIntent(args)
 	case "auto_report":
 		return executeAutoReport(args)
 	default:
@@ -304,8 +336,56 @@ func isValidPhoneNumber(phone string) bool {
 	return cleaned[0] == '+' || (cleaned[0] >= '0' && cleaned[0] <= '9')
 }
 
-// executeAutoReport tự động báo cáo số điện thoại lừa đảo vào blacklist cộng đồng.
-// Params theo PDF spec: phone_number + reason (gộp loại lừa đảo + bằng chứng).
+// executeVerifyScamIntent xác minh xem có đủ bằng chứng lừa đảo cụ thể không.
+// Đây là bước gate bắt buộc trước khi gọi auto_report.
+func executeVerifyScamIntent(args map[string]interface{}) map[string]interface{} {
+	phone, _ := args["phone_number"].(string)
+	signals, _ := args["scam_signals"].(string)
+	callerCtx, _ := args["caller_context"].(string)
+
+	phone = strings.TrimSpace(phone)
+	signals = strings.TrimSpace(signals)
+
+	if phone == "" || signals == "" {
+		return map[string]interface{}{
+			"verify_ok": false,
+			"message":   "Thiếu thông tin: cần phone_number và scam_signals",
+		}
+	}
+
+	strongSignals := []string{"OTP", "mã xác nhận", "chuyển tiền", "AnyDesk", "Teamviewer", "Ultraviewer",
+		"tài khoản bị khóa", "bắt giữ", "khởi tố", "triệu đồng", "công an", "viện kiểm sát",
+		"toà án", "cài app", "mã PIN", "số tài khoản", "bảo hiểm xã hội"}
+
+	signalCount := 0
+	signalsLower := strings.ToLower(signals)
+	for _, s := range strongSignals {
+		if strings.Contains(signalsLower, strings.ToLower(s)) {
+			signalCount++
+		}
+	}
+
+	if signalCount < 2 {
+		log.Printf("SHIELD: [Agent:verify_scam_intent] Rejected %s -- only %d signal(s): %s", phone, signalCount, signals)
+		return map[string]interface{}{
+			"verify_ok":    false,
+			"signal_count": signalCount,
+			"message":      fmt.Sprintf("Chưa đủ bằng chứng (%d/2). Cần ít nhất 2 dấu hiệu lừa đảo.", signalCount),
+		}
+	}
+
+	log.Printf("OK: [Agent:verify_scam_intent] Approved %s -- %d signals: %s (ctx: %s)", phone, signalCount, signals, callerCtx)
+	return map[string]interface{}{
+		"verify_ok":    true,
+		"phone_number": phone,
+		"signal_count": signalCount,
+		"message":      fmt.Sprintf("Xác nhận đủ bằng chứng (%d dấu hiệu). Có thể gọi auto_report.", signalCount),
+	}
+}
+
+// executeAutoReport — human-in-the-loop version.
+// Thay vì ghi thẳng vào DB, trả về pending_confirmation=true để mobile app
+// hiển thị notification xác nhận cho người dùng trước khi block.
 func executeAutoReport(args map[string]interface{}) map[string]interface{} {
 	phone, _ := args["phone_number"].(string)
 	reason, _ := args["reason"].(string)
@@ -317,57 +397,28 @@ func executeAutoReport(args map[string]interface{}) map[string]interface{} {
 			"message": "Thiếu số điện thoại",
 		}
 	}
-	// Validate phone number format before touching the database
+
 	if !isValidPhoneNumber(phone) {
-		log.Printf("⚠️ [Agent:auto_report] Invalid phone format rejected: %q", phone)
+		log.Printf("WARNING: [Agent:auto_report] Invalid phone format: %q", phone)
 		return map[string]interface{}{
 			"success": false,
-			"message": fmt.Sprintf("Định dạng số điện thoại không hợp lệ: %q — bỏ qua báo cáo", phone),
+			"message": fmt.Sprintf("Định dạng số điện thoại không hợp lệ: %q", phone),
 		}
 	}
 	if reason == "" {
-		reason = "[AI Auto-Report] Phát hiện dấu hiệu lừa đảo"
+		reason = "Phát hiện dấu hiệu lừa đảo"
 	}
-	if db.Pool == nil {
-		return map[string]interface{}{
-			"success": false,
-			"message": "Database không khả dụng",
-		}
+	if len(reason) > 500 {
+		reason = reason[:500]
 	}
 
-	fullReason := "[AI Auto-Report] " + reason
-	if len(fullReason) > 500 {
-		fullReason = fullReason[:500]
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Upsert: thêm mới hoặc tăng reported_count nếu đã có
-	_, err := db.Pool.Exec(ctx,
-		`INSERT INTO blacklist (phone_number, reason, confidence_score, reported_count, status)
-		 VALUES ($1, $2, 0.75, 1, 'active')
-		 ON CONFLICT (phone_number) DO UPDATE
-		 SET reported_count = blacklist.reported_count + 1,
-		     reason = EXCLUDED.reason,
-		     last_reported_at = NOW(),
-		     updated_at = NOW()`,
-		phone, fullReason,
-	)
-	if err != nil {
-		log.Printf("❌ [Agent:auto_report] Failed to report %s: %v", phone, err)
-		return map[string]interface{}{
-			"success": false,
-			"message": fmt.Sprintf("Lỗi khi báo cáo: %v", err),
-		}
-	}
-
-	log.Printf("✅ [Agent:auto_report] Auto-reported %s: %s", phone, reason)
+	log.Printf("PENDING: [Agent:auto_report] Pending confirmation for %s: %s", phone, reason)
 	return map[string]interface{}{
-		"success":      true,
-		"phone_number": phone,
-		"reason":       reason,
-		"message":      fmt.Sprintf("Đã tự động báo cáo %s vào blacklist cộng đồng", phone),
+		"success":              false,
+		"pending_confirmation": true,
+		"phone_number":         phone,
+		"reason":               reason,
+		"message":              fmt.Sprintf("Yêu cầu xác nhận chặn số %s đã được gửi đến người dùng", phone),
 	}
 }
 
@@ -395,20 +446,26 @@ func (g *GeminiClient) RunFraudDetectionAgent(transcript string, previousContext
 %sTranscript mới nhất:
 "%s"
 
-NHIỆM VỤ của bạn:
-1. Phân tích transcript để tìm dấu hiệu lừa đảo
-2. Nếu phát hiện SỐ ĐIỆN THOẠI trong transcript → gọi tool check_blacklist ngay
-3. Gọi get_fraud_stats nếu cần thêm context về mức độ lừa đảo hiện tại
-4. Nếu CHẮC CHẮN là lừa đảo (confidence=high) VÀ có số điện thoại rõ ràng → gọi auto_report
-5. Sau khi dùng tools, đưa ra kết quả JSON cuối cùng
+PHÂN BIỆT NGƯỜI NÓI (Speaker Diarization):
+- NGƯỜI GỊI (Caller) = người chủ động gọi đến, có thể là kẻ lừa đảo. Thường hỏi/yêu cầu/đe dọa.
+- NGƯỜI NGHE (User) = chủ điện thoại đang được bảo vệ. Thường trả lời/phản ứng.
+- CHỈ phân tích hành vi và ngôn ngữ của NGƯỜI GỊI khi đánh giá rủi ro lừa đảo.
+- Nếu NGƯỜI NGHE nói "tôi muốn chuyển tiền" theo đề nghị của NGƯỜI GỊI → đây là nạn nhân đang bị thao túng, không phải dấu hiệu lừa đảo của họ.
 
-Các dạng lừa đảo phổ biến tại VN:
-- Giả mạo công an/viện kiểm sát, đe dọa bắt giữ
-- Lừa chuyển tiền/OTP/mã xác nhận
-- Giả mạo ngân hàng thông báo tài khoản bị khóa
-- Yêu cầu cài app lạ (Anydesk, Teamviewer, Ultraviewer)
-- Trúng thưởng giả, đầu tư dễ kiếm tiền
-- Tạo áp lực thời gian, yêu cầu giữ bí mật
+NHIỆM VỤ:
+1. Phân tích transcript, xác định hành vi NGƯỜI GỊI
+2. Nếu phát hiện SỐ ĐIỆN THOẠI trong transcript → gọi check_blacklist ngay
+3. Gọi get_fraud_stats nếu cần thêm context
+4. Nếu NGƯỜI GỊI có dấu hiệu lừa đảo RÕ RÀNG → gọi verify_scam_intent (BẮt BUỘC trước auto_report)
+5. Chỉ gọi auto_report sau khi verify_scam_intent trả về verify_ok=true
+6. Đưa ra kết quả JSON cuối cùng
+
+Dạng lừa đảo phổ biến tại VN (chú ý hành vi NGƯỜI GỊI):
+- Giả mạo công an/viện kiểm sát → đe dọa bắt giữ → yêu cầu chuyển tiền "phong tỏa tài sản"
+- Giả mạo ngân hàng → thông báo tài khoản bị khóa → yêu cầu OTP/mã xác nhận
+- Yêu cầu cài AnyDesk/Teamviewer/Ultraviewer để "hỗ trợ kỹ thuật"
+- Trúng thưởng/đầu tư → yêu cầu chuyển tiền "phí" trước
+- Tạo áp lực khẩn cấp, yêu cầu giữ bí mật, không cho hỏi người thân
 
 Kết quả cuối cùng phải là JSON:
 {"is_fraud": true/false, "risk_score": 0-100, "fraud_type": "...", "explanation": "...", "confidence": "high/medium/low"}`,
@@ -492,6 +549,17 @@ Kết quả cuối cùng phải là JSON:
 
 				// Thực thi tool
 				toolResult := executeTool(toolName, toolArgs)
+
+				// Khi auto_report trả về pending_confirmation — lưu vào result để fraud_detector
+				// có thể gửi pending_report alert tới mobile thay vì ghi thẳng DB.
+				if toolName == "auto_report" {
+					if pending, ok := toolResult["pending_confirmation"].(bool); ok && pending {
+						if ph, ok := toolResult["phone_number"].(string); ok && ph != "" && result.PendingReportPhone == "" {
+							result.PendingReportPhone = ph
+							result.PendingReportReason, _ = toolResult["reason"].(string)
+						}
+					}
+				}
 
 				// Thêm function response vào conversation
 				toolResponseParts = append(toolResponseParts, GeminiPart{

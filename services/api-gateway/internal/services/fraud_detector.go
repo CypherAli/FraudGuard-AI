@@ -353,9 +353,6 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 
 				msg := fmt.Sprintf("AI Agent phát hiện: %s - %s (Độ tin cậy: %s)",
 					agentResult.FraudType, agentResult.Explanation, agentResult.Confidence)
-				if agentResult.AutoReported {
-					msg += " | Đã tự động báo cáo vào blacklist"
-				}
 
 				alert := models.AlertMessage{
 					Type:       "alert",
@@ -367,6 +364,23 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 					Message:    msg,
 				}
 				alertCallback(alert)
+
+				// Human-in-the-loop: nếu agent muốn report → gửi pending_report alert
+				// để mobile hiển thị notification xác nhận cho user.
+				if agentResult.PendingReportPhone != "" {
+					pendingAlert := models.AlertMessage{
+						Type:        "pending_report",
+						AlertType:   "PENDING",
+						Confidence:  float64(agentResult.RiskScore) / 100.0,
+						Transcript:  txt,
+						Keywords:    []string{agentResult.PendingReportPhone},
+						Timestamp:   time.Now().Unix(),
+						Message:     agentResult.PendingReportReason,
+						PhoneNumber: agentResult.PendingReportPhone,
+					}
+					alertCallback(pendingAlert)
+					log.Printf("📋 [%s] Pending report sent to mobile for user confirmation: %s", fd.deviceID, agentResult.PendingReportPhone)
+				}
 			}
 		}(fd.deviceID, text, historyCopy)
 	}
