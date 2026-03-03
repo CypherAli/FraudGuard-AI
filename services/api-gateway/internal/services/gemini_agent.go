@@ -1,4 +1,4 @@
-package services
+﻿package services
 
 // gemini_agent.go — Agentic AI layer cho FraudGuard
 //
@@ -135,7 +135,7 @@ var fraudDetectionTools = []AgentTool{
 			},
 			{
 				Name: "verify_scam_intent",
-				Description: "BẮt BUỘC gọi trước auto_report. Xác minh NGƯỜI GỊI (không phải chủ điện thoại) " +
+				Description: "BẮt BUỘC gọi trước auto_report. Xác minh NGƯỜI G\u1eccI (không phải chủ điện thoại) " +
 					"có đủ ít nhất 2 dấu hiệu lừa đảo cụ thể: đòi OTP/mã xác nhận, yêu cầu chuyển tiền vào số lạ, " +
 					"yêu cầu cài app điều khiển từ xa (AnyDesk/Teamviewer), giả mạo danh tính kết hợp đe dọa/áp lực.",
 				Parameters: FunctionParams{
@@ -143,11 +143,11 @@ var fraudDetectionTools = []AgentTool{
 					Properties: map[string]Property{
 						"phone_number": {
 							Type:        "string",
-							Description: "Số điện thoại của NGƯỜI GỊI cần xác minh",
+							Description: "Số điện thoại của NGƯỜI G\u1eccI cần xác minh",
 						},
 						"scam_signals": {
 							Type:        "string",
-							Description: "Liệt kê dấu hiệu lừa đảo cụ thể từ lời nói NGƯỜI GỊI (không phải người nghe)",
+							Description: "Liệt kê dấu hiệu lừa đảo cụ thể từ lời nói NGƯỜI G\u1eccI (không phải người nghe)",
 						},
 						"caller_context": {
 							Type:        "string",
@@ -167,7 +167,7 @@ var fraudDetectionTools = []AgentTool{
 					Properties: map[string]Property{
 						"phone_number": {
 							Type:        "string",
-							Description: "Số điện thoại NGƯỜI GỊI cần report",
+							Description: "Số điện thoại NGƯỜI G\u1eccI cần report",
 						},
 						"reason": {
 							Type:        "string",
@@ -447,20 +447,20 @@ func (g *GeminiClient) RunFraudDetectionAgent(transcript string, previousContext
 "%s"
 
 PHÂN BIỆT NGƯỜI NÓI (Speaker Diarization):
-- NGƯỜI GỊI (Caller) = người chủ động gọi đến, có thể là kẻ lừa đảo. Thường hỏi/yêu cầu/đe dọa.
+- NGƯỜI G\u1eccI (Caller) = người chủ động gọi đến, có thể là kẻ lừa đảo. Thường hỏi/yêu cầu/đe dọa.
 - NGƯỜI NGHE (User) = chủ điện thoại đang được bảo vệ. Thường trả lời/phản ứng.
-- CHỈ phân tích hành vi và ngôn ngữ của NGƯỜI GỊI khi đánh giá rủi ro lừa đảo.
-- Nếu NGƯỜI NGHE nói "tôi muốn chuyển tiền" theo đề nghị của NGƯỜI GỊI → đây là nạn nhân đang bị thao túng, không phải dấu hiệu lừa đảo của họ.
+- CHỈ phân tích hành vi và ngôn ngữ của NGƯỜI G\u1eccI khi đánh giá rủi ro lừa đảo.
+- Nếu NGƯỜI NGHE nói "tôi muốn chuyển tiền" theo đề nghị của NGƯỜI G\u1eccI → đây là nạn nhân đang bị thao túng, không phải dấu hiệu lừa đảo của họ.
 
 NHIỆM VỤ:
-1. Phân tích transcript, xác định hành vi NGƯỜI GỊI
+1. Phân tích transcript, xác định hành vi NGƯỜI G\u1eccI
 2. Nếu phát hiện SỐ ĐIỆN THOẠI trong transcript → gọi check_blacklist ngay
 3. Gọi get_fraud_stats nếu cần thêm context
-4. Nếu NGƯỜI GỊI có dấu hiệu lừa đảo RÕ RÀNG → gọi verify_scam_intent (BẮt BUỘC trước auto_report)
+4. Nếu NGƯỜI G\u1eccI có dấu hiệu lừa đảo RÕ RÀNG → gọi verify_scam_intent (BẮt BUỘC trước auto_report)
 5. Chỉ gọi auto_report sau khi verify_scam_intent trả về verify_ok=true
 6. Đưa ra kết quả JSON cuối cùng
 
-Dạng lừa đảo phổ biến tại VN (chú ý hành vi NGƯỜI GỊI):
+Dạng lừa đảo phổ biến tại VN (chú ý hành vi NGƯỜI G\u1eccI):
 - Giả mạo công an/viện kiểm sát → đe dọa bắt giữ → yêu cầu chuyển tiền "phong tỏa tài sản"
 - Giả mạo ngân hàng → thông báo tài khoản bị khóa → yêu cầu OTP/mã xác nhận
 - Yêu cầu cài AnyDesk/Teamviewer/Ultraviewer để "hỗ trợ kỹ thuật"
@@ -486,7 +486,7 @@ Kết quả cuối cùng phải là JSON:
 	reportedNumbers := make(map[string]struct{})
 
 	// Agentic loop — tối đa 4 vòng (1 call + 3 tool calls)
-	maxIterations := 4
+	maxIterations := 6
 	for i := 0; i < maxIterations; i++ {
 		agentResp, err := g.callGeminiWithTools(messages)
 		if err != nil {
