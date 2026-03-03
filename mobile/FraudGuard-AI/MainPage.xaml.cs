@@ -191,17 +191,48 @@ namespace FraudGuardAI
         {
             try
             {
-                var deviceId = _settings.GetDeviceId();
-                var allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
+                var baseUrl = _settings.GetApiBaseUrl();
+
+                // ── 1. Blacklist count (public endpoint, no auth needed) ─────────
+                // Shows total numbers blocked regardless of auth status.
+                try
+                {
+                    using var publicHttp = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                    var blResp = await publicHttp.GetAsync($"{baseUrl}/api/blacklist");
+                    if (blResp.IsSuccessStatusCode)
+                    {
+                        var blJson = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                            await blResp.Content.ReadAsStringAsync());
+                        if (blJson.TryGetProperty("count", out var countEl))
+                            _stats.BlockedTotal = countEl.GetInt32();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Blacklist fetch failed: {ex.Message}");
+                }
+
+                // ── 2. Call history (requires auth — handle 401 gracefully) ──────
+                List<Models.CallLog> allCalls;
+                try
+                {
+                    var deviceId = _settings.GetDeviceId();
+                    allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
+                }
+                catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("401") || ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] History 401 — token expired or missing, skipping call stats");
+                    allCalls = new List<Models.CallLog>();
+                }
 
                 // ── Single-pass aggregation — tránh lặp qua list nhiều lần ──────
                 var sevenDaysAgo    = DateTime.Today.AddDays(-7);
                 var fourteenDaysAgo = DateTime.Today.AddDays(-14);
                 var today           = DateTime.Today;
 
-                int totalFraud      = 0;
                 int fraudToday      = 0;
                 int seriousThreats  = 0;
+                int totalFraud      = 0;
                 int thisWeekFraud   = 0;
                 int lastWeekFraud   = 0;
                 int thisWeekAll     = 0;
@@ -216,7 +247,7 @@ namespace FraudGuardAI
                     {
                         totalFraud++;
                         if (callDate == today)                              fraudToday++;
-                        if (c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD) seriousThreats++;
+                        if (c.Confidence >= AppConstants.CRITICAL_RISK_THRESHOLD) seriousThreats++;
                         if (callDate >= sevenDaysAgo)                       thisWeekFraud++;
                         else if (callDate >= fourteenDaysAgo)               lastWeekFraud++;
                     }
@@ -225,7 +256,6 @@ namespace FraudGuardAI
                     else if (callDate >= fourteenDaysAgo)                   lastWeekAll++;
                 }
 
-                _stats.BlockedTotal      = totalFraud;
                 _stats.BlockedToday      = fraudToday;
                 _stats.SeriousThreats    = seriousThreats;
                 _stats.ProtectionEfficiency = allCalls.Count > 0
@@ -318,7 +348,12 @@ namespace FraudGuardAI
             if (ReportLabelEntry != null) ReportLabelEntry.Text = string.Empty;
             _selectedThreatLevel = "Medium";
             UpdateThreatLevelUI();
-            if (SubmitReportButton != null) { SubmitReportButton.IsEnabled = false; SubmitReportButton.Opacity = 0.4; }
+            if (SubmitReportButton != null)
+            {
+                SubmitReportButton.Text = "Report number"; // Reset text from previous "Submitting..." state
+                SubmitReportButton.IsEnabled = false;
+                SubmitReportButton.Opacity = 0.4;
+            }
 
             // Show overlay + animate panel from below
             if (ReportSheetOverlay != null)
@@ -452,6 +487,9 @@ namespace FraudGuardAI
                 Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
                 _ = Services.BlacklistCacheService.Instance.SyncFromServerAsync();
 
+                // Refresh stats so BlockedTotal updates immediately after report
+                _ = LoadDashboardStatsAsync();
+
                 string suffix = response.IsSuccessStatusCode
                     ? string.Empty
                     : response.StatusCode == System.Net.HttpStatusCode.Unauthorized
@@ -468,6 +506,7 @@ namespace FraudGuardAI
             {
                 System.Diagnostics.Debug.WriteLine($"[MainPage] Report error: {ex.Message}");
                 Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
+                _ = LoadDashboardStatsAsync();
                 await DisplayAlert(
                     T("Main_ReportSuccessTitle"),
                     string.Format(CultureInfo.CurrentCulture,

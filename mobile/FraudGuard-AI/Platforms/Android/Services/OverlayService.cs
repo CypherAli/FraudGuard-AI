@@ -25,7 +25,7 @@ namespace FraudGuardAI.Platforms.Android.Services
         private TextView? _statusText;
         private ImageView? _closeButton;
         private bool _isShowing = false;
-        private EventHandler<View.TouchEventArgs>? _touchHandler;
+        private EventHandler<global::Android.Views.View.TouchEventArgs>? _touchHandler;
 
         public override IBinder? OnBind(Intent? intent) => null;
 
