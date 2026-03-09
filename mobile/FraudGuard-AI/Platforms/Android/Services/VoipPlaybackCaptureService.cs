@@ -104,21 +104,21 @@ namespace FraudGuardAI.Platforms.Android.Services
                 // ChannelOut.Mono = CHANNEL_OUT_MONO = 4 ✓  (đúng cho AudioPlaybackCapture)
                 // ChannelIn.Mono = CHANNEL_IN_MONO  = 16 ✗  (dành cho AudioRecord thông thường)
                 _audioRecord = new AudioRecord.Builder()
-                    .SetAudioPlaybackCaptureConfig(captureConfig)
+                    .SetAudioPlaybackCaptureConfig(captureConfig!)!
                     .SetAudioFormat(new AudioFormat.Builder()
-                        .SetEncoding(global::Android.Media.Encoding.Pcm16bit)
-                        .SetSampleRate(SAMPLE_RATE)
-                        .SetChannelMask(ChannelOut.Mono)  // CHANNEL_OUT_MONO = 4, correct for playback capture
-                        .Build())
-                    .SetBufferSizeInBytes(bufSize)
+                        .SetEncoding(global::Android.Media.Encoding.Pcm16bit)!
+                        .SetSampleRate(SAMPLE_RATE)!
+                        .SetChannelMask(ChannelOut.Mono)!  // CHANNEL_OUT_MONO = 4, correct for playback capture
+                        .Build()!)!
+                    .SetBufferSizeInBytes(bufSize)!
                     .Build();
 
-                if (_audioRecord.State != State.Initialized)
+                if (_audioRecord == null || _audioRecord.State != State.Initialized)
                 {
                     // Common cause: regular PSTN call — modem audio not accessible via AudioPlaybackCapture.
                     // VoIP apps (Zalo, Messenger, WhatsApp) route audio through Android audio stack so they work.
                     OnError("PSTN_OR_INIT_FAILED");
-                    _audioRecord.Dispose();
+                    _audioRecord?.Dispose();
                     _audioRecord = null;
                     return false;
                 }
@@ -214,12 +214,17 @@ namespace FraudGuardAI.Platforms.Android.Services
             {
                 while (_isCapturing && !ct.IsCancellationRequested)
                 {
-                    if (_audioRecord?.RecordingState != RecordState.Recording)
+                    // Fix 47: Capture _audioRecord to a local before the null/state check.
+                    // StopAsync() can run concurrently and set _audioRecord=null between the
+                    // check and ReadAsync(), causing ObjectDisposedException (same pattern as
+                    // Fix 30 applied to AudioStreamingServiceLowLevel.cs).
+                    var ar = _audioRecord;
+                    if (ar == null || ar.RecordingState != RecordState.Recording)
                         break;
 
                     try
                     {
-                        int bytesRead = await _audioRecord.ReadAsync(pcmBuf, 0, pcmBuf.Length);
+                        int bytesRead = await ar.ReadAsync(pcmBuf, 0, pcmBuf.Length);
 
                         if (bytesRead <= 0)
                         {
@@ -290,7 +295,7 @@ namespace FraudGuardAI.Platforms.Android.Services
         // ── Helpers ───────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Trả true nếu chunk là silence tuyệt đối (năng lượng < 80).
+        /// Trả true nếu chunk là silence tuyệt đối (năng lượng &lt; 80).
         /// Ngưỡng VoIP thấp hơn mic vì playback audio thường louder.
         /// </summary>
         private static bool IsAbsoluteSilence(byte[] buf, int len)
@@ -300,7 +305,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             for (int i = 0; i < len; i += BYTES_PER_SAMPLE)
             {
                 short s = (short)(buf[i] | (buf[i + 1] << 8));
-                energy += Math.Abs(s);
+                energy += Math.Abs((int)s); // cast to int: Math.Abs(short.MinValue) ném OverflowException
             }
             return samples > 0 && (energy / samples) < 80;
         }
@@ -317,6 +322,10 @@ namespace FraudGuardAI.Platforms.Android.Services
         {
             _cts?.Cancel();
             _cts?.Dispose();
+            // Fix 40: Release the MediaProjection token so the system can reclaim the
+            // screen-capture resource. Without Stop(), the token stays alive until GC,
+            // which can block new MediaProjection requests on some Samsung/Pixel devices.
+            try { _mediaProjection?.Stop(); _mediaProjection = null; } catch { }
             try { _audioRecord?.Release(); } catch { }
             try { _audioRecord?.Dispose(); } catch { }
             _lock.Dispose();

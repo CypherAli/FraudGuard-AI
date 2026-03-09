@@ -26,12 +26,15 @@ namespace FraudGuardAI
         private bool _isProtectionActive = false;
         private bool _isConnecting = false;
         private bool _voipCaptureActive = false;
+        private bool _isHandlingExpiry = false;          // prevent duplicate expired-session dialogs
+        private DateTime _lastTokenCheckTime = DateTime.MinValue; // throttle OnAppearing token checks
         private CancellationTokenSource? _animationCts;
         private DashboardStats _stats = new();
         // Tracks which banner alert started the auto-dismiss timer (prevents race condition)
         private string _lastBannerAlertId = string.Empty;
         // Stored handler reference so we can unsubscribe in OnDisappearing (prevents memory leak)
         private System.ComponentModel.PropertyChangedEventHandler _locChangeHandler;
+        private Action<byte[], int>? _pcmDataHandler;
 
         // ── UI Animation fields ──
         private RadarDrawable _radarDrawable = new();
@@ -83,6 +86,7 @@ namespace FraudGuardAI
                 _audioService.AlertReceived += OnAlertReceived;
                 _audioService.ErrorOccurred += OnErrorOccurred;
                 _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
+                _audioService.SessionExpired += OnSessionExpiredFromService;
             }
             LocalizationResourceManager.Instance.PropertyChanged += _locChangeHandler;
 
@@ -93,6 +97,9 @@ namespace FraudGuardAI
 
             // Refresh dashboard stats each time user navigates back to MainPage
             _ = LoadDashboardStatsAsync();
+
+            // Background token validation — runs silently, redirects to login if expired
+            _ = CheckTokenOnResumeAsync();
         }
 
         protected override void OnDisappearing()
@@ -104,6 +111,9 @@ namespace FraudGuardAI
                 _audioService.AlertReceived -= OnAlertReceived;
                 _audioService.ErrorOccurred -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+                _audioService.SessionExpired -= OnSessionExpiredFromService;
+                if (_pcmDataHandler != null)
+                    _audioService.PcmDataAvailable -= _pcmDataHandler;
             }
             LocalizationResourceManager.Instance.PropertyChanged -= _locChangeHandler;
 
@@ -146,7 +156,8 @@ namespace FraudGuardAI
                 _audioService = App.GetAudioService();
 
                 // Wire PCM data to the waveform visualiser (fire-and-forget; no UI thread needed)
-                _audioService.PcmDataAvailable += (buf, len) => _waveformDrawable.UpdateFromPcm(buf, len);
+                _pcmDataHandler = (buf, len) => _waveformDrawable.UpdateFromPcm(buf, len);
+                _audioService.PcmDataAvailable += _pcmDataHandler;
 
                 // NOTE: event subscriptions moved to OnAppearing() to prevent memory leaks
                 // Check if already streaming from previous session
@@ -180,35 +191,76 @@ namespace FraudGuardAI
         {
             try
             {
-                var deviceId = _settings.GetDeviceId();
-                var allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
-                var fraudCalls = allCalls.Where(c => c.IsFraud).ToList();
+                var baseUrl = _settings.GetApiBaseUrl();
 
-                _stats.BlockedTotal  = fraudCalls.Count;
-                _stats.BlockedToday  = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date == DateTime.Today);
-                _stats.SeriousThreats = fraudCalls.Count(c => c.Confidence >= AppConstants.HIGH_RISK_THRESHOLD);
+                // ── 1. Blacklist count (public endpoint, no auth needed) ─────────
+                // Shows total numbers blocked regardless of auth status.
+                try
+                {
+                    using var publicHttp = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                    var blResp = await publicHttp.GetAsync($"{baseUrl}/api/blacklist");
+                    if (blResp.IsSuccessStatusCode)
+                    {
+                        var blJson = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                            await blResp.Content.ReadAsStringAsync());
+                        if (blJson.TryGetProperty("count", out var countEl))
+                            _stats.BlockedTotal = countEl.GetInt32();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] Blacklist fetch failed: {ex.Message}");
+                }
 
-                // ── Protection efficiency (overall) ──────────────────────────────
-                _stats.ProtectionEfficiency = allCalls.Count > 0
-                    ? Math.Min(100, (fraudCalls.Count / (double)allCalls.Count) * 100)
-                    : 0;
+                // ── 2. Call history (requires auth — handle 401 gracefully) ──────
+                List<Models.CallLog> allCalls;
+                try
+                {
+                    var deviceId = _settings.GetDeviceId();
+                    allCalls = await _historyService.GetHistoryAsync(deviceId, limit: 1000);
+                }
+                catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("401") || ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainPage] History 401 — token expired or missing, skipping call stats");
+                    allCalls = new List<Models.CallLog>();
+                }
 
-                // ── Weekly change: fraud calls blocked in the last 7 days ────────
-                var sevenDaysAgo   = DateTime.Today.AddDays(-7);
+                // ── Single-pass aggregation — tránh lặp qua list nhiều lần ──────
+                var sevenDaysAgo    = DateTime.Today.AddDays(-7);
                 var fourteenDaysAgo = DateTime.Today.AddDays(-14);
+                var today           = DateTime.Today;
 
-                int thisWeekFraud = fraudCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
-                int lastWeekFraud = fraudCalls.Count(c =>
-                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
-                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+                int fraudToday      = 0;
+                int seriousThreats  = 0;
+                int totalFraud      = 0;
+                int thisWeekFraud   = 0;
+                int lastWeekFraud   = 0;
+                int thisWeekAll     = 0;
+                int lastWeekAll     = 0;
 
-                _stats.WeeklyChange = thisWeekFraud; // "+X this week"
+                foreach (var c in allCalls)
+                {
+                    var callDate = c.Timestamp.ToLocalTime().Date;
+                    bool isFraud = c.IsFraud;
 
-                // ── Efficiency change: this week vs previous week ─────────────────
-                int thisWeekAll = allCalls.Count(c => c.Timestamp.ToLocalTime().Date >= sevenDaysAgo);
-                int lastWeekAll = allCalls.Count(c =>
-                    c.Timestamp.ToLocalTime().Date >= fourteenDaysAgo &&
-                    c.Timestamp.ToLocalTime().Date <  sevenDaysAgo);
+                    if (isFraud)
+                    {
+                        totalFraud++;
+                        if (callDate == today)                              fraudToday++;
+                        if (c.Confidence >= AppConstants.CRITICAL_RISK_THRESHOLD) seriousThreats++;
+                        if (callDate >= sevenDaysAgo)                       thisWeekFraud++;
+                        else if (callDate >= fourteenDaysAgo)               lastWeekFraud++;
+                    }
+
+                    if (callDate >= sevenDaysAgo)                           thisWeekAll++;
+                    else if (callDate >= fourteenDaysAgo)                   lastWeekAll++;
+                }
+
+                _stats.BlockedToday      = fraudToday;
+                _stats.SeriousThreats    = seriousThreats;
+                _stats.ProtectionEfficiency = allCalls.Count > 0
+                    ? Math.Min(100, (totalFraud / (double)allCalls.Count) * 100) : 0;
+                _stats.WeeklyChange = thisWeekFraud;
 
                 double thisWeekEff = thisWeekAll > 0
                     ? Math.Min(100, (thisWeekFraud / (double)thisWeekAll) * 100) : 0;
@@ -296,7 +348,12 @@ namespace FraudGuardAI
             if (ReportLabelEntry != null) ReportLabelEntry.Text = string.Empty;
             _selectedThreatLevel = "Medium";
             UpdateThreatLevelUI();
-            if (SubmitReportButton != null) { SubmitReportButton.IsEnabled = false; SubmitReportButton.Opacity = 0.4; }
+            if (SubmitReportButton != null)
+            {
+                SubmitReportButton.Text = "Report number"; // Reset text from previous "Submitting..." state
+                SubmitReportButton.IsEnabled = false;
+                SubmitReportButton.Opacity = 0.4;
+            }
 
             // Show overlay + animate panel from below
             if (ReportSheetOverlay != null)
@@ -392,7 +449,7 @@ namespace FraudGuardAI
             if (SubmitReportButton != null)
             {
                 SubmitReportButton.IsEnabled = false;
-                SubmitReportButton.Text = "⏳ Đang gửi…";
+                SubmitReportButton.Text = T("Main_ReportSubmitting");
                 SubmitReportButton.Opacity = 0.7;
             }
 
@@ -430,11 +487,14 @@ namespace FraudGuardAI
                 Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
                 _ = Services.BlacklistCacheService.Instance.SyncFromServerAsync();
 
+                // Refresh stats so BlockedTotal updates immediately after report
+                _ = LoadDashboardStatsAsync();
+
                 string suffix = response.IsSuccessStatusCode
                     ? string.Empty
                     : response.StatusCode == System.Net.HttpStatusCode.Unauthorized
-                        ? "\n(Lưu cục bộ — đăng nhập lại để đồng bộ server)"
-                        : "\n(Đã lưu cục bộ — sẽ đồng bộ server sau)";
+                        ? T("Main_ReportLocalSaveUnauth")
+                        : T("Main_ReportLocalSaveError");
 
                 await DisplayAlert(
                     T("Main_ReportSuccessTitle"),
@@ -446,11 +506,12 @@ namespace FraudGuardAI
             {
                 System.Diagnostics.Debug.WriteLine($"[MainPage] Report error: {ex.Message}");
                 Services.BlacklistCacheService.Instance.AddToLocalCache(phoneNumber);
+                _ = LoadDashboardStatsAsync();
                 await DisplayAlert(
                     T("Main_ReportSuccessTitle"),
                     string.Format(CultureInfo.CurrentCulture,
                         T("Main_ReportSuccessMessage"), phoneNumber)
-                        + "\n(Đã lưu cục bộ — không có kết nối mạng)",
+                        + T("Main_ReportLocalSaveOffline"),
                     T("Common_OK"));
             }
         }
@@ -656,6 +717,51 @@ namespace FraudGuardAI
             });
         }
 
+        /// <summary>
+        /// Called by AudioService.SessionExpired event when WebSocket upgrade returns 401
+        /// or server sends PolicyViolation (1008) close frame.
+        /// </summary>
+        private void OnSessionExpiredFromService(object? sender, EventArgs e)
+        {
+            // Guard: only show dialog once even if multiple events fire simultaneously
+            if (_isHandlingExpiry) return;
+            _isHandlingExpiry = true;
+            _ = HandleExpiredToken().ContinueWith(_ => _isHandlingExpiry = false);
+        }
+
+        /// <summary>
+        /// Validates the stored token against the server on app resume.
+        /// Throttled to once per 30 minutes to avoid spamming the server.
+        /// Silently redirects to login if token is expired — only when protection is NOT active.
+        /// </summary>
+        private async Task CheckTokenOnResumeAsync()
+        {
+            try
+            {
+                // Throttle: skip if checked recently
+                if ((DateTime.UtcNow - _lastTokenCheckTime).TotalMinutes < 30) return;
+
+                // Skip if protection is currently active (ValidateTokenWithServerAsync runs before start anyway)
+                if (_isProtectionActive || _isConnecting) return;
+
+                var token = await Microsoft.Maui.Storage.SecureStorage.Default.GetAsync("auth_token");
+                if (string.IsNullOrEmpty(token)) return; // Not logged in — nothing to check
+
+                _lastTokenCheckTime = DateTime.UtcNow;
+                var valid = await ValidateTokenWithServerAsync();
+                if (!valid && !_isHandlingExpiry)
+                {
+                    _isHandlingExpiry = true;
+                    await HandleExpiredToken();
+                    _isHandlingExpiry = false;
+                }
+            }
+            catch
+            {
+                // Network error on resume — skip silently, will be caught when user starts protection
+            }
+        }
+
         private async Task ShowConnectionFailed()
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -698,16 +804,10 @@ namespace FraudGuardAI
 
                 bool accepted = await MainThread.InvokeOnMainThreadAsync(() =>
                     (Application.Current?.MainPage ?? this).DisplayAlert(
-                        "🛡️ Chế độ Call-Shield",
-                        "Bật để FraudGuard phân tích cả giọng kẻ lừa đảo (đầu dây bên kia).\n\n" +
-                        "⚠️ Lưu ý: Call-Shield chỉ hoạt động với cuộc gọi VoIP qua ứng dụng " +
-                        "(Zalo, Messenger, WhatsApp, Telegram...).\n\n" +
-                        "📞 Cuộc gọi điện thoại thông thường (mạng di động): âm thanh đầu dây bên kia " +
-                        "đi qua chip modem phần cứng, Android không cho phép ứng dụng nào bắt được — " +
-                        "đây là giới hạn của hệ điều hành, không phải lỗi ứng dụng.\n\n" +
-                        "Android sẽ hiển thị hộp thoại \"Bắt đầu ghi màn hình\" — FraudGuard KHÔNG ghi màn hình.",
-                        "Bật Call-Shield (VoIP)",
-                        "Để sau"
+                        T("Main_CallShieldTitle"),
+                        T("Main_CallShieldMessage"),
+                        T("Main_CallShieldEnable"),
+                        T("Main_CallShieldLater")
                     )
                 );
 
@@ -720,30 +820,30 @@ namespace FraudGuardAI
 
                 if (projection == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[MainPage] MediaProjection denied by user");
+                    // Either user denied OR SecurityException (ForegroundService lacks TypeMediaProjection).
+                    // VoIP capture is unavailable.  Only attempt PSTN SCO immediately if there
+                    // is already an active phone call (user opened Call-Shield mid-call).
+                    // Otherwise, CallStateReceiver will start PSTN SCO automatically on OFFHOOK —
+                    // no need to hold AudioMode.InCall 24/7 waiting for a future call.
+                    System.Diagnostics.Debug.WriteLine("[MainPage] MediaProjection unavailable — falling back to SCO");
+#if ANDROID
+                    if (FraudGuardAI.Platforms.Android.Services.CallStateReceiver.IsCallActive)
+                        _ = TryPstnScoFallbackAsync();
+                    else
+                        System.Diagnostics.Debug.WriteLine("[MainPage] No active call — PSTN SCO will start on next OFFHOOK via CallStateReceiver");
+#endif
                     return;
                 }
 
-                // Subscribe to VoIP status BEFORE starting so we catch PSTN_OR_INIT_FAILED
+                // Subscribe to VoIP status BEFORE starting so we catch PSTN_OR_INIT_FAILED / PSTN_DETECTED
                 Action<string>? voipStatusHandler = null;
                 voipStatusHandler = (status) =>
                 {
                     if (status == "PSTN_DETECTED")
                     {
                         _audioService.VoipStatusChanged -= voipStatusHandler;
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            StatusLabel.Text = "📞 Cuộc gọi thường — Mic đang phân tích giọng bạn";
-                            StatusLabel.TextColor = Color.FromArgb("#FBBF24");
-                            // Suggest speakerphone for better capture
-                            _ = (Application.Current?.MainPage ?? this).DisplayAlert(
-                                "ℹ️ Cuộc gọi điện thoại thường",
-                                "Đây là cuộc gọi qua mạng di động (không phải VoIP).\n\n" +
-                                "Call-Shield không thể bắt giọng đầu dây bên kia theo giới hạn Android.\n\n" +
-                                "💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.",
-                                "OK"
-                            );
-                        });
+                        // VoIP confirmed this is a PSTN call — silently attempt SCO capture
+                        _ = TryPstnScoFallbackAsync();
                     }
                 };
                 _audioService.VoipStatusChanged += voipStatusHandler;
@@ -755,30 +855,76 @@ namespace FraudGuardAI
                 {
                     if (voipStarted)
                     {
-                        StatusLabel.Text = "🛡️ Bảo vệ toàn diện (Mic + VoIP)";
+                        StatusLabel.Text = T("Main_StatusFullProtectionVoip");
                         StatusLabel.TextColor = Color.FromArgb("#22D3EE");
                     }
                     else
                     {
                         // Immediate init failure (PSTN_OR_INIT_FAILED or Android < 10)
                         _audioService.VoipStatusChanged -= voipStatusHandler; // clean up
-                        StatusLabel.Text = "📞 Mic đang phân tích — bật Loa ngoài để nghe cả 2 bên";
+                        StatusLabel.Text = T("Main_StatusTryingCallAudio");
+                        StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                    }
+                });
+
+                // If VoIP init failed immediately, try SCO only during an active call.
+                // (Same rule: avoid occupying AudioMode.InCall outside of a real call.)
+                if (!voipStarted)
+                {
+#if ANDROID
+                    if (FraudGuardAI.Platforms.Android.Services.CallStateReceiver.IsCallActive)
+                        _ = TryPstnScoFallbackAsync();
+                    else
+                        System.Diagnostics.Debug.WriteLine("[MainPage] VoIP failed, no active call — PSTN SCO deferred to next OFFHOOK");
+#endif
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Call-Shield error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fallback: try Virtual BT HFP (SCO) capture when VoIP capture fails/detects PSTN.
+        /// Silently tries 4 strategies — only shows dialog if ALL strategies fail.
+        /// </summary>
+        private async Task TryPstnScoFallbackAsync()
+        {
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusLabel.Text = T("Main_StatusScoStarting");
+                    StatusLabel.TextColor = Color.FromArgb("#FBBF24");
+                });
+
+                bool scoStarted = await _audioService.StartPstnScoAsync();
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (scoStarted)
+                    {
+                        StatusLabel.Text = T("Main_StatusFullProtectionSco");
+                        StatusLabel.TextColor = Color.FromArgb("#22D3EE");
+                        System.Diagnostics.Debug.WriteLine("[MainPage] PSTN SCO capture STARTED ✅");
+                    }
+                    else
+                    {
+                        // All SCO strategies failed — fall back to speakerphone tip
+                        StatusLabel.Text = T("Main_StatusSpeakerphoneTip");
                         StatusLabel.TextColor = Color.FromArgb("#FBBF24");
                         _ = (Application.Current?.MainPage ?? this).DisplayAlert(
-                            "ℹ️ Call-Shield không khởi động được",
-                            "Có thể do:\n" +
-                            "• Đây là cuộc gọi di động thông thường (giới hạn Android)\n" +
-                            "• Ứng dụng VoIP chưa có âm thanh\n" +
-                            "• Thiết bị cần Android 10+\n\n" +
-                            "💡 Bật Loa ngoài để FraudGuard thu được cả 2 giọng qua micro.",
-                            "OK"
+                            T("Main_CallShieldScoFailTitle"),
+                            T("Main_CallShieldScoFailMessage"),
+                            T("Common_OK")
                         );
                     }
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainPage] Call-Shield error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainPage] TryPstnScoFallbackAsync error: {ex.Message}");
             }
         }
 #endif

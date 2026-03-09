@@ -4,12 +4,49 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fraudguard/api-gateway/internal/db"
 	"github.com/fraudguard/api-gateway/internal/models"
 	"github.com/jackc/pgx/v5"
 )
+
+// ── In-memory fallback store ─────────────────────────────────────────────────
+// Used when PostgreSQL is unavailable (local dev / offline mode).
+// InitSQLite activates this store; all repository functions fall back to it
+// automatically whenever db.Pool is nil.
+
+var (
+	memMu      sync.RWMutex
+	memStore   []models.CallLog   // ordered oldest-first
+	memEnabled bool               // set to true by InitSQLite
+	memNextID  atomic.Int64       // auto-increment surrogate key
+)
+
+// InitSQLite initialises the in-memory fallback store used when PostgreSQL is
+// not available.  The dataSourceName argument is accepted for API compatibility
+// but is not used — data lives only in process memory for the lifetime of the
+// server process.
+//
+// Call this once from main() before starting the HTTP server.  It is safe to
+// call even when PostgreSQL is also available; the in-memory store is only
+// consulted when db.Pool is nil.
+func InitSQLite(dataSourceName string) error {
+	memMu.Lock()
+	defer memMu.Unlock()
+
+	if memEnabled {
+		log.Println("⚠️  InitSQLite: already initialised, skipping")
+		return nil
+	}
+
+	memStore = make([]models.CallLog, 0, 64)
+	memEnabled = true
+	log.Printf("📦 In-memory fallback store initialised (dataSource=%q ignored — using RAM)", dataSourceName)
+	return nil
+}
 
 const selectCallLogCols = `
 	SELECT id, device_id, start_time, end_time, duration, risk_score, deepfake_score,
@@ -34,9 +71,13 @@ func scanCallLogs(rows pgx.Rows) ([]models.CallLog, error) {
 	return logs, rows.Err()
 }
 
-// SaveCallLog saves a call log entry to PostgreSQL.
+// SaveCallLog saves a call log entry to PostgreSQL, or to the in-memory store
+// when PostgreSQL is unavailable and InitSQLite has been called.
 func SaveCallLog(logEntry *models.CallLog) error {
 	if db.Pool == nil {
+		if memEnabled {
+			return memSaveCallLog(logEntry)
+		}
 		log.Println("⚠️ Database not available, skipping call log save")
 		return nil
 	}
@@ -70,10 +111,13 @@ func SaveCallLog(logEntry *models.CallLog) error {
 	return nil
 }
 
-// GetHistory retrieves call history from PostgreSQL ordered by most recent first.
-// If deviceID is empty, returns history for all devices.
+// GetHistory retrieves call history from PostgreSQL (or the in-memory fallback),
+// ordered by most recent first.  If deviceID is empty, returns history for all devices.
 func GetHistory(deviceID string, limit int) ([]models.CallLog, error) {
 	if db.Pool == nil {
+		if memEnabled {
+			return memGetHistory(deviceID, limit, false)
+		}
 		return nil, fmt.Errorf("database not available")
 	}
 	if limit <= 0 {
@@ -114,6 +158,9 @@ func GetAllHistory(limit int) ([]models.CallLog, error) {
 // GetCallLogByID retrieves a single call log entry by ID.
 func GetCallLogByID(id uint) (*models.CallLog, error) {
 	if db.Pool == nil {
+		if memEnabled {
+			return memGetCallLogByID(id)
+		}
 		return nil, fmt.Errorf("database not available")
 	}
 
@@ -135,9 +182,12 @@ func GetCallLogByID(id uint) (*models.CallLog, error) {
 	return &cl, nil
 }
 
-// GetFraudCallsOnly retrieves only fraudulent calls from PostgreSQL.
+// GetFraudCallsOnly retrieves only fraudulent calls from PostgreSQL (or the in-memory fallback).
 func GetFraudCallsOnly(deviceID string, limit int) ([]models.CallLog, error) {
 	if db.Pool == nil {
+		if memEnabled {
+			return memGetHistory(deviceID, limit, true)
+		}
 		return nil, fmt.Errorf("database not available")
 	}
 	if limit <= 0 {
@@ -168,4 +218,65 @@ func GetFraudCallsOnly(deviceID string, limit int) ([]models.CallLog, error) {
 	logs, err := scanCallLogs(rows)
 	log.Printf("🚨 Retrieved %d fraud call(s) for device: %s", len(logs), deviceID)
 	return logs, err
+}
+
+// ── In-memory helper functions ────────────────────────────────────────────────
+
+// memSaveCallLog appends a call log to the in-memory store, assigning a
+// monotonically-increasing surrogate ID and setting CreatedAt to now.
+func memSaveCallLog(logEntry *models.CallLog) error {
+	id := memNextID.Add(1)
+	logEntry.ID = uint(id)
+	logEntry.CreatedAt = time.Now().UTC()
+
+	memMu.Lock()
+	memStore = append(memStore, *logEntry)
+	memMu.Unlock()
+
+	log.Printf("💾 [mem] Saved Call Log [ID: %d] for Device %s (RiskScore: %d, IsFraud: %v)",
+		logEntry.ID, logEntry.DeviceID, logEntry.RiskScore, logEntry.IsFraud)
+	return nil
+}
+
+// memGetHistory retrieves call logs from the in-memory store ordered newest-first.
+// Pass deviceID="" to get logs for all devices.
+// Pass fraudOnly=true to return only entries where IsFraud is true.
+func memGetHistory(deviceID string, limit int, fraudOnly bool) ([]models.CallLog, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	memMu.RLock()
+	defer memMu.RUnlock()
+
+	result := make([]models.CallLog, 0, min(limit, len(memStore)))
+	// Iterate in reverse so the most recent entries come first.
+	for i := len(memStore) - 1; i >= 0 && len(result) < limit; i-- {
+		cl := memStore[i]
+		if deviceID != "" && cl.DeviceID != deviceID {
+			continue
+		}
+		if fraudOnly && !cl.IsFraud {
+			continue
+		}
+		result = append(result, cl)
+	}
+
+	log.Printf("📋 [mem] Retrieved %d call log(s) for device: %q (fraudOnly=%v)",
+		len(result), deviceID, fraudOnly)
+	return result, nil
+}
+
+// memGetCallLogByID looks up a single call log by its surrogate ID.
+func memGetCallLogByID(id uint) (*models.CallLog, error) {
+	memMu.RLock()
+	defer memMu.RUnlock()
+
+	for i := range memStore {
+		if memStore[i].ID == id {
+			cl := memStore[i] // copy so caller cannot mutate the store
+			return &cl, nil
+		}
+	}
+	return nil, fmt.Errorf("call log %d not found in memory store", id)
 }

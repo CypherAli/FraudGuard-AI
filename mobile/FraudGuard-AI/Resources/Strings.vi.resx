@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="Common_OK" xml:space="preserve">
     <value>OK</value>
@@ -154,6 +154,51 @@ Hãy cân nhắc kết thúc cuộc gọi ngay.</value>
   <data name="Main_ReportSuccessMessage" xml:space="preserve">
     <value>Đã báo cáo số {0}</value>
   </data>
+  <data name="Main_ReportSubmitting" xml:space="preserve">
+    <value>⏳ Đang gửi…</value>
+  </data>
+  <data name="Main_ReportLocalSaveUnauth" xml:space="preserve">
+    <value>\n(Lưu cục bộ — đăng nhập lại để đồng bộ server)</value>
+  </data>
+  <data name="Main_ReportLocalSaveError" xml:space="preserve">
+    <value>\n(Đã lưu cục bộ — sẽ đồng bộ server sau)</value>
+  </data>
+  <data name="Main_ReportLocalSaveOffline" xml:space="preserve">
+    <value>\n(Đã lưu cục bộ — không có kết nối mạng)</value>
+  </data>
+  <data name="Main_CallShieldTitle" xml:space="preserve">
+    <value>🛡️ Chế độ Call-Shield</value>
+  </data>
+  <data name="Main_CallShieldMessage" xml:space="preserve">
+    <value>Bật để FraudGuard phân tích cả giọng kẻ lừa đảo (đầu dây bên kia).\n\n⚠️ Lưu ý: Call-Shield chỉ hoạt động với cuộc gọi VoIP qua ứng dụng (Zalo, Messenger, WhatsApp, Telegram...).\n\n📞 Cuộc gọi điện thoại thông thường (mạng di động): âm thanh đầu dây bên kia đi qua chip modem phần cứng, Android không cho phép ứng dụng nào bắt được — đây là giới hạn của hệ điều hành, không phải lỗi ứng dụng.\n\nAndroid sẽ hiển thị hộp thoại "Bắt đầu ghi màn hình" — FraudGuard KHÔNG ghi màn hình.</value>
+  </data>
+  <data name="Main_CallShieldEnable" xml:space="preserve">
+    <value>Bật Call-Shield (VoIP)</value>
+  </data>
+  <data name="Main_CallShieldLater" xml:space="preserve">
+    <value>Để sau</value>
+  </data>
+  <data name="Main_CallShieldScoFailTitle" xml:space="preserve">
+    <value>ℹ️ Call-Shield không bắt được âm thanh</value>
+  </data>
+  <data name="Main_CallShieldScoFailMessage" xml:space="preserve">
+    <value>FraudGuard đã thử tất cả phương pháp nhưng thiết bị không hỗ trợ bắt âm thanh cuộc gọi di động.\n\n💡 Mẹo: Bật Loa ngoài (Speakerphone) để micro thu được cả 2 giọng và FraudGuard phân tích được toàn bộ cuộc trò chuyện.</value>
+  </data>
+  <data name="Main_StatusFullProtectionVoip" xml:space="preserve">
+    <value>🛡️ Bảo vệ toàn diện (Mic + VoIP)</value>
+  </data>
+  <data name="Main_StatusTryingCallAudio" xml:space="preserve">
+    <value>⏳ Thử bắt âm thanh cuộc gọi...</value>
+  </data>
+  <data name="Main_StatusScoStarting" xml:space="preserve">
+    <value>⏳ Đang thử bắt âm thanh cuộc gọi (SCO)...</value>
+  </data>
+  <data name="Main_StatusFullProtectionSco" xml:space="preserve">
+    <value>🛡️ Bảo vệ toàn diện (Mic + PSTN-SCO)</value>
+  </data>
+  <data name="Main_StatusSpeakerphoneTip" xml:space="preserve">
+    <value>📞 Mic đang phân tích — bật Loa ngoài để nghe cả 2 bên</value>
+  </data>
   <data name="Main_Effectiveness" xml:space="preserve">
     <value>HIỆU QUẢ BẢO VỆ</value>
   </data>
@@ -201,6 +246,15 @@ Hãy cân nhắc kết thúc cuộc gọi ngay.</value>
   </data>
   <data name="Settings_NotUpdated" xml:space="preserve">
     <value>Chưa cập nhật</value>
+  </data>
+  <data name="Settings_UpdatePhone_Title" xml:space="preserve">
+    <value>Cập nhật số điện thoại</value>
+  </data>
+  <data name="Settings_UpdatePhone_Prompt" xml:space="preserve">
+    <value>Nhập số điện thoại của bạn:</value>
+  </data>
+  <data name="Settings_UpdatePhone_Placeholder" xml:space="preserve">
+    <value>0912 345 678</value>
   </data>
   <data name="Settings_EditProfile" xml:space="preserve">
     <value>Chỉnh sửa hồ sơ</value>
@@ -875,5 +929,11 @@ Kiểm tra:
   </data>
   <data name="Register_Password_Strong" xml:space="preserve">
     <value>Mật khẩu mạnh</value>
+  </data>
+  <data name="Service_NotificationTitle" xml:space="preserve">
+    <value>🛡️ Đang bảo vệ</value>
+  </data>
+  <data name="Service_NotificationContent" xml:space="preserve">
+    <value>Đang giám sát cuộc gọi để phát hiện lừa đảo</value>
   </data>
 </root>

@@ -68,6 +68,25 @@ func AutoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_device_id  ON call_logs(device_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_created_at ON call_logs(created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_is_fraud   ON call_logs(is_fraud)`,
+		// sessions: persists auth tokens across server restarts (Render free tier spins down)
+		`CREATE TABLE IF NOT EXISTS sessions (
+			token      VARCHAR(64) PRIMARY KEY,
+			email      VARCHAR(255) NOT NULL,
+			user_id    VARCHAR(64)  NOT NULL,
+			created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMPTZ  NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_email      ON sessions(email)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)`,
+		// rate_limits: persists OTP send/verify rate counters across server restarts.
+		// Without this, Render.com free-tier daily restarts silently reset all limits.
+		`CREATE TABLE IF NOT EXISTS rate_limits (
+			key        TEXT         PRIMARY KEY,
+			count      INT          NOT NULL DEFAULT 1,
+			first_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMPTZ  NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_rate_limits_expires_at ON rate_limits(expires_at)`,
 	}
 
 	for _, stmt := range ddlStatements {

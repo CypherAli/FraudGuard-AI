@@ -54,7 +54,7 @@ func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 	return &Client{
 		hub:      hub,
 		conn:     conn,
-		send:     make(chan []byte, 512), // Buffer 512 alerts; overflow drops with log warning
+		send:     make(chan []byte, 1024), // Buffer 1024 alerts; overflow drops with log warning
 		deviceID: deviceID,
 		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}
@@ -136,7 +136,13 @@ func (c *Client) handleTextMessage(message []byte) {
 	}
 
 	// Process the report (add to blacklist, etc.)
+	// Fix 43: add recover() so a panic inside ProcessFraudReport cannot crash the server.
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("⚠️ [%s] Recovered panic in ProcessFraudReport: %v", c.deviceID, r)
+			}
+		}()
 		if err := services.ProcessFraudReport(report); err != nil {
 			log.Printf("⚠️ [%s] ProcessFraudReport error: %v", c.deviceID, err)
 		}
@@ -145,6 +151,16 @@ func (c *Client) handleTextMessage(message []byte) {
 
 // sendAlert sends an alert message to this specific client
 func (c *Client) sendAlert(alert models.AlertMessage) {
+	// Fix 38: recover from "send on closed channel" panic that can occur when
+	// the Hub closes c.send (client disconnect) while an audio-processing goroutine
+	// is still completing and calling sendAlert. The panic is safe to swallow here
+	// because the client is already gone — the alert is inherently undeliverable.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("⚠️ [%s] sendAlert: recovered panic (channel closed on disconnect): %v", c.deviceID, r)
+		}
+	}()
+
 	log.Printf("📨 [%s] ===== SENDING ALERT TO CLIENT =====", c.deviceID)
 	log.Printf("📨 [%s] Alert: Type=%s, AlertType=%s, Confidence=%.2f",
 		c.deviceID, alert.Type, alert.AlertType, alert.Confidence)

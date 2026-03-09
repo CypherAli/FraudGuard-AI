@@ -8,11 +8,12 @@ namespace FraudGuardAI.Platforms.Android.Services
 {
     /// <summary>
     /// Foreground Service để đảm bảo app chạy ngầm và phát cảnh báo ngay cả khi màn hình tắt.
-    /// TypeMediaProjection bắt buộc từ Android 14 (API 34) khi dùng MediaProjection (Call-Shield).
+    /// TypeMicrophone: dùng cho AudioRecord (MIC + PSTN-SCO đều capture qua AudioRecord).
+    /// NOTE: TypeMediaProjection KHÔNG được dùng ở đây vì yêu cầu active MediaProjection token
+    ///       (user consent qua MediaProjectionManager) — app dùng Bluetooth SCO, không dùng MediaProjection.
     /// </summary>
     [Service(ForegroundServiceType =
-        global::Android.Content.PM.ForegroundService.TypeMicrophone |
-        global::Android.Content.PM.ForegroundService.TypeMediaProjection)]
+        global::Android.Content.PM.ForegroundService.TypeMicrophone)]
     public class FraudGuardForegroundService : Service
     {
         private const int SERVICE_NOTIFICATION_ID = 1001;
@@ -30,30 +31,45 @@ namespace FraudGuardAI.Platforms.Android.Services
 
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
-            // Tạo notification để hiển thị service đang chạy
-            var notification = CreateNotification(
-                "🛡️ Protection Active",
-                "Monitoring calls for fraud detection"
-            );
+            // Dùng localized strings nếu LocalizationResourceManager đã được khởi tạo.
+            // Fallback sang English nếu chưa sẵn sàng (e.g. service restart sau khi app bị kill).
+            string notifTitle   = "🛡️ Protection Active";
+            string notifContent = "Monitoring calls for fraud detection";
+            try
+            {
+                var rm = FraudGuardAI.Localization.LocalizationResourceManager.Instance;
+                notifTitle   = rm["Service_NotificationTitle"]   ?? notifTitle;
+                notifContent = rm["Service_NotificationContent"] ?? notifContent;
+            }
+            catch { /* LocalizationResourceManager chưa init — dùng fallback */ }
 
-            // Android 14 (API 34+): StartForeground PHẢI chỉ định foreground service type.
-            // TypeMediaProjection bắt buộc phải khai báo TRƯỚC khi gọi getMediaProjection().
-            // Android 10–13 (API 29–33): chỉ cần TypeMicrophone.
-            // Android < 10 (API < 29): gọi StartForeground 2-tham số.
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.UpsideDownCake) // API 34 = Android 14
+            var notification = CreateNotification(notifTitle, notifContent);
+
+            // Android 10+ (API 29+): StartForeground PHẢI chỉ định foreground service type.
+            // TypeMicrophone đủ cho mọi trường hợp: MIC capture + PSTN-SCO đều dùng AudioRecord.
+            // TypeMediaProjection KHÔNG được dùng — yêu cầu active token từ MediaProjectionManager,
+            // không phù hợp với Bluetooth SCO routing (đây không phải screen capture).
+            // Fix 48: Wrap StartForeground() in try/catch. On Android 14+ (API 34),
+            // startForeground() can throw ForegroundServiceStartNotAllowedException if the
+            // app was not in the foreground recently. An uncaught exception here crashes the
+            // service process. We degrade gracefully instead of hard-crashing.
+            try
             {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification,
-                    global::Android.Content.PM.ForegroundService.TypeMicrophone |
-                    global::Android.Content.PM.ForegroundService.TypeMediaProjection);
+                if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+                {
+                    StartForeground(SERVICE_NOTIFICATION_ID, notification,
+                        global::Android.Content.PM.ForegroundService.TypeMicrophone);
+                }
+                else
+                {
+                    StartForeground(SERVICE_NOTIFICATION_ID, notification);
+                }
             }
-            else if (Build.VERSION.SdkInt >= BuildVersionCodes.Q) // API 29 = Android 10
+            catch (Exception ex)
             {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification,
-                    global::Android.Content.PM.ForegroundService.TypeMicrophone);
-            }
-            else
-            {
-                StartForeground(SERVICE_NOTIFICATION_ID, notification);
+                System.Diagnostics.Debug.WriteLine($"[ForegroundService] StartForeground failed: {ex.Message}");
+                StopSelf();
+                return StartCommandResult.NotSticky;
             }
 
             System.Diagnostics.Debug.WriteLine("[ForegroundService] Service started - App will continue running in background");
@@ -145,9 +161,12 @@ namespace FraudGuardAI.Platforms.Android.Services
                         WakeLockFlags.Partial, // Chỉ giữ CPU, không giữ màn hình
                         "FraudGuard::AudioProcessing"
                     );
-                    // Timeout 4 giờ để tránh drain pin vô hạn
-                    _wakeLock?.Acquire(4 * 60 * 60 * 1000L);
-                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired with 4h timeout");
+                    // Acquire indefinite WakeLock — the ForegroundService lifecycle (OnDestroy →
+                    // ReleaseWakeLock) ensures it is always released when protection stops.
+                    // A fixed timeout (e.g. 4 h) would silently drop the WakeLock mid-call,
+                    // causing the CPU to sleep and halting audio recording.
+                    _wakeLock?.Acquire();
+                    System.Diagnostics.Debug.WriteLine("[ForegroundService] Wake lock acquired (indefinite, released on service stop)");
                 }
             }
             catch (Exception ex)

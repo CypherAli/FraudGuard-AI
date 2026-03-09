@@ -34,8 +34,11 @@ func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
 		Broadcast:  make(chan []byte, 256),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+		// Fix 46: buffered so that goroutines calling h.Register/h.Unregister are not
+		// blocked when the Hub Run loop is slow or during graceful shutdown. Without
+		// buffering, a goroutine doing h.Register<-client deadlocks if Run() has exited.
+		Register:   make(chan *Client, 100),
+		Unregister: make(chan *Client, 100),
 	}
 }
 

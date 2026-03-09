@@ -39,12 +39,35 @@ namespace FraudGuardAI.Platforms.Android.Services
 
                 var pdusObj = bundle.Get("pdus");
                 if (pdusObj == null) return;
-#pragma warning disable CS8600
-                var pdus = (Java.Lang.Object[])pdusObj;
-#pragma warning restore CS8600
+
+                // Android bundles PDUs as a Java byte[][] (array of raw byte arrays).
+                // GetParcelableArray("pdus") is the safest way to retrieve them;
+                // the direct Java.Lang.Object[] cast can throw on some ROM versions.
+                Java.Lang.Object[]? pdus = null;
+                try
+                {
+                    // API 33+ deprecates GetParcelableArray(string, Class) in favor of the
+                    // typed overload, but the typed overload is not available in older
+                    // Xamarin.Android bindings — suppress the deprecation warning.
+                    // In .NET MAUI 8, GetParcelableArray() returns IParcelable[]? —
+                    // double-cast via object to obtain Java.Lang.Object[] array.
+#pragma warning disable CS0618
+                    var rawParcelable = bundle.GetParcelableArray("pdus");
+#pragma warning restore CS0618
+                    if (rawParcelable != null)
+                        pdus = System.Array.ConvertAll(rawParcelable,
+                            p => (Java.Lang.Object)(object)p);
+                }
+                catch
+                {
+                    // Fallback: direct cast (works on most API levels via Xamarin bridge).
+                    // pdusObj is guaranteed non-null here (null check at line 41 already returned).
+                    try { pdus = (Java.Lang.Object[])pdusObj!; } catch { return; }
+                }
+
                 if (pdus == null || pdus.Length == 0) return;
 
-                string format = intent.GetStringExtra("format") ?? "3gpp";
+                string format = intent?.GetStringExtra("format") ?? "3gpp";
                 var messageBuilder = new StringBuilder();
                 string? senderAddress = null;
 

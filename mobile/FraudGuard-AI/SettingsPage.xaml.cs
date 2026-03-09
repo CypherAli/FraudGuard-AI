@@ -541,8 +541,8 @@ namespace FraudGuardAI.Pages
 
                 if (!string.IsNullOrEmpty(newName))
                 {
-                    UserNameLabel.Text = newName;
-                    AvatarInitials.Text = GetInitials(newName);
+                    if (UserNameLabel != null) UserNameLabel.Text = newName;
+                    if (AvatarInitials != null) AvatarInitials.Text = GetInitials(newName);
                     Preferences.Set("DisplayName", newName);
                     await DisplayAlert(
                         T("Settings_EditProfile_SuccessTitle"),
@@ -605,6 +605,12 @@ namespace FraudGuardAI.Pages
                 System.Diagnostics.Debug.WriteLine($"[SettingsPage] Avatar pick error: {ex.Message}");
                 await DisplayAlert(T("Settings_Avatar_ErrorTitle"), T("Settings_Avatar_ErrorMessage"), T("Common_OK"));
             }
+        }
+
+        private void OnAutoProtectionToggled(object sender, ToggledEventArgs e)
+        {
+            Preferences.Set(PREF_AUTO_PROTECTION, e.Value);
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] Auto protection: {e.Value}");
         }
 
         private void OnDarkModeToggled(object sender, ToggledEventArgs e)
@@ -774,7 +780,10 @@ namespace FraudGuardAI.Pages
                     return;
                 }
 
-                // Logout
+                // Logout — stop audio service FIRST to close WebSocket cleanly
+                // before the auth token is invalidated server-side.
+                await App.CleanupAudioService();
+
                 await _authService.LogoutAsync();
 
                 // Navigate to login page
@@ -824,11 +833,11 @@ namespace FraudGuardAI.Pages
                 if (current == notUpdated) current = "";
 
                 string newPhone = await DisplayPromptAsync(
-                    "Cập nhật số điện thoại",
-                    "Nhập số điện thoại của bạn:",
-                    "Lưu",
-                    "Hủy",
-                    placeholder: "0912345678",
+                    T("Settings_UpdatePhone_Title"),
+                    T("Settings_UpdatePhone_Prompt"),
+                    T("Settings_EditProfile_Save"),
+                    T("Settings_EditProfile_Cancel"),
+                    placeholder: T("Settings_UpdatePhone_Placeholder"),
                     initialValue: current,
                     keyboard: Keyboard.Telephone
                 );

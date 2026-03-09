@@ -20,6 +20,15 @@ namespace FraudGuardAI.Platforms.Android.Services
         private static volatile bool _isCallActive = false;
         private static volatile bool _wasProtectionAutoStarted = false;
 
+        // Tracks whether PSTN SCO was started by THIS receiver (not by user via Call Shield UI).
+        // Used to stop PSTN SCO (but not full protection) when a call ends and the user had
+        // already activated protection manually before the call started.
+        private static volatile bool _wasPstnScoAutoStarted = false;
+
+        // Pre-warm: WebSocket được connect sẵn trong lúc RINGING để giảm latency sau OFFHOOK.
+        // Nếu cuộc gọi bị reject/missed → disconnect WS trong IDLE handler.
+        private static volatile bool _wasPreConnected = false;
+
         // Debounce IDLE events: speakerphone toggle / audio re-route cũng fire IDLE,
         // cần chờ 1.5s để xác nhận cuộc gọi thực sự kết thúc (không phải chỉ đổi audio route)
         private static CancellationTokenSource? _idleDebounceToken;
@@ -75,6 +84,11 @@ namespace FraudGuardAI.Platforms.Android.Services
                         }
                     }
 
+                    // Pre-warm WebSocket trong lúc chuông reo để giảm latency sau OFFHOOK.
+                    // Người dùng thường mất 3-8s để nhấc máy — dùng khoảng thời gian này để
+                    // kết nối WebSocket trước, tiết kiệm ~200-500ms sau khi nhấc máy.
+                    PreWarmConnection();
+
                     OnCallStateChanged(CallState.Ringing, phoneNumber);
                 }
                 else if (stateStr == TelephonyManager.ExtraStateOffhook)
@@ -89,6 +103,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                         _idleDebounceToken = null;
                     }
 
+                    // Pre-warm đã được consume — AutoStartProtection sẽ dùng WS đã connect sẵn
+                    _wasPreConnected = false;
+
                     _isCallActive = true;
                     OnCallStateChanged(CallState.Active, phoneNumber);
 
@@ -97,6 +114,29 @@ namespace FraudGuardAI.Platforms.Android.Services
                 }
                 else if (stateStr == TelephonyManager.ExtraStateIdle)
                 {
+                    // Missed/rejected: RINGING → IDLE mà không qua OFFHOOK.
+                    // Pre-warmed WebSocket chưa được dùng → disconnect để tránh connection leak.
+                    if (!_isCallActive && _wasPreConnected)
+                    {
+                        _wasPreConnected = false;
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            try
+                            {
+                                var svc = App.GetAudioService();
+                                if (svc != null && svc.IsConnected && !svc.IsStreaming)
+                                {
+                                    await svc.StopStreamingAsync();
+                                    Debug.WriteLine("[CallReceiver] 🔌 Pre-warmed WS disconnected (call missed/rejected)");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[CallReceiver] Pre-warm cleanup error: {ex.Message}");
+                            }
+                        });
+                    }
+
                     // IDLE có thể do: (1) cuộc gọi thực sự kết thúc, hoặc (2) speakerphone toggle / audio re-route
                     // Dùng debounce 1.5s: nếu sau 1.5s không có OFFHOOK mới → cuộc gọi thực sự ended
                     if (_isCallActive)
@@ -120,11 +160,19 @@ namespace FraudGuardAI.Platforms.Android.Services
                             _isCallActive = false;
                             OnCallStateChanged(CallState.Ended, capturedPhone);
 
-                            // Tự động tắt protection nếu đã tự động bật
                             if (_wasProtectionAutoStarted)
                             {
+                                // Toàn bộ protection được auto-bật → tắt tất cả (mic + PSTN SCO)
                                 AutoStopProtection();
                                 _wasProtectionAutoStarted = false;
+                                _wasPstnScoAutoStarted = false;
+                            }
+                            else if (_wasPstnScoAutoStarted)
+                            {
+                                // Protection đã chạy trước (user bật thủ công), chỉ tắt PSTN SCO
+                                // để trả lại AudioMode và giải phóng AudioRecord call-path.
+                                AutoStopPstnSco();
+                                _wasPstnScoAutoStarted = false;
                             }
                         }, TaskScheduler.Default);
                     }
@@ -137,28 +185,78 @@ namespace FraudGuardAI.Platforms.Android.Services
         }
 
         /// <summary>
-        /// Tự động bật protection khi nhấc máy
+        /// Pre-warm WebSocket connection trong lúc chuông reo để giảm latency sau OFFHOOK.
+        /// Chỉ kết nối nếu chưa có connection — hoàn toàn không-destructive.
+        /// ConnectAsync() idempotent: nếu đã connected thì return ngay.
+        /// </summary>
+        private void PreWarmConnection()
+        {
+            try
+            {
+                var audioService = App.GetAudioService();
+                if (audioService == null || audioService.IsConnected) return;
+
+                _wasPreConnected = true;
+                Debug.WriteLine("[CallReceiver] 🔌 Pre-warming WebSocket during ring...");
+
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
+                    {
+                        bool ok = await audioService.ConnectAsync();
+                        Debug.WriteLine($"[CallReceiver] Pre-warm: {(ok ? "✅ WS connected" : "❌ failed")}");
+                        if (!ok) _wasPreConnected = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CallReceiver] Pre-warm error: {ex.Message}");
+                        _wasPreConnected = false;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] PreWarmConnection error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tự động bật protection khi nhấc máy (OFFHOOK).
+        ///
+        /// Hai trường hợp:
+        ///   A) Protection chưa chạy → bật mic streaming + PSTN SCO.
+        ///   B) Protection đang chạy (user bật thủ công) → chỉ start PSTN SCO
+        ///      cho cuộc gọi đang diễn ra (tránh chiếm AudioMode 24/7 ngoài call).
+        ///
+        /// PSTN SCO luôn dừng khi IDLE (call ended) thông qua _wasPstnScoAutoStarted.
         /// </summary>
         private void AutoStartProtection()
         {
             try
             {
                 var audioService = App.GetAudioService();
-                if (audioService != null && !audioService.IsStreaming)
-                {
-                    Debug.WriteLine("[CallReceiver] 🛡️ Auto-starting protection for incoming call...");
-                    _wasProtectionAutoStarted = true;
+                if (audioService == null) return;
 
-                    // Chạy trên main thread vì liên quan đến UI service
-                    MainThread.BeginInvokeOnMainThread(async () =>
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
                     {
-                        try
+                        if (!audioService.IsStreaming)
                         {
+                            // ── Case A: Protection chưa chạy → bật từ đầu ────────────
+                            Debug.WriteLine("[CallReceiver] 🛡️ Auto-starting protection for call...");
+                            _wasProtectionAutoStarted = true;
+
                             bool connected = await audioService.StartStreamingAsync();
                             if (connected)
                             {
-                                Debug.WriteLine("[CallReceiver] ✅ Protection auto-started successfully");
                                 ServiceHelper.StartProtectionService();
+                                Debug.WriteLine("[CallReceiver] ✅ Mic streaming started");
+
+                                // Bắt PSTN call audio ngay khi cuộc gọi active
+                                _wasPstnScoAutoStarted = true;
+                                bool scoOk = await audioService.StartPstnScoAsync();
+                                Debug.WriteLine($"[CallReceiver] PSTN SCO: {(scoOk ? "✅ started" : "❌ failed")}");
                             }
                             else
                             {
@@ -166,17 +264,23 @@ namespace FraudGuardAI.Platforms.Android.Services
                                 _wasProtectionAutoStarted = false;
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Debug.WriteLine($"[CallReceiver] Auto-start error: {ex.Message}");
-                            _wasProtectionAutoStarted = false;
+                            // ── Case B: Protection đang chạy → chỉ start PSTN SCO ────
+                            // Tránh chiếm AudioMode khi không có cuộc gọi (fix "24/7 issue").
+                            Debug.WriteLine("[CallReceiver] Protection already active — starting PSTN SCO for call");
+                            _wasPstnScoAutoStarted = true;
+                            bool scoOk = await audioService.StartPstnScoAsync();
+                            Debug.WriteLine($"[CallReceiver] PSTN SCO: {(scoOk ? "✅ started" : "❌ failed")}");
                         }
-                    });
-                }
-                else
-                {
-                    Debug.WriteLine("[CallReceiver] Protection already active, skipping auto-start");
-                }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CallReceiver] Auto-start error: {ex.Message}");
+                        _wasProtectionAutoStarted = false;
+                        _wasPstnScoAutoStarted = false;
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -185,7 +289,8 @@ namespace FraudGuardAI.Platforms.Android.Services
         }
 
         /// <summary>
-        /// Tự động tắt protection khi kết thúc cuộc gọi
+        /// Tự động tắt toàn bộ protection khi kết thúc cuộc gọi
+        /// (chỉ dùng khi protection được tự động bật bởi CallStateReceiver).
         /// </summary>
         private void AutoStopProtection()
         {
@@ -200,7 +305,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                     {
                         try
                         {
-                            await audioService.StopStreamingAsync();
+                            await audioService.StopStreamingAsync(); // internally calls StopPstnScoAsync()
                             ServiceHelper.StopProtectionService();
                             Debug.WriteLine("[CallReceiver] ✅ Protection auto-stopped successfully");
                         }
@@ -214,6 +319,40 @@ namespace FraudGuardAI.Platforms.Android.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"[CallReceiver] AutoStopProtection error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Chỉ tắt PSTN SCO capture, giữ nguyên mic streaming.
+        /// Dùng khi protection được user bật thủ công trước khi có cuộc gọi:
+        /// cuộc gọi kết thúc → trả AudioMode về bình thường, giải phóng call-path
+        /// AudioRecord, nhưng mic streaming vẫn tiếp tục.
+        /// </summary>
+        private void AutoStopPstnSco()
+        {
+            try
+            {
+                var audioService = App.GetAudioService();
+                if (audioService == null) return;
+
+                Debug.WriteLine("[CallReceiver] 🛑 Auto-stopping PSTN SCO (call ended, mic streaming kept)...");
+
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
+                    {
+                        await audioService.StopPstnScoAsync();
+                        Debug.WriteLine("[CallReceiver] ✅ PSTN SCO auto-stopped, mic streaming continues");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CallReceiver] AutoStopPstnSco error: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CallReceiver] AutoStopPstnSco error: {ex.Message}");
             }
         }
 

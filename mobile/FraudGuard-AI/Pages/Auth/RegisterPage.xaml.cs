@@ -9,7 +9,10 @@ namespace FraudGuardAI.Pages.Auth
         private IAuthenticationService? _authService;
 
         private IAuthenticationService? AuthService =>
-            _authService ??= Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>();
+            // Use ?? (not ??=) so we retry resolution on each access.
+            // ??= would permanently cache null if MauiContext isn't ready on the first call,
+            // making the page permanently broken until the app restarts.
+            _authService ?? (_authService = Application.Current?.Handler?.MauiContext?.Services.GetService<IAuthenticationService>());
 
         public RegisterPage()
         {

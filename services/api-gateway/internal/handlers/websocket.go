@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/fraudguard/api-gateway/internal/hub"
 	"github.com/gorilla/websocket"
@@ -32,9 +33,41 @@ func checkWebSocketOrigin(r *http.Request) bool {
 	return false
 }
 
+// maxConnectionsPerDevice limits how many concurrent WebSocket connections a
+// single device_id may maintain.  A legitimate mobile client needs at most one
+// connection (two channels are multiplexed inside that connection via the
+// 0x00/0x01 channel prefix).  Cap at 3 to tolerate brief reconnect races.
+const maxConnectionsPerDevice = 3
+
+var (
+	deviceConnCount = make(map[string]int)
+	deviceConnMutex sync.Mutex
+)
+
+// incrementDeviceConnections atomically increments and returns the new count.
+func incrementDeviceConnections(deviceID string) int {
+	deviceConnMutex.Lock()
+	defer deviceConnMutex.Unlock()
+	deviceConnCount[deviceID]++
+	return deviceConnCount[deviceID]
+}
+
+// decrementDeviceConnections atomically decrements the count.
+// Deletes the map entry when the count reaches zero to prevent unbounded growth.
+func decrementDeviceConnections(deviceID string) {
+	deviceConnMutex.Lock()
+	defer deviceConnMutex.Unlock()
+	if deviceConnCount[deviceID] > 0 {
+		deviceConnCount[deviceID]--
+	}
+	if deviceConnCount[deviceID] == 0 {
+		delete(deviceConnCount, deviceID)
+	}
+}
+
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  65536, // 64 KB — audio chunks are 8 KB, need headroom for framing overhead
+	WriteBufferSize: 65536, // 64 KB — alerts can be large JSON; avoid fragmented writes
 	CheckOrigin:     checkWebSocketOrigin,
 }
 
@@ -60,10 +93,23 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Per-device connection limit — reject before upgrade to save resources.
+	// Snapshot the count from the atomic increment so we never read the map without the lock.
+	activeCount := incrementDeviceConnections(deviceID)
+	if activeCount > maxConnectionsPerDevice {
+		decrementDeviceConnections(deviceID)
+		http.Error(w, `{"success":false,"error":"Too many concurrent connections for this device"}`,
+			http.StatusTooManyRequests)
+		log.Printf("⛔ [%s] Connection rejected: per-device limit %d exceeded (active=%d)",
+			deviceID, maxConnectionsPerDevice, activeCount)
+		return
+	}
+
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf(" WebSocket upgrade failed: %v", err)
+		decrementDeviceConnections(deviceID) // upgrade failed — release the slot
+		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -71,10 +117,16 @@ func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 	client := hub.NewClient(h, conn, deviceID)
 	h.Register <- client
 
-	// Start client's read and write pumps in separate goroutines
-	// These will run until the connection is closed
+	// Start write pump — runs until the connection is closed
 	go client.WritePump()
-	go client.ReadPump()
 
-	log.Printf(" WebSocket connection established for device: %s", deviceID)
+	// Start read pump — decrement the per-device counter when it exits
+	// (ReadPump is the authoritative "connection alive" goroutine)
+	go func() {
+		defer decrementDeviceConnections(deviceID)
+		client.ReadPump()
+	}()
+
+	log.Printf("✅ WebSocket connection established for device: %s (active=%d)",
+		deviceID, activeCount)
 }

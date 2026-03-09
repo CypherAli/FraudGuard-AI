@@ -285,16 +285,44 @@ func executeGetFraudStats(args map[string]interface{}) map[string]interface{} {
 	return result
 }
 
+// isValidPhoneNumber performs a lightweight sanity-check on a phone number string.
+// Accepts Vietnamese domestic (10 digits, leading 0) and international (+/digits, 7-15 digits).
+// Rejects empty, too-short, too-long, or clearly non-numeric values that Gemini might hallucinate.
+func isValidPhoneNumber(phone string) bool {
+	// Strip spaces, hyphens, and parentheses that may appear in transcripts
+	cleaned := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' || r == '+' {
+			return r
+		}
+		return -1
+	}, strings.TrimSpace(phone))
+
+	if len(cleaned) < 7 || len(cleaned) > 16 {
+		return false
+	}
+	// Must start with + (international) or a digit
+	return cleaned[0] == '+' || (cleaned[0] >= '0' && cleaned[0] <= '9')
+}
+
 // executeAutoReport tự động báo cáo số điện thoại lừa đảo vào blacklist cộng đồng.
 // Params theo PDF spec: phone_number + reason (gộp loại lừa đảo + bằng chứng).
 func executeAutoReport(args map[string]interface{}) map[string]interface{} {
 	phone, _ := args["phone_number"].(string)
 	reason, _ := args["reason"].(string)
 
+	phone = strings.TrimSpace(phone)
 	if phone == "" {
 		return map[string]interface{}{
 			"success": false,
 			"message": "Thiếu số điện thoại",
+		}
+	}
+	// Validate phone number format before touching the database
+	if !isValidPhoneNumber(phone) {
+		log.Printf("⚠️ [Agent:auto_report] Invalid phone format rejected: %q", phone)
+		return map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("Định dạng số điện thoại không hợp lệ: %q — bỏ qua báo cáo", phone),
 		}
 	}
 	if reason == "" {
@@ -395,6 +423,11 @@ Kết quả cuối cùng phải là JSON:
 		ToolsUsed: []string{},
 	}
 
+	// Per-session duplicate-report guard: tracks phone numbers already auto-reported
+	// in this single RunFraudDetectionAgent invocation.  Prevents Gemini from reporting
+	// the same number more than once if it calls auto_report in multiple iterations.
+	reportedNumbers := make(map[string]struct{})
+
 	// Agentic loop — tối đa 4 vòng (1 call + 3 tool calls)
 	maxIterations := 4
 	for i := 0; i < maxIterations; i++ {
@@ -408,6 +441,12 @@ Kết quả cuối cùng phải là JSON:
 		}
 
 		candidate := agentResp.Candidates[0]
+		// Guard against safety-filtered candidates: Content.Parts will be empty
+		// and FinishReason will be "SAFETY" or similar non-STOP reason.
+		if len(candidate.Content.Parts) == 0 {
+			log.Printf("⚠️ [Agent] Candidate has no Parts (FinishReason=%s, safety filter?) — stopping agentic loop", candidate.FinishReason)
+			break
+		}
 		parts := candidate.Content.Parts
 
 		// Kiểm tra từng part trong response
@@ -423,8 +462,31 @@ Kết quả cuối cùng phải là JSON:
 				log.Printf("🤖 [Agent] Gemini calling tool: %s with args: %v", toolName, toolArgs)
 				result.ToolsUsed = append(result.ToolsUsed, toolName)
 
-				// Track auto_report
+				// Duplicate-report guard: reject if the same phone was already
+				// auto_reported earlier in this agentic session.
 				if toolName == "auto_report" {
+					reportPhone, _ := toolArgs["phone_number"].(string)
+					reportPhone = strings.TrimSpace(reportPhone)
+					// Normalize Vietnamese phone: "0xxx" ↔ "+84xxx" so the same number
+					// isn't reported twice just because Gemini formats it differently
+					// across turns (e.g. "+84912345678" vs "0912345678").
+					if strings.HasPrefix(reportPhone, "0") && len(reportPhone) >= 10 {
+						reportPhone = "+84" + reportPhone[1:]
+					}
+					if _, alreadyReported := reportedNumbers[reportPhone]; alreadyReported {
+						log.Printf("⚠️ [Agent] auto_report duplicate skipped for %q", reportPhone)
+						toolResponseParts = append(toolResponseParts, GeminiPart{
+							FunctionResponse: &FunctionResponse{
+								Name: toolName,
+								Response: map[string]interface{}{
+									"success": false,
+									"message": fmt.Sprintf("Số %s đã được báo cáo trong phiên này — bỏ qua", reportPhone),
+								},
+							},
+						})
+						continue
+					}
+					reportedNumbers[reportPhone] = struct{}{}
 					result.AutoReported = true
 				}
 

@@ -12,10 +12,13 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"net/mail"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fraudguard/api-gateway/internal/db"
 )
 
 // OTP storage (in-memory for simplicity, use Redis/DB for production)
@@ -69,6 +72,28 @@ type VerifyOTPRequest struct {
 	OTP   string `json:"otp"`
 }
 
+// isValidEmail returns true if email is a syntactically valid RFC 5322 address.
+// Uses net/mail.ParseAddress which is stricter than a bare strings.Contains check:
+//   - rejects "@domain.com" (empty local part)
+//   - rejects "me@@you.com" (double @)
+//   - rejects plain "@" or ""
+//
+// We additionally require that the domain portion contains at least one dot so
+// that single-label "domains" like "test@localhost" are rejected.
+func isValidEmail(email string) bool {
+	addr, err := mail.ParseAddress(email)
+	if err != nil || addr.Address == "" {
+		return false
+	}
+	// addr.Address is already lowercased and trimmed by net/mail
+	atIdx := strings.LastIndex(addr.Address, "@")
+	if atIdx < 1 {
+		return false // no local part
+	}
+	domain := addr.Address[atIdx+1:]
+	return strings.Contains(domain, ".") // at least one dot in domain
+}
+
 // GenerateOTP generates a 6-digit OTP using cryptographic random
 func GenerateOTP() (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
@@ -78,20 +103,79 @@ func GenerateOTP() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
+// loadRateLimitFromDB fetches an active rate-limit entry from PostgreSQL.
+// Called only on in-memory cache miss — e.g. after a server restart on Render.com
+// free tier which wipes all in-memory state.
+// Caller MUST hold rateMutex.
+func loadRateLimitFromDB(key string) *RateLimitEntry {
+	if db.Pool == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	var count int
+	var firstAt time.Time
+	err := db.Pool.QueryRow(ctx,
+		`SELECT count, first_at FROM rate_limits WHERE key = $1 AND expires_at > NOW()`,
+		key,
+	).Scan(&count, &firstAt)
+	if err != nil {
+		return nil // Not found or expired — treat as new window
+	}
+	return &RateLimitEntry{Count: count, FirstSent: firstAt}
+}
+
+// saveRateLimitToDB persists a rate-limit entry to PostgreSQL asynchronously.
+// Fire-and-forget: a failure only means the limit loses DB persistence for this
+// update; the in-memory counter is still enforced within the current process lifetime.
+func saveRateLimitToDB(key string, entry *RateLimitEntry, window time.Duration) {
+	if db.Pool == nil {
+		return
+	}
+	count := entry.Count
+	firstAt := entry.FirstSent
+	expiresAt := firstAt.Add(window)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_, _ = db.Pool.Exec(ctx,
+			`INSERT INTO rate_limits (key, count, first_at, expires_at)
+			 VALUES ($1, $2, $3, $4)
+			 ON CONFLICT (key) DO UPDATE
+			 SET count = EXCLUDED.count, expires_at = EXCLUDED.expires_at`,
+			key, count, firstAt, expiresAt,
+		)
+	}()
+}
+
 // checkRateLimitFor is a generic rate-limit helper for any in-memory map.
 // Returns true if allowed, false if the limit is exceeded.
+// On in-memory cache miss (e.g. after server restart), it falls back to PostgreSQL
+// so that rate limits survive Render.com free-tier daily restarts.
 func checkRateLimitFor(store map[string]*RateLimitEntry, key string, maxAttempts int, window time.Duration) bool {
 	rateMutex.Lock()
 	defer rateMutex.Unlock()
 
 	entry, exists := store[key]
+
+	// Cache miss: try to restore from PostgreSQL (handles server restart scenarios)
+	if !exists {
+		if dbEntry := loadRateLimitFromDB(key); dbEntry != nil {
+			store[key] = dbEntry
+			entry = dbEntry
+			exists = true
+		}
+	}
+
 	if !exists {
 		store[key] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		saveRateLimitToDB(key, store[key], window)
 		return true
 	}
 
 	if time.Since(entry.FirstSent) > window {
 		store[key] = &RateLimitEntry{Count: 1, FirstSent: time.Now()}
+		saveRateLimitToDB(key, store[key], window)
 		return true
 	}
 
@@ -100,6 +184,7 @@ func checkRateLimitFor(store map[string]*RateLimitEntry, key string, maxAttempts
 	}
 
 	entry.Count++
+	saveRateLimitToDB(key, entry, window)
 	return true
 }
 
@@ -127,7 +212,7 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email := strings.TrimSpace(strings.ToLower(req.Email))
-	if email == "" || !strings.Contains(email, "@") {
+	if !isValidEmail(email) {
 		sendJSONError(w, "Email không hợp lệ", http.StatusBadRequest)
 		return
 	}
@@ -190,8 +275,12 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	otp := strings.TrimSpace(req.OTP)
 
-	if email == "" || otp == "" {
-		sendJSONError(w, "Email và OTP là bắt buộc", http.StatusBadRequest)
+	if otp == "" {
+		sendJSONError(w, "OTP là bắt buộc", http.StatusBadRequest)
+		return
+	}
+	if !isValidEmail(email) {
+		sendJSONError(w, "Email không hợp lệ", http.StatusBadRequest)
 		return
 	}
 
@@ -377,16 +466,34 @@ func generateSessionToken(email string) (string, error) {
 		return "", fmt.Errorf("failed to generate session token: %w", err)
 	}
 	token := fmt.Sprintf("%x", b)
+	expiresAt := time.Now().Add(sessionExpiry)
+	userID := generateUserID(email)
 
-	// Store session
+	// Store in memory
 	sessionMutex.Lock()
 	sessionStore[token] = &SessionEntry{
 		Email:     email,
 		Token:     token,
 		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(sessionExpiry),
+		ExpiresAt: expiresAt,
 	}
 	sessionMutex.Unlock()
+
+	// Persist to PostgreSQL so sessions survive server restarts
+	if db.Pool != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err := db.Pool.Exec(ctx,
+			`INSERT INTO sessions (token, email, user_id, created_at, expires_at)
+			 VALUES ($1, $2, $3, NOW(), $4)
+			 ON CONFLICT (token) DO NOTHING`,
+			token, email, userID, expiresAt,
+		)
+		if err != nil {
+			log.Printf("⚠️  [Auth] Failed to persist session to DB: %v", err)
+			// Not fatal — in-memory session still works until next restart
+		}
+	}
 
 	return token, nil
 }
@@ -399,15 +506,56 @@ func generateUserID(email string) string {
 }
 
 // ValidateToken checks whether a bearer token is active and not expired.
-// Used by auth middleware and WebSocket handler.
+// Checks in-memory cache first; falls back to PostgreSQL so sessions survive
+// server restarts (Render free tier spins down and wipes in-memory sessions).
 func ValidateToken(token string) bool {
 	if token == "" {
 		return false
 	}
+
+	// Fast path: in-memory cache
 	sessionMutex.RLock()
 	session, exists := sessionStore[token]
 	sessionMutex.RUnlock()
-	return exists && time.Now().Before(session.ExpiresAt)
+	if exists {
+		if time.Now().Before(session.ExpiresAt) {
+			return true
+		}
+		// Expired — evict from cache
+		sessionMutex.Lock()
+		delete(sessionStore, token)
+		sessionMutex.Unlock()
+		return false
+	}
+
+	// Cache miss → check PostgreSQL (token may exist from before server restart)
+	if db.Pool == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var email string
+	var expiresAt time.Time
+	err := db.Pool.QueryRow(ctx,
+		`SELECT email, expires_at FROM sessions WHERE token = $1 AND expires_at > NOW()`,
+		token,
+	).Scan(&email, &expiresAt)
+	if err != nil {
+		return false // Not found or expired
+	}
+
+	// Warm up in-memory cache so subsequent requests don't hit DB
+	sessionMutex.Lock()
+	sessionStore[token] = &SessionEntry{
+		Email:     email,
+		Token:     token,
+		CreatedAt: time.Now(),
+		ExpiresAt: expiresAt,
+	}
+	sessionMutex.Unlock()
+	log.Printf("🔄 [Auth] Session restored from DB for %s (cache miss after restart)", email)
+	return true
 }
 
 // HandleValidateToken — GET /auth/validate-token
@@ -449,7 +597,7 @@ func CleanupExpiredOTPs(ctx context.Context) {
 			}
 			otpMutex.Unlock()
 
-			// Cleanup expired sessions
+			// Cleanup expired sessions (in-memory)
 			sessionMutex.Lock()
 			for token, session := range sessionStore {
 				if now.After(session.ExpiresAt) {
@@ -458,20 +606,38 @@ func CleanupExpiredOTPs(ctx context.Context) {
 			}
 			sessionMutex.Unlock()
 
-			// Cleanup send rate limiter
+			// Cleanup expired sessions (PostgreSQL)
+			if db.Pool != nil {
+				dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
+				if _, err := db.Pool.Exec(dbCtx, `DELETE FROM sessions WHERE expires_at < NOW()`); err != nil {
+					log.Printf("⚠️  [Auth] DB session cleanup warning: %v", err)
+				}
+				dbCancel()
+			}
+
+			// Cleanup send rate limiter (in-memory)
 			rateMutex.Lock()
 			for email, entry := range rateLimiter {
 				if time.Since(entry.FirstSent) > rateLimitWindow {
 					delete(rateLimiter, email)
 				}
 			}
-			// Cleanup verify rate limiter
+			// Cleanup verify rate limiter (in-memory)
 			for email, entry := range verifyRateLimiter {
 				if time.Since(entry.FirstSent) > verifyRateLimitWindow {
 					delete(verifyRateLimiter, email)
 				}
 			}
 			rateMutex.Unlock()
+
+			// Cleanup rate_limits table in PostgreSQL
+			if db.Pool != nil {
+				dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
+				if _, err := db.Pool.Exec(dbCtx, `DELETE FROM rate_limits WHERE expires_at < NOW()`); err != nil {
+					log.Printf("⚠️  [Auth] rate_limits DB cleanup warning: %v", err)
+				}
+				dbCancel()
+			}
 		}
 	}
 }

@@ -25,6 +25,7 @@ namespace FraudGuardAI.Platforms.Android.Services
         private TextView? _statusText;
         private ImageView? _closeButton;
         private bool _isShowing = false;
+        private EventHandler<global::Android.Views.View.TouchEventArgs>? _touchHandler;
 
         public override IBinder? OnBind(Intent? intent) => null;
 
@@ -47,6 +48,9 @@ namespace FraudGuardAI.Platforms.Android.Services
                     int riskScore = intent?.GetIntExtra("risk_score", 0) ?? 0;
                     int deepfakeScore = intent?.GetIntExtra("deepfake_score", 0) ?? 0;
                     string status = intent?.GetStringExtra("status") ?? "Đang bảo vệ";
+                    // Auto-show overlay if it hasn't been shown yet (e.g. first high-risk alert)
+                    if (!_isShowing)
+                        ShowOverlay();
                     UpdateOverlay(riskScore, deepfakeScore, status);
                     break;
                 case "HIDE":
@@ -229,6 +233,12 @@ namespace FraudGuardAI.Platforms.Android.Services
 
             try
             {
+                // Unsubscribe touch handler to prevent accumulation on repeated show/hide cycles
+                if (_touchHandler != null && _overlayView != null)
+                {
+                    _overlayView.Touch -= _touchHandler;
+                    _touchHandler = null;
+                }
                 _windowManager?.RemoveView(_overlayView);
                 _isShowing = false;
                 System.Diagnostics.Debug.WriteLine("[Overlay] Bubble hidden");
@@ -245,7 +255,7 @@ namespace FraudGuardAI.Platforms.Android.Services
             float initialTouchX = 0, initialTouchY = 0;
 
             if (_overlayView == null) return;
-            _overlayView.Touch += (s, e) =>
+            _touchHandler = (s, e) =>
             {
                 if (e.Event == null) return;
                 switch (e.Event.Action)
@@ -266,6 +276,7 @@ namespace FraudGuardAI.Platforms.Android.Services
                         break;
                 }
             };
+            _overlayView.Touch += _touchHandler;
         }
 
         public override void OnDestroy()

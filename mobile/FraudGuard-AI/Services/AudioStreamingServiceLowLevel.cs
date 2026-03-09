@@ -10,6 +10,7 @@ using Android.Media;
 using Android.Util;
 using Android.Media.Projection;
 using FraudGuardAI.Models;
+using FraudGuardAI.Platforms.Android;
 using FraudGuardAI.Platforms.Android.Services;
 
 namespace FraudGuardAI.Services
@@ -26,6 +27,7 @@ namespace FraudGuardAI.Services
 
         private ClientWebSocket? _webSocket;
         private AudioRecord? _audioRecord;
+        private AudioEffectsManager? _audioEffectsManager;
         private CancellationTokenSource? _cancellationTokenSource;
         private volatile bool _isStreaming;
         private volatile bool _isConnected;
@@ -47,6 +49,13 @@ namespace FraudGuardAI.Services
         public event EventHandler<AlertEventArgs>? AlertReceived;
         public event EventHandler<ErrorEventArgs>? ErrorOccurred;
         public event EventHandler<ConnectionStatusEventArgs>? ConnectionStatusChanged;
+
+        /// <summary>
+        /// Fired when the server rejects the connection/token with HTTP 401 or
+        /// WebSocket close code PolicyViolation (1008). MainPage handles this by
+        /// showing the "session expired" dialog and redirecting to LoginPage.
+        /// </summary>
+        public event EventHandler? SessionExpired;
 
         /// <summary>
         /// Fired on every non-silent PCM read from the microphone.
@@ -148,6 +157,18 @@ namespace FraudGuardAI.Services
             {
                 _isConnected = false;
                 Log.Error(TAG, $"❌ WebSocket connection FAILED: {ex.Message}");
+
+                // Detect HTTP 401: server rejected token during WebSocket upgrade
+                // .NET throws WebSocketException with message "status code '401'"
+                bool is401 = ex.Message.Contains("401") ||
+                             ex.Message.Contains("Unauthorized") ||
+                             ex.Message.Contains("PolicyViolation");
+                if (is401)
+                {
+                    OnSessionExpired();
+                    return false; // Don't emit generic error — caller handles expired session
+                }
+
                 OnConnectionStatusChanged(false, $"Failed: {ex.Message}");
                 OnError($"Connection failed: {ex.Message}", ex);
                 return false;
@@ -210,6 +231,14 @@ namespace FraudGuardAI.Services
                 _isStreaming = true;
                 Log.Info(TAG, $"🎤 Audio recording STARTED - BufferSize={bufferSize}, MinBuffer={minBufferSize}");
 
+                // Apply hardware AEC + Noise Suppressor to reduce echo and background noise.
+                // This improves Deepgram STT accuracy, especially when caller audio leaks
+                // through the earpiece into the microphone.
+                _audioEffectsManager?.Dispose();
+                _audioEffectsManager = new AudioEffectsManager(_audioRecord.AudioSessionId);
+                _audioEffectsManager.EnableEffects(enableEchoCanceler: true, enableNoiseSuppressor: true);
+                Log.Info(TAG, $"🎛️ [AudioService] Audio effects: {_audioEffectsManager.GetStatusMessage()}");
+
                 // Bắt đầu streaming loop
                 _ = Task.Run(() => StreamAudioDataAsync(_cancellationTokenSource!.Token));
 
@@ -250,14 +279,19 @@ namespace FraudGuardAI.Services
                 {
                     try
                     {
-                        // Stop VoIP capture (parallel — has its own internal lock)
+                        // Stop VoIP and PSTN SCO captures (parallel — have their own internal locks)
                         await StopVoipCaptureAsync();
+                        await StopPstnScoAsync();
 
-                        // Stop AudioRecord with timeout
+                        // Stop AudioRecord and audio effects with timeout
                         var audioCleanupTask = Task.Run(() =>
                         {
                             try
                             {
+                                // Disable and dispose hardware audio effects first
+                                try { _audioEffectsManager?.Dispose(); } catch { }
+                                _audioEffectsManager = null;
+
                                 if (_audioRecord != null)
                                 {
                                     if (_audioRecord.RecordingState == RecordState.Recording)
@@ -373,6 +407,15 @@ namespace FraudGuardAI.Services
 
             _voipCaptureActive = started;
             System.Diagnostics.Debug.WriteLine($"[AudioService] VoIP capture {(started ? "STARTED ✅" : "FAILED ❌")}");
+
+            // If start failed, dispose immediately so the next call gets a fresh instance
+            // (prevents stale event handler accumulation on reuse via ??=)
+            if (!started)
+            {
+                try { _voipCapture.Dispose(); } catch { }
+                _voipCapture = null;
+            }
+
             return started;
         }
 
@@ -387,6 +430,76 @@ namespace FraudGuardAI.Services
                 await _voipCapture.StopAsync();
                 _voipCapture.Dispose();
                 _voipCapture = null;
+            }
+        }
+
+        // ── PSTN SCO Capture (Virtual BT HFP) ────────────────────────────────
+        private PstnScoCallCaptureService? _pstnCapture;
+        private volatile bool _pstnCaptureActive;
+
+        /// <summary>
+        /// Status messages from the PSTN SCO capture layer forwarded to UI.
+        /// Key: strategy name if started, "PSTN_SCO_FAILED" if all strategies failed.
+        /// </summary>
+        public event Action<string>? PstnStatusChanged;
+
+        /// <summary>
+        /// Starts PSTN call audio capture using the Virtual BT HFP trick.
+        /// Tries 4 strategies: VOICE_CALL → VOICE_COMM+IN_CALL → SCO+VOICE_COMM → SCO+MIC.
+        /// Call after StartStreamingAsync() succeeds and VoIP capture fails/detects PSTN.
+        /// </summary>
+        public async Task<bool> StartPstnScoAsync()
+        {
+            if (_webSocket == null || _webSocket.State != WebSocketState.Open)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] StartPstnScoAsync: WebSocket not open");
+                return false;
+            }
+
+            if (_pstnCaptureActive)
+            {
+                System.Diagnostics.Debug.WriteLine("[AudioService] PSTN SCO capture already active");
+                return true;
+            }
+
+            _pstnCapture ??= new PstnScoCallCaptureService();
+            _pstnCapture.StatusChanged += (_, msg) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[PSTN-SCO] {msg}");
+                PstnStatusChanged?.Invoke(msg);
+            };
+
+            bool started = await _pstnCapture.StartAsync(
+                _webSocket,
+                _cancellationTokenSource?.Token ?? CancellationToken.None);
+
+            _pstnCaptureActive = started;
+            System.Diagnostics.Debug.WriteLine($"[AudioService] PSTN SCO capture {(started ? "STARTED ✅" : "FAILED ❌")}");
+
+            if (!started)
+            {
+                // Dispose immediately so the next retry gets a fresh instance.
+                // Without this, ??= at line entry would reuse the same object and
+                // accumulate another StatusChanged subscription on each failed attempt.
+                try { _pstnCapture.Dispose(); } catch { }
+                _pstnCapture = null;
+                PstnStatusChanged?.Invoke("PSTN_SCO_FAILED");
+            }
+
+            return started;
+        }
+
+        /// <summary>
+        /// Stops PSTN SCO capture and restores normal audio mode.
+        /// </summary>
+        public async Task StopPstnScoAsync()
+        {
+            _pstnCaptureActive = false;
+            if (_pstnCapture != null)
+            {
+                await _pstnCapture.StopAsync();
+                _pstnCapture.Dispose();
+                _pstnCapture = null;
             }
         }
 
@@ -430,7 +543,10 @@ namespace FraudGuardAI.Services
                 
                 while (_isStreaming && !cancellationToken.IsCancellationRequested)
                 {
-                    if (_audioRecord?.RecordingState != RecordState.Recording)
+                    // Capture _audioRecord to a local to avoid race where StopStreamingAsync()
+                    // sets _audioRecord = null between the null-check and the ReadAsync call.
+                    var audioRecord = _audioRecord;
+                    if (audioRecord?.RecordingState != RecordState.Recording)
                     {
                         System.Diagnostics.Debug.WriteLine("[AudioService] AudioRecord not recording, stopping...");
                         break;
@@ -439,7 +555,7 @@ namespace FraudGuardAI.Services
                     try
                     {
                         // Đọc audio data trực tiếp từ microphone
-                        int bytesRead = await _audioRecord.ReadAsync(buffer, 0, buffer.Length);
+                        int bytesRead = await audioRecord.ReadAsync(buffer, 0, buffer.Length);
 
                         if (bytesRead > 0)
                         {
@@ -460,7 +576,7 @@ namespace FraudGuardAI.Services
                             for (int i = 0; i < bytesRead; i += BYTES_PER_SAMPLE)
                             {
                                 short sample = (short)(buffer[i] | (buffer[i + 1] << 8));
-                                energy += Math.Abs(sample);
+                                energy += Math.Abs((int)sample); // cast to int first — Math.Abs(short.MinValue) throws OverflowException
                             }
                             if (sampleCount > 0)
                             {
@@ -501,6 +617,11 @@ namespace FraudGuardAI.Services
                             }
                             else
                             {
+                                // Only attempt reconnect if we are still meant to be streaming.
+                                // StopStreamingAsync() sets _isStreaming = false before cancelling
+                                // the token — check this to avoid a dangling reconnect race where
+                                // ReconnectAsync() opens a new WebSocket while stop is in progress.
+                                if (!_isStreaming) break;
                                 System.Diagnostics.Debug.WriteLine("[AudioService] WebSocket not open, attempting reconnect...");
                                 await ReconnectAsync();
                             }
@@ -568,7 +689,15 @@ namespace FraudGuardAI.Services
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         _isConnected = false;
-                        OnConnectionStatusChanged(false, "Server closed");
+                        // PolicyViolation (1008) = server rejected token (expired or invalid)
+                        if (_webSocket?.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+                        {
+                            OnSessionExpired();
+                        }
+                        else
+                        {
+                            OnConnectionStatusChanged(false, "Server closed");
+                        }
                         break;
                     }
 
@@ -739,11 +868,27 @@ namespace FraudGuardAI.Services
         {
             try
             {
-                if (!_isConnected)
+                if (_isConnected) return; // Already reconnected by another concurrent call
+
+                Log.Info(TAG, "[AudioService] Attempting reconnect...");
+
+                // Dispose the old (broken) WebSocket before creating a new one
+                try { _webSocket?.Abort(); } catch { }
+                try { _webSocket?.Dispose(); } catch { }
+                _webSocket = null;
+
+                // Create a fresh CancellationTokenSource if the old one was cancelled.
+                // Without this, the new ReceiveMessagesAsync launched inside ConnectAsync
+                // would immediately exit because its token is already cancelled.
+                if (_cancellationTokenSource?.IsCancellationRequested == true)
                 {
-                    Log.Info(TAG, "[AudioService] Attempting reconnect...");
-                    await ConnectAsync();
+                    var oldCts = _cancellationTokenSource;
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    try { oldCts.Dispose(); } catch { }
+                    Log.Info(TAG, "[AudioService] Created new CancellationTokenSource for reconnect");
                 }
+
+                await ConnectAsync();
             }
             catch (Exception ex)
             {
@@ -764,6 +909,12 @@ namespace FraudGuardAI.Services
         {
             Log.Error(TAG, $"[AudioService] Error: {message}");
             ErrorOccurred?.Invoke(this, new ErrorEventArgs(message, ex));
+        }
+
+        protected virtual void OnSessionExpired()
+        {
+            Log.Warn(TAG, "[AudioService] Session expired — token rejected by server (401/PolicyViolation)");
+            SessionExpired?.Invoke(this, EventArgs.Empty);
         }
 
         protected virtual void OnConnectionStatusChanged(bool isConnected, string status)
@@ -794,12 +945,21 @@ namespace FraudGuardAI.Services
                 try { _voipCapture?.Dispose(); } catch { }
                 _voipCapture = null;
 
+                try { _pstnCapture?.Dispose(); } catch { }
+                _pstnCapture = null;
+
+                try { _audioEffectsManager?.Dispose(); } catch { }
+                _audioEffectsManager = null;
+
                 try { _audioRecord?.Release(); } catch { }
                 try { _audioRecord?.Dispose(); } catch { }
                 _audioRecord = null;
 
                 try { _webSocket?.Dispose(); } catch { }
                 _webSocket = null;
+
+                // Clear event subscribers to prevent callbacks into disposed state
+                PcmDataAvailable = null;
 
                 _startStopLock.Dispose();
             }

@@ -114,6 +114,11 @@ namespace FraudGuardAI.Pages
             }
             catch (Exception ex)
             {
+                // Reload UI even on partial failure — import may have added some
+                // contacts before throwing (e.g. permission revoked mid-import).
+                // Without this call the list shows stale data even though the DB
+                // already contains the successfully-imported entries.
+                LoadWhitelist();
                 await DisplayAlert(T("Common_Error"), ex.Message, T("Common_OK"));
             }
         }
