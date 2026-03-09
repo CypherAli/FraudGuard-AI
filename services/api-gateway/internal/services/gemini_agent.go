@@ -98,6 +98,13 @@ type AgentAnalysisResult struct {
 	// Human-in-the-loop: khi Gemini muốn report nhưng cần user xác nhận
 	PendingReportPhone  string `json:"pending_report_phone,omitempty"`
 	PendingReportReason string `json:"pending_report_reason,omitempty"`
+
+	// ParseFailed=true khi agentic loop hoàn tất nhưng không parse được JSON cuối.
+	// fraud_detector sẽ dùng keyword-only score thay vì tin vào IsFraud=false mặc định.
+	ParseFailed bool `json:"parse_failed,omitempty"`
+
+	// TopReasons: top 3 signals Gemini đã dùng → hiển thị trong notification cho user.
+	TopReasons []string `json:"top_reasons,omitempty"`
 }
 
 // --- Tool definitions cố định ---
@@ -607,15 +614,17 @@ Kết quả cuối cùng phải là JSON:
 		}
 	}
 
-	// Nếu không parse được JSON, trả về safe default
-	log.Printf("⚠️ [Agent] Could not parse final JSON after agentic loop, returning safe default")
+	// Nếu không parse được JSON, đánh dấu ParseFailed=true thay vì trả IsFraud=false mặc định.
+	// fraud_detector sẽ dùng keyword-only score (Layer 2) thay vì bỏ qua Gemini result hoàn toàn.
+	log.Printf("⚠️ [Agent] Could not parse final JSON after agentic loop — marking ParseFailed, tools=%v", result.ToolsUsed)
 	return &AgentAnalysisResult{
 		IsFraud:     false,
 		RiskScore:   0,
 		FraudType:   "unknown",
-		Explanation: "Không thể phân tích",
+		Explanation: "Agent parse thất bại — dùng keyword analysis",
 		Confidence:  "low",
 		ToolsUsed:   result.ToolsUsed,
+		ParseFailed: true,
 	}, nil
 }
 

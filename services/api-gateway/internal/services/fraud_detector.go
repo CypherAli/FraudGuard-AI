@@ -354,6 +354,21 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 				msg := fmt.Sprintf("AI Agent phát hiện: %s - %s (Độ tin cậy: %s)",
 					agentResult.FraudType, agentResult.Explanation, agentResult.Confidence)
 
+				// If agent parse failed, do not trust IsFraud=false; keyword score still active
+				if agentResult.ParseFailed {
+					log.Printf("[%s] Agent ParseFailed â skipping agent alert, keyword score=%d active", deviceID, currentAccumulated)
+					return
+				}
+
+				// TopReasons: agent reasons first, fallback to type+confidence
+				topReasons := agentResult.TopReasons
+				if len(topReasons) == 0 {
+					topReasons = []string{
+						fmt.Sprintf("Loáº¡i: %s", agentResult.FraudType),
+						fmt.Sprintf("Độ tin cậy: %s", agentResult.Confidence),
+					}
+				}
+
 				alert := models.AlertMessage{
 					Type:       "alert",
 					AlertType:  alertType,
@@ -362,6 +377,7 @@ func (fd *FraudDetector) AnalyzeText(text string) FraudAnalysisResult {
 					Keywords:   []string{fmt.Sprintf("Agent: %s (%s)", agentResult.FraudType, agentResult.Confidence)},
 					Timestamp:  time.Now().Unix(),
 					Message:    msg,
+					TopReasons: topReasons,
 				}
 				alertCallback(alert)
 
@@ -545,6 +561,47 @@ func (fd *FraudDetector) ResetSession() {
 	defer fd.mu.Unlock()
 	fd.session = newSessionState(fd.deviceID)
 	fd.alertCount = 0
+}
+
+// extractTopReasons extracts the top N positive scoring patterns for display in notification.
+// Filters out WHITELIST entries, sorts by score descending, returns top-N as readable strings.
+// e.g. ["\"chuyển tiền\" (+30đ)", "\"cơ quan công an\" (+25đ)", "\"trong 5 phút\" (+20đ)"]
+func extractTopReasons(patterns []string, n int) []string {
+	type scored struct {
+		label string
+		score int
+	}
+	var items []scored
+	for _, p := range patterns {
+		// Skip whitelist patterns — they reduce score, not signals for user
+		if strings.HasPrefix(p, "WHITELIST") {
+			continue
+		}
+		// Parse score from format "CRITICAL: keyword (+25)"
+		var score int
+		var keyword string
+		if _, err := fmt.Sscanf(p, "%*s %s (+%d)", &keyword, &score); err == nil {
+			// Build readable label: strip prefix, format nicely
+			label := fmt.Sprintf("\"%s\" (+%dđ)", keyword, score)
+			items = append(items, scored{label, score})
+		}
+	}
+	// Sort descending by score
+	for i := 0; i < len(items)-1; i++ {
+		for j := i + 1; j < len(items); j++ {
+			if items[j].score > items[i].score {
+				items[i], items[j] = items[j], items[i]
+			}
+		}
+	}
+	if n > len(items) {
+		n = len(items)
+	}
+	out := make([]string, n)
+	for i := 0; i < n; i++ {
+		out[i] = items[i].label
+	}
+	return out
 }
 
 // ProcessFraudReport handles user reports of fraudulent phone numbers.

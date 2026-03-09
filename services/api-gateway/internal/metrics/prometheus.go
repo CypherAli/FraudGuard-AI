@@ -15,7 +15,6 @@ var (
 	FraudDetectionsTotal    atomic.Int64
 	AlertsSentTotal         atomic.Int64
 	DeepfakeDetectionsTotal atomic.Int64
-	WebSocketConnections    atomic.Int64 // gauge (inc/dec)
 	GeminiRequestsTotal     atomic.Int64
 	DeepgramRequestsTotal   atomic.Int64
 	TranscribeRequestsTotal atomic.Int64 // Amazon Transcribe fallback STT requests
@@ -91,16 +90,6 @@ func RecordTranscribeRequest() {
 	TranscribeRequestsTotal.Add(1)
 }
 
-// RecordWebSocketConnect increments active connections gauge
-func RecordWebSocketConnect() {
-	WebSocketConnections.Add(1)
-}
-
-// RecordWebSocketDisconnect decrements active connections gauge
-func RecordWebSocketDisconnect() {
-	WebSocketConnections.Add(-1)
-}
-
 // RecordLatency records a latency observation
 func (lt *latencyTracker) RecordLatency(d time.Duration) {
 	if !metricsEnabled {
@@ -141,9 +130,6 @@ func MetricsHandler() http.HandlerFunc {
 		writeMetric(w, "gemini_requests_total", "counter", GeminiRequestsTotal.Load())
 		writeMetric(w, "deepgram_requests_total", "counter", DeepgramRequestsTotal.Load())
 		writeMetric(w, "transcribe_requests_total", "counter", TranscribeRequestsTotal.Load())
-
-		// Gauges
-		writeMetric(w, "active_websocket_connections", "gauge", WebSocketConnections.Load())
 
 		// Severity breakdown
 		fraudSeverityMu.RLock()

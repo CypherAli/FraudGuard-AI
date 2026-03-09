@@ -39,7 +39,10 @@ type AlertMessage struct {
 	Timestamp     int64    `json:"timestamp"`
 	Message       string   `json:"message"`        // Human-readable message
 	DeepfakeScore int      `json:"deepfake_score"` // 0-100, higher = more likely deepfake
-	PhoneNumber   string   `json:"phone_number,omitempty"` // Set for pending_report — số cần xác nhận chặn
+	PhoneNumber   string   `json:"phone_number,omitempty"`  // Set for pending_report
+	// TopReasons: top scoring signals shown to user in notification body
+	// e.g. ["\"chuyển tiền\" (+25đ)", "\"công an\" (+20đ)", "Giọng AI (+30đ)"]
+	TopReasons    []string `json:"top_reasons,omitempty"`
 }
 
 // ReportRequest represents a user report of fraudulent number

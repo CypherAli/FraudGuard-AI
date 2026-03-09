@@ -83,10 +83,11 @@ namespace FraudGuardAI
             // Subscribe to service events (paired with unsubscribe in OnDisappearing)
             if (_audioService != null)
             {
-                _audioService.AlertReceived += OnAlertReceived;
-                _audioService.ErrorOccurred += OnErrorOccurred;
+                _audioService.AlertReceived          += OnAlertReceived;
+                _audioService.ErrorOccurred          += OnErrorOccurred;
                 _audioService.ConnectionStatusChanged += OnConnectionStatusChanged;
-                _audioService.SessionExpired += OnSessionExpiredFromService;
+                _audioService.SessionExpired         += OnSessionExpiredFromService;
+                _audioService.PendingReportReceived  += OnPendingReportReceived;
             }
             LocalizationResourceManager.Instance.PropertyChanged += _locChangeHandler;
 
@@ -108,10 +109,11 @@ namespace FraudGuardAI
             // Unsubscribe to prevent memory leaks when page goes to background
             if (_audioService != null)
             {
-                _audioService.AlertReceived -= OnAlertReceived;
-                _audioService.ErrorOccurred -= OnErrorOccurred;
+                _audioService.AlertReceived          -= OnAlertReceived;
+                _audioService.ErrorOccurred          -= OnErrorOccurred;
                 _audioService.ConnectionStatusChanged -= OnConnectionStatusChanged;
-                _audioService.SessionExpired -= OnSessionExpiredFromService;
+                _audioService.SessionExpired         -= OnSessionExpiredFromService;
+                _audioService.PendingReportReceived  -= OnPendingReportReceived;
                 if (_pcmDataHandler != null)
                     _audioService.PcmDataAvailable -= _pcmDataHandler;
             }
@@ -959,6 +961,23 @@ namespace FraudGuardAI
                     System.Diagnostics.Debug.WriteLine($"[MainPage] Alert processing error: {ex.Message}");
                 }
             });
+        }
+
+        private void OnPendingReportReceived(object? sender, Models.PendingReportEventArgs e)
+        {
+            try
+            {
+#if ANDROID
+                var ctx = global::Android.App.Application.Context;
+                Platforms.Android.Services.AlertNotificationHelper.ShowPendingReportNotification(
+                    ctx, e.PhoneNumber, e.Reason, e.Confidence);
+                System.Diagnostics.Debug.WriteLine($"[MainPage] Pending report notification shown for {e.PhoneNumber}");
+#endif
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainPage] OnPendingReportReceived error: {ex.Message}");
+            }
         }
 
         private void OnErrorOccurred(object? sender, Services.ErrorEventArgs e)

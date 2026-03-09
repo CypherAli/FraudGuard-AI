@@ -106,47 +106,41 @@ func ImportBlacklist(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// checkConsensusVerification checks if a phone number has enough reports to auto-verify.
-// Consensus threshold: 3+ unique reports → confidence_score elevated to 0.95 (verified).
-// Uses existing schema columns: reported_count and confidence_score (no 'verified' column).
+// checkConsensusVerification atomically upgrades confidence when ≥3 reports exist.
+// Single UPDATE … RETURNING eliminates the SELECT→UPDATE race condition where two
+// concurrent reports could both see reported_count=2 and both trigger auto-verify.
 func checkConsensusVerification(phoneNumber string) bool {
 	if db.Pool == nil {
 		return false
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var reportedCount int
-	var confidenceScore float64
-
+	// Atomic: only upgrades when threshold is actually crossed, returns new values.
+	// confidence_score < 0.95 guard prevents redundant updates on already-verified numbers.
+	var newCount int
+	var newScore float64
 	err := db.Pool.QueryRow(ctx,
-		`SELECT reported_count, confidence_score FROM blacklist WHERE phone_number = $1`,
+		`UPDATE blacklist
+		 SET confidence_score = CASE
+		       WHEN reported_count >= 3 AND confidence_score < 0.95 THEN 0.95
+		       ELSE confidence_score
+		     END,
+		     updated_at = NOW()
+		 WHERE phone_number = $1
+		 RETURNING reported_count, confidence_score`,
 		phoneNumber,
-	).Scan(&reportedCount, &confidenceScore)
+	).Scan(&newCount, &newScore)
 
 	if err != nil {
+		// Phone not yet in blacklist — ProcessFraudReport handles insertion
 		return false
 	}
 
-	// Already at high-confidence (auto-verified previously)
-	if confidenceScore >= 0.95 {
+	if newScore >= 0.95 {
+		log.Printf("✅ [Consensus] %s auto-verified (reports=%d, confidence=%.2f)", phoneNumber, newCount, newScore)
 		return true
 	}
-
-	// Check consensus threshold (3+ reports = high confidence / verified)
-	if reportedCount >= 3 {
-		_, err := db.Pool.Exec(ctx,
-			`UPDATE blacklist SET confidence_score = 0.95, updated_at = NOW() WHERE phone_number = $1`,
-			phoneNumber,
-		)
-		if err != nil {
-			log.Printf("⚠️ Failed to auto-verify %s: %v", phoneNumber, err)
-			return false
-		}
-		log.Printf("✅ Auto-verified %s (consensus: %d reports, confidence → 0.95)", phoneNumber, reportedCount)
-		return true
-	}
-
 	return false
 }

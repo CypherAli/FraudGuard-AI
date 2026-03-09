@@ -52,7 +52,6 @@ type WebSocketConfig struct {
 type AIConfig struct {
 	DeepgramAPIKey string
 	GeminiAPIKey   string
-	VectorDBURL    string
 	// AWS Amazon Transcribe — fallback STT khi Deepgram circuit breaker open
 	AWSAccessKeyID     string
 	AWSSecretAccessKey string
@@ -117,7 +116,6 @@ func Load() (*Config, error) {
 		AI: AIConfig{
 			DeepgramAPIKey:     getEnv("DEEPGRAM_API_KEY", ""),
 			GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
-			VectorDBURL:        getEnv("VECTOR_DB_URL", ""),
 			AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
 			AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
 			AWSRegion:          getEnv("AWS_REGION", "ap-southeast-1"),
