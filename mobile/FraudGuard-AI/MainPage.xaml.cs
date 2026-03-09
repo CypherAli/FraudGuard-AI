@@ -327,16 +327,25 @@ namespace FraudGuardAI
             }
             else
             {
-                if (!await PermissionManager.RequestAllPermissionsAsync())
+                try
                 {
-                    await DisplayAlert(
-                        T("Main_PermissionTitle"),
-                        T("Main_PermissionMessage"),
-                        T("Common_OK")
-                    );
-                    return;
+                    if (!await PermissionManager.RequestAllPermissionsAsync())
+                    {
+                        await DisplayAlert(
+                            T("Main_PermissionTitle"),
+                            T("Main_PermissionMessage"),
+                            T("Common_OK")
+                        );
+                        return;
+                    }
+                    await StartProtectionAsync();
                 }
-                await StartProtectionAsync();
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] OnToggleProtectionClicked error: {ex.Message}");
+                    _isConnecting = false;
+                    UpdateProtectionUI(false);
+                }
             }
         }
 
@@ -525,10 +534,9 @@ namespace FraudGuardAI
             if (_isConnecting) return;
 
             _isConnecting = true;
-            UpdateProtectionUI(false, connecting: true);
-
             try
             {
+                UpdateProtectionUI(false, connecting: true);
                 // Validate token with server BEFORE attempting WebSocket.
                 // Catches expired/invalid tokens early (e.g. after Render.com cold-restart).
                 bool tokenValid = await ValidateTokenWithServerAsync();

@@ -86,7 +86,16 @@ namespace FraudGuardAI.Helpers
         public static async Task<bool> RequestAllPermissionsAsync()
         {
             // Request microphone permission
-            bool hasMicrophone = await RequestMicrophonePermissionAsync();
+            bool hasMicrophone;
+            try
+            {
+                hasMicrophone = await RequestMicrophonePermissionAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PermissionManager] Microphone permission error: {ex.Message}");
+                return false;
+            }
             if (!hasMicrophone)
                 return false;
             
