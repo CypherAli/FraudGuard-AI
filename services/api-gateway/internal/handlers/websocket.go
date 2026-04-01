@@ -4,12 +4,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/fraudguard/api-gateway/internal/hub"
 	"github.com/gorilla/websocket"
 )
+
+// deviceIDRegexp enforces safe device_id format: alphanumeric + hyphens/underscores, 8-64 chars.
+// Prevents log injection, path traversal, and ensures per-device map keys are bounded.
+var deviceIDRegexp = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,64}$`)
 
 // checkWebSocketOrigin validates the WebSocket origin against CORS_ALLOWED_ORIGIN env var.
 // If CORS_ALLOWED_ORIGIN is "*" or unset, all origins are allowed (development mode).
@@ -73,23 +78,30 @@ var upgrader = websocket.Upgrader{
 
 // ServeWs handles websocket requests from the peer
 func ServeWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
-	// Validate bearer token — accept from Authorization header or ?token= query param
+	// Extract device_id first — needed for token-device binding check below
+	deviceID := r.URL.Query().Get("device_id")
+	if deviceID == "" {
+		http.Error(w, `{"success":false,"error":"device_id is required"}`, http.StatusBadRequest)
+		log.Println("⛔ WebSocket rejected: missing device_id")
+		return
+	}
+	// Validate format: prevent log injection, path traversal, unbounded map keys
+	if !deviceIDRegexp.MatchString(deviceID) {
+		http.Error(w, `{"success":false,"error":"invalid device_id format (8-64 alphanumeric/_/-)"}`, http.StatusBadRequest)
+		log.Printf("⛔ WebSocket rejected: invalid device_id format: %q", deviceID[:min(len(deviceID), 16)])
+		return
+	}
+
+	// Validate bearer token AND enforce token-device binding
+	// Accept from Authorization header or ?token= query param
 	// (WebSocket clients cannot set custom headers in some implementations)
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if token == "" {
 		token = r.URL.Query().Get("token")
 	}
-	if !ValidateToken(token) {
-		http.Error(w, `{"success":false,"error":"Unauthorized — invalid or missing token"}`, http.StatusUnauthorized)
-		log.Println("⛔ WebSocket rejected: invalid token")
-		return
-	}
-
-	// Extract device_id from query parameters
-	deviceID := r.URL.Query().Get("device_id")
-	if deviceID == "" {
-		http.Error(w, "device_id is required", http.StatusBadRequest)
-		log.Println("⛔ WebSocket connection rejected: missing device_id")
+	if !ValidateTokenForDevice(token, deviceID) {
+		http.Error(w, `{"success":false,"error":"Unauthorized — invalid token or device mismatch"}`, http.StatusUnauthorized)
+		log.Printf("⛔ WebSocket rejected: invalid token or device mismatch for device=%s", deviceID)
 		return
 	}
 

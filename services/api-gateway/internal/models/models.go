@@ -31,14 +31,18 @@ type Blacklist struct {
 // AlertMessage represents a fraud alert sent to client
 // Fields are designed to match mobile app's expected JSON format
 type AlertMessage struct {
-	Type          string   `json:"type"`           // Always "alert" - required for mobile to recognize
-	AlertType     string   `json:"alert_type"`     // CRITICAL, HIGH, MEDIUM, LOW
+	Type          string   `json:"type"`           // "alert" | "pending_report"
+	AlertType     string   `json:"alert_type"`     // CRITICAL, HIGH, MEDIUM, LOW, PENDING
 	Confidence    float64  `json:"confidence"`     // 0.0-1.0 (converted from RiskScore)
 	Transcript    string   `json:"transcript"`     // Latest transcript that triggered alert
 	Keywords      []string `json:"keywords"`       // Detected fraud keywords/patterns
 	Timestamp     int64    `json:"timestamp"`
 	Message       string   `json:"message"`        // Human-readable message
 	DeepfakeScore int      `json:"deepfake_score"` // 0-100, higher = more likely deepfake
+	PhoneNumber   string   `json:"phone_number,omitempty"`  // Set for pending_report
+	// TopReasons: top scoring signals shown to user in notification body
+	// e.g. ["\"chuyển tiền\" (+25đ)", "\"công an\" (+20đ)", "Giọng AI (+30đ)"]
+	TopReasons    []string `json:"top_reasons,omitempty"`
 }
 
 // ReportRequest represents a user report of fraudulent number

@@ -68,11 +68,12 @@ func AutoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_device_id  ON call_logs(device_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_created_at ON call_logs(created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_call_logs_is_fraud   ON call_logs(is_fraud)`,
-		// sessions: persists auth tokens across server restarts (Render free tier spins down)
+		// sessions: persists auth tokens across server restarts
 		`CREATE TABLE IF NOT EXISTS sessions (
-			token      VARCHAR(64) PRIMARY KEY,
+			token      VARCHAR(64)  PRIMARY KEY,
 			email      VARCHAR(255) NOT NULL,
 			user_id    VARCHAR(64)  NOT NULL,
+			device_id  VARCHAR(64)  NOT NULL DEFAULT '',
 			created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 			expires_at TIMESTAMPTZ  NOT NULL
 		)`,
@@ -99,6 +100,8 @@ func AutoMigrate() error {
 	// ── Step 3: Add any missing columns (idempotent ALTER TABLE) ───────────
 	// Needed when table existed from an older schema without these columns.
 	alterStatements := []string{
+		// sessions: add device_id for token-device binding (backward-compat default '')
+		`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_id VARCHAR(64) NOT NULL DEFAULT ''`,
 		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS status            VARCHAR(20)    DEFAULT 'active'`,
 		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS first_reported_at TIMESTAMP      DEFAULT NOW()`,
 		`ALTER TABLE blacklist ADD COLUMN IF NOT EXISTS last_reported_at  TIMESTAMP      DEFAULT NOW()`,

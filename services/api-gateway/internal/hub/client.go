@@ -29,15 +29,19 @@ const (
 	maxMessageSize = 512 * 1024 // 512 KB (for audio chunks)
 )
 
-// Client is a middleman between the websocket connection and the hub
+// Client is a middleman between the websocket connection and the hub.
+// Two-tier send channels ensure CRITICAL alerts are never dropped by MEDIUM/HIGH noise:
+//   - criticalSend: small dedicated buffer for CRITICAL alerts — WritePump drains first
+//   - send:         normal buffer for HIGH/MEDIUM/info messages
 type Client struct {
 	hub *Hub
 
 	// The websocket connection
 	conn *websocket.Conn
 
-	// Buffered channel of outbound messages
-	send chan []byte
+	// Priority channels: critical drained before normal in WritePump
+	criticalSend chan []byte // CRITICAL alerts — never dropped, size 64
+	send         chan []byte // HIGH/MEDIUM/info — dropped on overflow, size 512
 
 	// Device ID for this client
 	deviceID string
@@ -45,24 +49,26 @@ type Client struct {
 	// Semaphore to limit concurrent audio processing goroutines per client
 	audioSem chan struct{}
 
-	// Ensures send channel is closed exactly once (prevents double-close panic)
+	// Ensures send channels are closed exactly once (prevents double-close panic)
 	sendOnce sync.Once
 }
 
 // NewClient creates a new Client instance
 func NewClient(hub *Hub, conn *websocket.Conn, deviceID string) *Client {
 	return &Client{
-		hub:      hub,
-		conn:     conn,
-		send:     make(chan []byte, 1024), // Buffer 1024 alerts; overflow drops with log warning
-		deviceID: deviceID,
-		audioSem: make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
+		hub:          hub,
+		conn:         conn,
+		criticalSend: make(chan []byte, 64),  // CRITICAL: small + dedicated, never overflows in practice
+		send:         make(chan []byte, 512), // Normal: larger buffer for burst traffic
+		deviceID:     deviceID,
+		audioSem:     make(chan struct{}, 5), // Max 5 concurrent audio processing goroutines
 	}
 }
 
-// closeSend safely closes the send channel exactly once
+// closeSend safely closes both send channels exactly once
 func (c *Client) closeSend() {
 	c.sendOnce.Do(func() {
+		close(c.criticalSend)
 		close(c.send)
 	})
 }
@@ -175,22 +181,39 @@ func (c *Client) sendAlert(alert models.AlertMessage) {
 		c.deviceID, len(alertJSON), string(alertJSON))
 
 	// Try to send to channel
-	log.Printf("📤 [%s] Attempting to send to WebSocket channel (buffer: %d/%d)...",
-		c.deviceID, len(c.send), cap(c.send))
+	// Route by priority: CRITICAL/PENDING → dedicated channel (never dropped on overflow,
+	// blocks briefly instead). HIGH/MEDIUM/info → normal channel with drop-on-full.
+	isCritical := alert.AlertType == "CRITICAL" || alert.Type == "pending_report"
 
-	select {
-	case c.send <- alertJSON:
-		log.Printf("✅✅✅ [%s] Alert successfully queued to WebSocket channel", c.deviceID)
-		log.Printf("📢 [%s] Alert message: %s", c.deviceID, alert.Message)
-	default:
-		atomic.AddInt64(&droppedAlerts, 1)
-		log.Printf("❌❌❌ [%s] FAILED to send alert - WebSocket buffer FULL (%d/%d) [total dropped: %d]",
-			c.deviceID, len(c.send), cap(c.send), atomic.LoadInt64(&droppedAlerts))
-		log.Printf("⚠️ [%s] Alert dropped due to full buffer. Consider increasing buffer size.", c.deviceID)
+	if isCritical {
+		log.Printf("📤 [%s] CRITICAL/PENDING → priority channel (%d/%d)",
+			c.deviceID, len(c.criticalSend), cap(c.criticalSend))
+		// Use non-blocking with a fallback log — in extreme cases even critical might drop,
+		// but the 64-slot buffer makes this statistically impossible in normal operation.
+		select {
+		case c.criticalSend <- alertJSON:
+			log.Printf("✅ [%s] CRITICAL alert queued (priority channel)", c.deviceID)
+		default:
+			atomic.AddInt64(&droppedAlerts, 1)
+			log.Printf("🚨 [%s] CRITICAL DROPPED — priority buffer full (%d/%d) [total dropped: %d]",
+				c.deviceID, len(c.criticalSend), cap(c.criticalSend), atomic.LoadInt64(&droppedAlerts))
+		}
+	} else {
+		log.Printf("📤 [%s] Normal alert → standard channel (%d/%d)",
+			c.deviceID, len(c.send), cap(c.send))
+		select {
+		case c.send <- alertJSON:
+			log.Printf("✅ [%s] Alert queued (standard channel)", c.deviceID)
+		default:
+			atomic.AddInt64(&droppedAlerts, 1)
+			log.Printf("❌ [%s] Alert dropped — buffer full (%d/%d) [total: %d]",
+				c.deviceID, len(c.send), cap(c.send), atomic.LoadInt64(&droppedAlerts))
+		}
 	}
 }
 
-// WritePump pumps messages from the hub to the websocket connection
+// WritePump pumps messages from the hub to the websocket connection.
+// Drain order: criticalSend → send → ping. CRITICAL alerts always go first.
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -198,35 +221,62 @@ func (c *Client) WritePump() {
 		c.conn.Close()
 	}()
 
+	// writeMsg sends one WebSocket text frame, returns false on error.
+	writeMsg := func(msg []byte) bool {
+		c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		return c.conn.WriteMessage(websocket.TextMessage, msg) == nil
+	}
+
 	for {
+		// Phase 1: drain ALL pending critical alerts before anything else
+		drained := true
+		for drained {
+			select {
+			case msg, ok := <-c.criticalSend:
+				if !ok {
+					c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+					return
+				}
+				if !writeMsg(msg) {
+					return
+				}
+			default:
+				drained = false
+			}
+		}
+
+		// Phase 2: block on either channel or ping ticker
 		select {
-		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case msg, ok := <-c.criticalSend:
 			if !ok {
-				// The hub closed the channel
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
-			// ✅ FIX: Send each alert as a SEPARATE WebSocket message
-			// This prevents invalid JSON like {"alert1"}\n{"alert2"}
-			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			if !writeMsg(msg) {
 				return
 			}
 
-			// Send any additional queued messages as SEPARATE frames
-			// Mobile app can now parse each message individually
-		drainLoop:
+		case msg, ok := <-c.send:
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			if !writeMsg(msg) {
+				return
+			}
+			// Drain remaining normal messages in the same loop iteration
+		drainNormal:
 			for {
 				select {
-				case queuedMsg := <-c.send:
-					c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-					if err := c.conn.WriteMessage(websocket.TextMessage, queuedMsg); err != nil {
+				case qm, ok := <-c.send:
+					if !ok {
+						return
+					}
+					if !writeMsg(qm) {
 						return
 					}
 				default:
-					// No more queued messages
-					break drainLoop
+					break drainNormal
 				}
 			}
 

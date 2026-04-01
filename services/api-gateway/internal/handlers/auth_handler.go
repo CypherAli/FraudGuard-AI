@@ -24,15 +24,14 @@ import (
 // OTP storage (in-memory for simplicity, use Redis/DB for production)
 type OTPEntry struct {
 	Code      string
-	Email     string
 	ExpiresAt time.Time
-	Verified  bool
 }
 
 // Session token storage
 type SessionEntry struct {
 	Email     string
 	Token     string
+	DeviceID  string // device that created this session
 	CreatedAt time.Time
 	ExpiresAt time.Time
 }
@@ -68,8 +67,9 @@ type SendOTPRequest struct {
 
 // VerifyOTPRequest is the request body for verifying OTP
 type VerifyOTPRequest struct {
-	Email string `json:"email"`
-	OTP   string `json:"otp"`
+	Email    string `json:"email"`
+	OTP      string `json:"otp"`
+	DeviceID string `json:"device_id"` // Optional: bind session to device for WS auth
 }
 
 // isValidEmail returns true if email is a syntactically valid RFC 5322 address.
@@ -94,8 +94,8 @@ func isValidEmail(email string) bool {
 	return strings.Contains(domain, ".") // at least one dot in domain
 }
 
-// GenerateOTP generates a 6-digit OTP using cryptographic random
-func GenerateOTP() (string, error) {
+// generateOTP generates a 6-digit OTP using cryptographic random
+func generateOTP() (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate OTP: %w", err)
@@ -224,7 +224,7 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate OTP
-	otp, err := GenerateOTP()
+	otp, err := generateOTP()
 	if err != nil {
 		log.Printf("❌ [Auth] Failed to generate OTP: %v", err)
 		sendJSONError(w, "Lỗi hệ thống. Vui lòng thử lại.", http.StatusInternalServerError)
@@ -236,9 +236,7 @@ func SendOTP(w http.ResponseWriter, r *http.Request) {
 	otpMutex.Lock()
 	otpStore[email] = &OTPEntry{
 		Code:      otp,
-		Email:     email,
 		ExpiresAt: expiresAt,
-		Verified:  false,
 	}
 	otpMutex.Unlock()
 
@@ -315,20 +313,18 @@ func VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark as verified and generate session token
-	otpMutex.Lock()
-	entry.Verified = true
-	otpMutex.Unlock()
+	// Bind session to device_id if provided (enables per-device WS auth)
+	deviceID := strings.TrimSpace(req.DeviceID)
 
 	// Generate a session token and store it
-	sessionToken, err := generateSessionToken(email)
+	sessionToken, err := generateSessionToken(email, deviceID)
 	if err != nil {
 		log.Printf("❌ [Auth] Failed to generate session token: %v", err)
 		sendJSONError(w, "Lỗi hệ thống. Vui lòng thử lại.", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("✅ [Auth] OTP verified for %s", email)
+	log.Printf("✅ [Auth] OTP verified for %s (device=%s)", email, deviceID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -460,7 +456,7 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func generateSessionToken(email string) (string, error) {
+func generateSessionToken(email, deviceID string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("failed to generate session token: %w", err)
@@ -474,6 +470,7 @@ func generateSessionToken(email string) (string, error) {
 	sessionStore[token] = &SessionEntry{
 		Email:     email,
 		Token:     token,
+		DeviceID:  deviceID,
 		CreatedAt: time.Now(),
 		ExpiresAt: expiresAt,
 	}
@@ -484,10 +481,10 @@ func generateSessionToken(email string) (string, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		_, err := db.Pool.Exec(ctx,
-			`INSERT INTO sessions (token, email, user_id, created_at, expires_at)
-			 VALUES ($1, $2, $3, NOW(), $4)
+			`INSERT INTO sessions (token, email, user_id, device_id, created_at, expires_at)
+			 VALUES ($1, $2, $3, $4, NOW(), $5)
 			 ON CONFLICT (token) DO NOTHING`,
-			token, email, userID, expiresAt,
+			token, email, userID, deviceID, expiresAt,
 		)
 		if err != nil {
 			log.Printf("⚠️  [Auth] Failed to persist session to DB: %v", err)
@@ -496,6 +493,71 @@ func generateSessionToken(email string) (string, error) {
 	}
 
 	return token, nil
+}
+
+// ValidateTokenForDevice checks token validity AND optionally verifies it belongs to deviceID.
+// If the session has no device_id stored (legacy sessions), validation passes for backward compat.
+func ValidateTokenForDevice(token, deviceID string) bool {
+	if token == "" {
+		return false
+	}
+
+	// Fast path: in-memory cache
+	sessionMutex.RLock()
+	session, exists := sessionStore[token]
+	sessionMutex.RUnlock()
+	if exists {
+		if time.Now().After(session.ExpiresAt) {
+			sessionMutex.Lock()
+			delete(sessionStore, token)
+			sessionMutex.Unlock()
+			return false
+		}
+		// Device check: if session was bound to a specific device, enforce it
+		if session.DeviceID != "" && session.DeviceID != deviceID {
+			log.Printf("⛔ [Auth] Token-device mismatch: session.DeviceID=%s request.DeviceID=%s",
+				session.DeviceID, deviceID)
+			return false
+		}
+		return true
+	}
+
+	// Cache miss → check PostgreSQL
+	if db.Pool == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var email, storedDeviceID string
+	var expiresAt time.Time
+	err := db.Pool.QueryRow(ctx,
+		`SELECT email, COALESCE(device_id,''), expires_at
+		 FROM sessions WHERE token = $1 AND expires_at > NOW()`,
+		token,
+	).Scan(&email, &storedDeviceID, &expiresAt)
+	if err != nil {
+		return false
+	}
+
+	// Device check on DB-restored session
+	if storedDeviceID != "" && storedDeviceID != deviceID {
+		log.Printf("⛔ [Auth] Token-device mismatch (DB): stored=%s request=%s", storedDeviceID, deviceID)
+		return false
+	}
+
+	// Warm up in-memory cache
+	sessionMutex.Lock()
+	sessionStore[token] = &SessionEntry{
+		Email:     email,
+		Token:     token,
+		DeviceID:  storedDeviceID,
+		CreatedAt: time.Now(),
+		ExpiresAt: expiresAt,
+	}
+	sessionMutex.Unlock()
+	log.Printf("🔄 [Auth] Session restored from DB for %s device=%s (cache miss)", email, storedDeviceID)
+	return true
 }
 
 // generateUserID derives a stable, deterministic user ID from the email address.

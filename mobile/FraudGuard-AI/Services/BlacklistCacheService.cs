@@ -32,8 +32,17 @@ namespace FraudGuardAI.Services
 
         private BlacklistCacheService()
         {
+            // Fire-and-forget — callers that need a fully loaded cache should
+            // await InitializeAsync() before the first IsBlacklisted() call.
             _ = LoadCacheAsync();
         }
+
+        /// <summary>
+        /// Awaitable init: blocks until the local SecureStorage cache is loaded.
+        /// Call this from MainPage.OnAppearing() to eliminate the 200ms false-negative window
+        /// where IsBlacklisted() returns false before LoadCacheAsync completes.
+        /// </summary>
+        public Task InitializeAsync() => LoadCacheAsync();
 
         /// <summary>
         /// Check if a phone number is blacklisted (fast local check)

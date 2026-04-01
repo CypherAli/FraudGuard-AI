@@ -22,6 +22,17 @@
             android:name=".Platforms.Android.Services.OverlayService"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- BroadcastReceiver xử lý nút [Xác nhận chặn] / [Bỏ qua] từ pending_report notification -->
+        <receiver
+            android:name=".Platforms.Android.Services.ReportConfirmReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.fraudguard.ACTION_CONFIRM_REPORT" />
+                <action android:name="com.fraudguard.ACTION_IGNORE_REPORT" />
+            </intent-filter>
+        </receiver>
     </application>
     
     <!-- Quyền ghi âm (BẮT BUỘC) -->

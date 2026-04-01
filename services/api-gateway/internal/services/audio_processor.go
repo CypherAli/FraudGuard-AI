@@ -337,9 +337,14 @@ func ProcessAudioStream(deviceID string, audioData []byte, sendAlert func(models
 
 	log.Printf("[%s] Flushing audio buffer: %d bytes (%.1fs accumulated)", deviceID, len(flushData), timeSinceFlush.Seconds())
 
-	// Fast-path: nếu cả 2 STT đều OPEN thì skip ngay (dùng IsOpen để không consume HalfOpen slot)
-	if DeepgramCircuitBreaker.IsOpen() && (GlobalTranscribeClient == nil || !GlobalTranscribeClient.IsEnabled() || TranscribeCircuitBreaker.IsOpen()) {
-		log.Printf("[%s] Both STT circuit breakers OPEN - skipping request", deviceID)
+	// Fast-path: skip only when BOTH STT providers are unavailable.
+	// Use IsOpen() (not Allow()) here to avoid consuming a HalfOpen probe slot.
+	deepgramDown := DeepgramCircuitBreaker.IsOpen()
+	transcribeDown := GlobalTranscribeClient == nil ||
+		!GlobalTranscribeClient.IsEnabled() ||
+		TranscribeCircuitBreaker.IsOpen()
+	if deepgramDown && transcribeDown {
+		log.Printf("[%s] Both STT circuit breakers OPEN — skipping chunk", deviceID)
 		return
 	}
 

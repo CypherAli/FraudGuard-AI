@@ -70,6 +70,11 @@ namespace FraudGuardAI.Services
         /// Key messages: "PSTN_DETECTED" (regular call — no VoIP audio after 8s).
         /// </summary>
         public event Action<string>? VoipStatusChanged;
+
+        /// <summary>
+        /// AI phát hiện lừa đảo và muốn report số điện thoại — cần user xác nhận.
+        /// </summary>
+        public event EventHandler<Models.PendingReportEventArgs>? PendingReportReceived;
         
         /// <summary>
         /// Check if currently streaming audio
@@ -796,6 +801,22 @@ namespace FraudGuardAI.Services
                     return; // transcript_preview xử lý xong — không fall through
                 }
 
+                // ── Pending report — AI muốn chặn số nhưng cần user xác nhận ─────────
+                if (typeStr == "pending_report")
+                {
+                    var phone  = root.TryGetProperty("phone_number", out var phEl) ? phEl.GetString() ?? "" : "";
+                    var reason = root.TryGetProperty("message",      out var mgEl) ? mgEl.GetString() ?? "" : "";
+                    var conf   = root.TryGetProperty("confidence",   out var cfEl) && cfEl.ValueKind == JsonValueKind.Number
+                                     ? cfEl.GetDouble() : 0.0;
+
+                    if (!string.IsNullOrEmpty(phone))
+                    {
+                        Log.Info(TAG, $"📋 [AudioService] Pending report received for {phone}");
+                        OnPendingReportReceived(new Models.PendingReportEventArgs(phone, reason, conf));
+                    }
+                    return;
+                }
+
                 // ── Full alert từ backend (sau khi FraudDetector + Gemini hoàn thành) ─
                 if (typeStr != "alert")
                     return; // Not an alert message, ignore
@@ -903,6 +924,11 @@ namespace FraudGuardAI.Services
         protected virtual void OnAlertReceived(AlertData alert)
         {
             AlertReceived?.Invoke(this, new AlertEventArgs(alert));
+        }
+
+        protected virtual void OnPendingReportReceived(Models.PendingReportEventArgs args)
+        {
+            PendingReportReceived?.Invoke(this, args);
         }
 
         protected virtual void OnError(string message, Exception? ex)

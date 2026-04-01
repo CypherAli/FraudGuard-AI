@@ -38,6 +38,11 @@ mobile/FraudGuard-AI/Platforms/Android/google-services.json
 # Claude editor worktrees (local only)
 .claude/worktrees/
 
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
 # Temp / OS artifacts
 nul
 Thumbs.db
